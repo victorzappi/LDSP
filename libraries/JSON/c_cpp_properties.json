@@ -1,0 +1,26 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                //"${workspaceFolder}/include/*",
+                //"${workspaceFolder}/libraries/**",
+                "/home/vic/Documents/Boston/Northeastern/research/lineageDSP/LineageOS_repos/cm-14.1/android_external_tinyalsa/include"
+            ],
+            "defines": [],
+            "compilerPath": "/home/vic/Documents/Boston/Northeastern/research/lineageDSP/ndks/android-ndk-r25-linux/android-ndk-r25/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "linux-clang-arm",
+            "compilerArgs": [
+                "-target",
+                "armv7a-linux-androideabi24",
+                "-lm",
+                "-pthread",
+                "-ffast-math"
+            ]
+        }
+    ],
+    "version": 4
+}

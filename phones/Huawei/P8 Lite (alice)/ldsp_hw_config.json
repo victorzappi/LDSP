@@ -1,0 +1,41 @@
+{
+	"device": "HTC P8 Lite",
+	"target architecture": "aarch64",
+	"supports neon floating point unit": "true",
+	"mixer settings":
+	{
+		"mixer paths xml file": "/system/etc/audio/hissc/mixer_paths_ALICEPA.xml",
+		"mixer volumes xml file": "/system/etc/audio/hissc/mixer_volumes_ALICEPA_normal.xml",
+		"playback path names":
+		{ 
+			"line-out": "media-headphone",
+			"speaker": "media-speaker",
+			"handset": "media-earpiece"
+		},
+		"capture path names":
+		{
+			"line-in": "communication-headset-mic",
+		   	"mic": "camcorder-mic",
+		   	"handset": "communication-mic"
+		},
+		"default playback device number": 0,
+		"default capture device number": 0,
+		"mixer playback device activation": "",
+		"mixer capture device activation": ""
+	},
+	"output devices":
+	{
+		"analog devices":
+		{
+			"lcd-backlight":
+			{
+				"control": "/sys/class/leds/lcd_backlight0/brightness",
+				"max": "/sys/class/leds/lcd_backlight0/max_brightness"
+			}
+		},
+		"digital devices":
+		{
+			"flashlight": "/sys/class/leds/torch/brightness"
+		}
+	},
+}
