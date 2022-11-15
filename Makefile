@@ -25,8 +25,11 @@ ifndef API_LEVEL # The target Android API level
 $(error API_LEVEL is not set)
 endif
 
-# TODO: load from hwconfig
-ARCH_FULL := armv7a
+# Hardware Config
+HW_CONFIG := ./phones/$(VENDOR)/$(MODEL)/ldsp_hw_config.json
+
+# Target Architecture
+ARCH_FULL := $(shell scripts/read_config.py "$(HW_CONFIG)" "target architecture")
 
 # ARCH_SHORT one of "arm", "aarch64", "i686", "x86_64"
 # EABI is either "" or the string "eabi"
@@ -35,6 +38,7 @@ ifneq (,$(findstring arm,$(ARCH_FULL)))
 	EABI := eabi
 else
 	ARCH_SHORT := $(ARCH_FULL)
+	EABI :=
 endif
 
 # Android Libraries
@@ -44,8 +48,11 @@ ANDROID_LIB_PATH := $(NDK)/toolchains/llvm/prebuilt/$(HOST)/sysroot/usr/lib/$(AR
 TARGET := $(ARCH_FULL)-linux-android$(EABI)$(API_LEVEL)
 
 # Support for NEON floating-point unit
-# TODO: load from hwconfig
-NEON := -mfpu=neon-fp-armv8
+ifeq ($(shell scripts/read_config.py "$(HW_CONFIG)" "supports neon floating point unit"), "True")
+	NEON := -mfpu=neon-fp-armv8
+else
+	NEON :=
+endif
 
 # Compiler Flags
 CXXFLAGS := -target $(TARGET) $(NEON) -g $(SOURCES) -o $(BUILD_DIR)/ldsp $(INCLUDES) -DAPI_LEVEL="$(API_LEVEL)" -L$(ANDROID_LIB_PATH) $(LIBRARIES) -ffast-math -static-libstdc++
