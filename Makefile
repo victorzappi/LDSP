@@ -1,16 +1,24 @@
+# Example Usage:
+#  export NDKPATH=/opt/homebrew/share/android-ndk
+#  make VENDOR=Huawei MODEL="P8 Lite (alice)" API_LEVEL=24
+
 # Project Layout
 BUILD_DIR := ./bin
-SOURCES := $(wildcard ./core/*.cpp) $(wildcard ./libraries/**/*.cpp) ./libraries/Bela/Biquad/Biquad.cpp
-INCLUDES := -I./include -I./libraries/tinyalsa/include -I./libraries/ -I./libraries -I.
+SOURCES := $(wildcard ./core/*.cpp) $(wildcard ./libraries/*/*.cpp) $(wildcard ./libraries/*/*/*.cpp)
+INCLUDES := -I./include -I./libraries/tinyalsa/include -I./libraries -I.
 LIBRARIES := -L./libraries/tinyalsa -lm -ltinyalsa -landroid
 
 # Compiler Paths
-NDK := /opt/homebrew/share/android-ndk# todo: this should be controlled via environment variable
+ifndef NDKPATH # The vendor of the phone
+$(error NDKPATH is not set)
+endif
+
 HOST_SYSTEM := $(shell uname -s | awk '{print tolower($0)}')
-HOST_ARCH := x86_64# Should maybe be (uname -m), but there's no darwin-arm64 support yet so my Mac runs this through Rosetta
+# Host architecture should maybe be (uname -m), but there's no darwin-arm64 support yet so my Mac runs this through Rosetta -BMC
+HOST_ARCH := x86_64
 HOST := $(HOST_SYSTEM)-$(HOST_ARCH)
-CC := $(NDK)/toolchains/llvm/prebuilt/$(HOST)/bin/clang
-CXX := $(NDK)/toolchains/llvm/prebuilt/$(HOST)/bin/clang++
+CC := $(NDKPATH)/toolchains/llvm/prebuilt/$(HOST)/bin/clang
+CXX := $(NDKPATH)/toolchains/llvm/prebuilt/$(HOST)/bin/clang++
 
 # Parameters
 ifndef VENDOR # The vendor of the phone
@@ -42,7 +50,7 @@ else
 endif
 
 # Android Libraries
-ANDROID_LIB_PATH := $(NDK)/toolchains/llvm/prebuilt/$(HOST)/sysroot/usr/lib/$(ARCH_SHORT)-linux-android$(EABI)/$(API_LEVEL)
+ANDROID_LIB_PATH := $(NDKPATH)/toolchains/llvm/prebuilt/$(HOST)/sysroot/usr/lib/$(ARCH_SHORT)-linux-android$(EABI)/$(API_LEVEL)
 
 # Compilation Target
 TARGET := $(ARCH_FULL)-linux-android$(EABI)$(API_LEVEL)

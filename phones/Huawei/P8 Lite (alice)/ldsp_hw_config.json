@@ -7,7 +7,7 @@
 		"mixer paths xml file": "/system/etc/audio/hissc/mixer_paths_ALICEPA.xml",
 		"mixer volumes xml file": "/system/etc/audio/hissc/mixer_volumes_ALICEPA_normal.xml",
 		"playback path names":
-		{ 
+		{
 			"line-out": "media-headphone",
 			"speaker": "media-speaker",
 			"handset": "media-earpiece"
@@ -37,5 +37,5 @@
 		{
 			"flashlight": "/sys/class/leds/torch/brightness"
 		}
-	},
+	}
 }
