@@ -9,7 +9,7 @@ INCLUDES := -I./include -I./libraries/tinyalsa/include -I./libraries -I.
 LIBRARIES := -L./libraries/tinyalsa -lm -ltinyalsa -landroid
 
 # Compiler Paths
-ifndef NDKPATH # The vendor of the phone
+ifndef NDKPATH # The path to the Android NDK installation on the host computer
 $(error NDKPATH is not set)
 endif
 
