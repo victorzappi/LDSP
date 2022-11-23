@@ -1,5 +1,5 @@
 # Example Usage:
-#  export NDKPATH=/opt/homebrew/share/android-ndk
+#  export TOOLCHAIN_PATH=/opt/homebrew/share/android-ndk/toolchains/llvm/prebuilt/darwin-x86_64
 #  make VENDOR=Huawei MODEL="P8 Lite (alice)" API_LEVEL=24
 
 # Project Layout
@@ -9,16 +9,12 @@ INCLUDES := -I./include -I./libraries/tinyalsa/include -I./libraries -I.
 LIBRARIES := -L./libraries/tinyalsa -lm -ltinyalsa -landroid
 
 # Compiler Paths
-ifndef NDKPATH # The path to the Android NDK installation on the host computer
-$(error NDKPATH is not set)
+ifndef TOOLCHAIN_PATH # Path to the NDK toolchain
+$(error TOOLCHAIN_PATH is not set)
 endif
 
-HOST_SYSTEM := $(shell uname -s | awk '{print tolower($0)}')
-# Host architecture should maybe be (uname -m), but there's no darwin-arm64 support yet so my Mac runs this through Rosetta -BMC
-HOST_ARCH := x86_64
-HOST := $(HOST_SYSTEM)-$(HOST_ARCH)
-CC := $(NDKPATH)/toolchains/llvm/prebuilt/$(HOST)/bin/clang
-CXX := $(NDKPATH)/toolchains/llvm/prebuilt/$(HOST)/bin/clang++
+CC := $(TOOLCHAIN_PATH)/bin/clang
+CXX := $(TOOLCHAIN_PATH)/bin/clang++
 
 # Parameters
 ifndef VENDOR # The vendor of the phone
@@ -37,7 +33,7 @@ endif
 HW_CONFIG := ./phones/$(VENDOR)/$(MODEL)/ldsp_hw_config.json
 
 # Target Architecture
-ARCH_FULL := $(shell scripts/read_config.py "$(HW_CONFIG)" "target architecture")
+ARCH_FULL := $(shell grep 'target architecture' "$(HW_CONFIG)" | cut -d \" -f 4)
 
 # ARCH_SHORT one of "arm", "aarch64", "i686", "x86_64"
 # EABI is either "" or the string "eabi"
@@ -50,13 +46,13 @@ else
 endif
 
 # Android Libraries
-ANDROID_LIB_PATH := $(NDKPATH)/toolchains/llvm/prebuilt/$(HOST)/sysroot/usr/lib/$(ARCH_SHORT)-linux-android$(EABI)/$(API_LEVEL)
+ANDROID_LIB_PATH := $(TOOLCHAIN_PATH)/sysroot/usr/lib/$(ARCH_SHORT)-linux-android$(EABI)/$(API_LEVEL)
 
 # Compilation Target
 TARGET := $(ARCH_FULL)-linux-android$(EABI)$(API_LEVEL)
 
 # Support for NEON floating-point unit
-ifeq ($(shell scripts/read_config.py "$(HW_CONFIG)" "supports neon floating point unit"), "True")
+ifeq ($(shellgrep 'target architecture' "$(HW_CONFIG)" | cut -d \" -f 4), "True")
 	NEON := -mfpu=neon-fp-armv8
 else
 	NEON :=
