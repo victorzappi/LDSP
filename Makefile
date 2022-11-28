@@ -81,7 +81,8 @@ obj/%.o: %.cpp
 .PHONY: push clean
 
 push:
-	adb push $(BUILD_DIR)/ldsp /data/devel/
+	adb push "$(HW_CONFIG)" /data/devel/ldsp_hw_config.json
+	adb push $(BUILD_DIR)/ldsp /data/devel/ldsp
 
 clean:
 	@rm -rf $(BUILD_DIR)
