@@ -13,7 +13,7 @@
 *.pch
 
 # Compiled Dynamic libraries
-# *.so we need tinyalsa.so
+*.so we need tinyalsa.so
 *.dylib
 *.dll
 

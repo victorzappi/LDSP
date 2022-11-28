@@ -235,7 +235,7 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
 	// _info about sensors [low prio, because we leverage android to access sensors... does it get the info from kernel?!]
 
     (*audioStruct)->pcm = nullptr;
-    (*audioStruct)->fd = NULL; // needs C's NULL
+    (*audioStruct)->fd = (int) NULL; // needs C's NULL
 
     if( audioVerbose && 
 		( is_playback || (!is_playback && fullDuplex) )

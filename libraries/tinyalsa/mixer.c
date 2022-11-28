@@ -39,7 +39,7 @@
 
 #include <linux/ioctl.h>
 #define __force
-#define __bitwise
+//#define __bitwise //VIC this is defined in sysroot/usr/include/linux/types.h:25 already
 #define __user
 #include <sound/asound.h>
 
