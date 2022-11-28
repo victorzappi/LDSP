@@ -2,12 +2,6 @@
 #  export TOOLCHAIN_PATH=/opt/homebrew/share/android-ndk/toolchains/llvm/prebuilt/darwin-x86_64
 #  make VENDOR=Huawei MODEL="P8 Lite (alice)" API_LEVEL=24
 
-# Project Layout
-BUILD_DIR := ./bin
-SOURCES := $(wildcard ./core/*.cpp) $(wildcard ./libraries/*/*.cpp) $(wildcard ./libraries/*/*/*.cpp)
-INCLUDES := -I./include -I./libraries/tinyalsa/include -I./libraries -I.
-LIBRARIES := -L./libraries/tinyalsa -lm -ltinyalsa -landroid
-
 # Compiler Paths
 ifndef TOOLCHAIN_PATH # Path to the NDK toolchain
 $(error TOOLCHAIN_PATH is not set)
@@ -58,17 +52,37 @@ else
 	NEON :=
 endif
 
+# Project Layout
+BUILD_DIR := ./bin
+INCLUDES := -I./include -I./libraries/tinyalsa/include -I./libraries -I.
+LIBRARIES := -lm -landroid -static-libstdc++ -L$(ANDROID_LIB_PATH)
+CSOURCES := $(wildcard core/*.c) $(wildcard libraries/*/*.c) $(wildcard libraries/*/*/*.c)
+CPPSOURCES := $(wildcard core/*.cpp) $(wildcard libraries/*/*.cpp) $(wildcard libraries/*/*/*.cpp)
+OBJECT_DIR = obj
+OBJECTS := $(addprefix $(OBJECT_DIR)/, $(CSOURCES:.c=.o) $(CPPSOURCES:.cpp=.o))
+
 # Compiler Flags
-CXXFLAGS := -target $(TARGET) $(NEON) -g $(SOURCES) -o $(BUILD_DIR)/ldsp $(INCLUDES) -DAPI_LEVEL="$(API_LEVEL)" -L$(ANDROID_LIB_PATH) $(LIBRARIES) -ffast-math -static-libstdc++
+CCFLAGS := -target $(TARGET) $(NEON) -ffast-math
+CPPFLAGS := $(INCLUDES) -DAPI_LEVEL="$(API_LEVEL)"
+CXXFLAGS := -target $(TARGET) $(NEON) -ffast-math
 
-all: clean build
+build: $(OBJECTS)
+	@mkdir  -p $(BUILD_DIR)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $(BUILD_DIR)/ldsp $^ $(LIBRARIES)
 
-build:
-	$(CXX) $(CXXFLAGS)
+obj/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CCFLAGS) -c $^ -o $@
+
+obj/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $^ -o $@
+
+.PHONY: push clean
 
 push:
 	adb push $(BUILD_DIR)/ldsp /data/devel/
 
 clean:
 	@rm -rf $(BUILD_DIR)
-	@mkdir $(BUILD_DIR)
+	@rm -rf $(OBJECT_DIR)
