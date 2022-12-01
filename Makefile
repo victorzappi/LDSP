@@ -55,37 +55,48 @@ else ifneq (,$(findstring $(NEON_SUPPORT), true yes 1 True Yes))
 endif
 
 # Project Layout
-BUILD_DIR := ./bin
+BUILD_DIR := ./bin/$(VENDOR)/$(MODEL)
 INCLUDES := -I./include -I./libraries/tinyalsa/include -I./libraries -I.
 LIBRARIES := -lm -landroid -static-libstdc++ -L$(ANDROID_LIB_PATH)
 CSOURCES := $(wildcard core/*.c) $(wildcard libraries/*/*.c) $(wildcard libraries/*/*/*.c)
 CPPSOURCES := $(wildcard core/*.cpp) $(wildcard libraries/*/*.cpp) $(wildcard libraries/*/*/*.cpp)
-OBJECT_DIR = obj
-OBJECTS := $(addprefix $(OBJECT_DIR)/, $(CSOURCES:.c=.o) $(CPPSOURCES:.cpp=.o))
+OBJECT_DIR := ./obj/$(VENDOR)/$(MODEL)
+
+# We can't use quotes to escape makefile rule names, so we backslash-escape all the spaces
+OBJECT_DIR_ESCAPED := $(subst $() ,\ ,$(OBJECT_DIR))
+# We define OBJECT_RULES with the escaping needed to reference the .o makefile rules
+# i.e., spaces backslash-escaped, parens not escaped
+OBJECT_RULES := $(addprefix $(OBJECT_DIR_ESCAPED)/, $(CSOURCES:.c=.o) $(CPPSOURCES:.cpp=.o))
+# We define OBJECT_PATHS with the escaping needed to pass the list of .o files to the linker
+# i.e., each path surrounded by quotes, no other escaping done
+OBJECT_PATHS := $(addprefix "$(OBJECT_DIR)/, $(addsuffix ", $(CSOURCES:.c=.o) $(CPPSOURCES:.cpp=.o)))
 
 # Compiler Flags
 CCFLAGS := -target $(TARGET) $(NEON) -ffast-math
 CPPFLAGS := $(INCLUDES) -DAPI_LEVEL="$(API_LEVEL)"
 CXXFLAGS := -target $(TARGET) $(NEON) -ffast-math
 
-build: $(OBJECTS)
-	@mkdir  -p $(BUILD_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $(BUILD_DIR)/ldsp $^ $(LIBRARIES)
 
-obj/%.o: %.c
-	@mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(CCFLAGS) -c $^ -o $@
+build: $(OBJECT_RULES)
+	mkdir  -p "$(BUILD_DIR)"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o "$(BUILD_DIR)/ldsp" $(OBJECT_PATHS) $(LIBRARIES)
 
-obj/%.o: %.cpp
-	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $^ -o $@
+# We can't use $(dir ...) because it splits on spaces (even escaped ones :/)
+# so we use `dirname` instead
+$(OBJECT_DIR_ESCAPED)/%.o: %.c
+	mkdir -p "$(shell dirname "$@")"
+	$(CC) $(CPPFLAGS) $(CCFLAGS) -c "$^" -o "$@"
+
+$(OBJECT_DIR_ESCAPED)/%.o: %.cpp
+	mkdir -p "$(shell dirname "$@")"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c "$^" -o "$@"
 
 .PHONY: push clean
 
 push:
 	adb push "$(HW_CONFIG)" /data/devel/ldsp_hw_config.json
-	adb push $(BUILD_DIR)/ldsp /data/devel/ldsp
+	adb push "$(BUILD_DIR)/ldsp" /data/devel/ldsp
 
 clean:
-	@rm -rf $(BUILD_DIR)
-	@rm -rf $(OBJECT_DIR)
+	@rm -rf "$(BUILD_DIR)"
+	@rm -rf "$(OBJECT_DIR)"
