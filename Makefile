@@ -47,6 +47,10 @@ else ifneq (,$(findstring $(NEON_SUPPORT), true yes 1 True Yes))
 	NEON := -mfpu=neon-fp16
 endif
 
+# Project Layout
+BUILD_DIR := ./bin/$(VENDOR)/$(MODEL)
+OBJECT_DIR := ./obj/$(VENDOR)/$(MODEL)
+
 # Compiler Paths
 ifdef TOOLCHAIN_PATH
 
@@ -57,12 +61,10 @@ CXX := $(TOOLCHAIN_PATH)/bin/clang++
 ANDROID_LIB_PATH := $(TOOLCHAIN_PATH)/sysroot/usr/lib/$(ARCH_SHORT)-linux-android$(EABI)/$(API_LEVEL)
 
 # Project Layout
-BUILD_DIR := ./bin/$(VENDOR)/$(MODEL)
 INCLUDES := -I./include -I./libraries/tinyalsa/include -I./libraries -I.
 LIBRARIES := -lm -landroid -static-libstdc++ -L$(ANDROID_LIB_PATH)
 CSOURCES := $(wildcard core/*.c) $(wildcard libraries/*/*.c) $(wildcard libraries/*/*/*.c)
 CPPSOURCES := $(wildcard core/*.cpp) $(wildcard libraries/*/*.cpp) $(wildcard libraries/*/*/*.cpp)
-OBJECT_DIR := ./obj/$(VENDOR)/$(MODEL)
 
 # We can't use quotes to escape makefile rule names, so we backslash-escape all the spaces
 OBJECT_DIR_ESCAPED := $(subst $() ,\ ,$(OBJECT_DIR))
