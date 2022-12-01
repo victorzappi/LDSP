@@ -1,6 +1,6 @@
 # Example Usage:
 #  export TOOLCHAIN_PATH=/opt/homebrew/share/android-ndk/toolchains/llvm/prebuilt/darwin-x86_64
-#  make VENDOR=Huawei MODEL="P8 Lite (alice)" API_LEVEL=24
+#  make VENDOR=Huawei MODEL="P8 Lite (alice)" ANDROID_VERSION=7.0
 
 # Phone Parameters
 ifdef VENDOR # The vendor of the phone
@@ -28,14 +28,26 @@ TARGET := $(ARCH_FULL)-linux-android$(EABI)$(API_LEVEL)
 # Support for NEON floating-point unit
 NEON_SUPPORT := $(shell grep 'supports neon floating point unit' "$(HW_CONFIG)" | cut -d \" -f 4)
 
-ifeq ($(ARCH_FULL), aarch64) # aarch64 had neon active by default, no need to set flag
+ifeq ($(ARCH_FULL),aarch64) # aarch64 had neon active by default, no need to set flag
 	NEON :=
 else ifneq (,$(findstring $(NEON_SUPPORT), true yes 1 True Yes))
 	NEON := -mfpu=neon-fp16
 endif
 
+# Android Version
+ifdef ANDROID_VERSION
+
+# compute API_LEVEL
+
+ANDROID_MAJOR := $(shell echo $(ANDROID_VERSION) | cut -d . -f 1)
+ANDROID_MINOR := $(shell echo $(ANDROID_VERSION) | cut -d . -f 2)
+ANDROID_PATCH := $(shell echo $(ANDROID_VERSION) | cut -d . -f 3)
+
+include ./android-versions.mk
+
+$(info Detected Android API level $(API_LEVEL))
+
 # Compiler Paths
-ifdef API_LEVEL
 ifdef TOOLCHAIN_PATH
 
 CC := $(TOOLCHAIN_PATH)/bin/clang
@@ -69,15 +81,15 @@ CXXFLAGS := -target $(TARGET) $(NEON) -ffast-math
 # We can't use $(dir ...) because it splits on spaces (even escaped ones :/)
 # so we use `dirname` instead
 $(OBJECT_DIR_ESCAPED)/%.o: %.c
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	$(CC) $(CPPFLAGS) $(CCFLAGS) -c "$^" -o "$@"
 
 $(OBJECT_DIR_ESCAPED)/%.o: %.cpp
-	mkdir -p "$(shell dirname "$@")"
+	@mkdir -p "$(shell dirname "$@")"
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c "$^" -o "$@"
 
 build: $(OBJECT_RULES)
-	mkdir  -p "$(BUILD_DIR)"
+	@mkdir  -p "$(BUILD_DIR)"
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o "$(BUILD_DIR)/ldsp" $(OBJECT_PATHS) $(LIBRARIES)
 
 else
