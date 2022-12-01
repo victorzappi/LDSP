@@ -46,9 +46,11 @@ ANDROID_LIB_PATH := $(TOOLCHAIN_PATH)/sysroot/usr/lib/$(ARCH_SHORT)-linux-androi
 TARGET := $(ARCH_FULL)-linux-android$(EABI)$(API_LEVEL)
 
 # Support for NEON floating-point unit
+NEON_SUPPORT := $(shell grep 'supports neon floating point unit' "$(HW_CONFIG)" | cut -d \" -f 4)
+
 ifeq ($(ARCH_FULL), aarch64) # aarch64 had neon active by default, no need to set flag
 	NEON :=
-else ifeq ($(shell grep 'supports neon floating point unit' "$(HW_CONFIG)" | cut -d \" -f 4), true)
+else ifneq (,$(findstring $(NEON_SUPPORT), true yes 1 True Yes))
 	NEON := -mfpu=neon-fp16
 endif
 
