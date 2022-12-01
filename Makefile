@@ -114,4 +114,8 @@ clean:
 	@echo "VENDOR is not set"
 endif
 
-.PHONY: build push clean
+cleanAll:
+	@rm -rf ./bin
+	@rm -rf ./obj
+
+.PHONY: build push clean cleanAll
