@@ -2,26 +2,9 @@
 #  export TOOLCHAIN_PATH=/opt/homebrew/share/android-ndk/toolchains/llvm/prebuilt/darwin-x86_64
 #  make VENDOR=Huawei MODEL="P8 Lite (alice)" API_LEVEL=24
 
-# Compiler Paths
-ifndef TOOLCHAIN_PATH # Path to the NDK toolchain
-$(error TOOLCHAIN_PATH is not set)
-endif
-
-CC := $(TOOLCHAIN_PATH)/bin/clang
-CXX := $(TOOLCHAIN_PATH)/bin/clang++
-
-# Parameters
-ifndef VENDOR # The vendor of the phone
-$(error VENDOR is not set)
-endif
-
-ifndef MODEL # The specific model of the phone
-$(error MODEL is not set)
-endif
-
-ifndef API_LEVEL # The target Android API level
-$(error API_LEVEL is not set)
-endif
+# Phone Parameters
+ifdef VENDOR # The vendor of the phone
+ifdef MODEL # The specific model of the phone
 
 # Hardware Config
 HW_CONFIG := ./phones/$(VENDOR)/$(MODEL)/ldsp_hw_config.json
@@ -39,9 +22,6 @@ else
 	EABI :=
 endif
 
-# Android Libraries
-ANDROID_LIB_PATH := $(TOOLCHAIN_PATH)/sysroot/usr/lib/$(ARCH_SHORT)-linux-android$(EABI)/$(API_LEVEL)
-
 # Compilation Target
 TARGET := $(ARCH_FULL)-linux-android$(EABI)$(API_LEVEL)
 
@@ -53,6 +33,16 @@ ifeq ($(ARCH_FULL), aarch64) # aarch64 had neon active by default, no need to se
 else ifneq (,$(findstring $(NEON_SUPPORT), true yes 1 True Yes))
 	NEON := -mfpu=neon-fp16
 endif
+
+# Compiler Paths
+ifdef API_LEVEL
+ifdef TOOLCHAIN_PATH
+
+CC := $(TOOLCHAIN_PATH)/bin/clang
+CXX := $(TOOLCHAIN_PATH)/bin/clang++
+
+# Android Libraries
+ANDROID_LIB_PATH := $(TOOLCHAIN_PATH)/sysroot/usr/lib/$(ARCH_SHORT)-linux-android$(EABI)/$(API_LEVEL)
 
 # Project Layout
 BUILD_DIR := ./bin/$(VENDOR)/$(MODEL)
@@ -76,11 +66,6 @@ CCFLAGS := -target $(TARGET) $(NEON) -ffast-math
 CPPFLAGS := $(INCLUDES) -DAPI_LEVEL="$(API_LEVEL)"
 CXXFLAGS := -target $(TARGET) $(NEON) -ffast-math
 
-
-build: $(OBJECT_RULES)
-	mkdir  -p "$(BUILD_DIR)"
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o "$(BUILD_DIR)/ldsp" $(OBJECT_PATHS) $(LIBRARIES)
-
 # We can't use $(dir ...) because it splits on spaces (even escaped ones :/)
 # so we use `dirname` instead
 $(OBJECT_DIR_ESCAPED)/%.o: %.c
@@ -91,7 +76,18 @@ $(OBJECT_DIR_ESCAPED)/%.o: %.cpp
 	mkdir -p "$(shell dirname "$@")"
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c "$^" -o "$@"
 
-.PHONY: push clean
+build: $(OBJECT_RULES)
+	mkdir  -p "$(BUILD_DIR)"
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o "$(BUILD_DIR)/ldsp" $(OBJECT_PATHS) $(LIBRARIES)
+
+else
+build:
+	@echo "TOOLCHAIN_PATH is not set"
+endif
+else
+build:
+	@echo "API_LEVEL is not set"
+endif
 
 push:
 	adb push "$(HW_CONFIG)" /data/devel/ldsp_hw_config.json
@@ -100,3 +96,22 @@ push:
 clean:
 	@rm -rf "$(BUILD_DIR)"
 	@rm -rf "$(OBJECT_DIR)"
+
+else
+build:
+	@echo "MODEL is not set"
+push:
+	@echo "MODEL is not set"
+clean:
+	@echo "MODEL is not set"
+endif
+else
+build:
+	@echo "VENDOR is not set"
+push:
+	@echo "VENDOR is not set"
+clean:
+	@echo "VENDOR is not set"
+endif
+
+.PHONY: build push clean
