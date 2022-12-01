@@ -22,6 +22,10 @@ else
 	EABI :=
 endif
 
+# Project Layout
+BUILD_DIR := ./bin/$(VENDOR)/$(MODEL)
+OBJECT_DIR := ./obj/$(VENDOR)/$(MODEL)
+
 # Android Version
 ifdef ANDROID_VERSION
 
@@ -46,10 +50,6 @@ ifeq ($(ARCH_FULL),aarch64) # aarch64 had neon active by default, no need to set
 else ifneq (,$(findstring $(NEON_SUPPORT), true yes 1 True Yes))
 	NEON := -mfpu=neon-fp16
 endif
-
-# Project Layout
-BUILD_DIR := ./bin/$(VENDOR)/$(MODEL)
-OBJECT_DIR := ./obj/$(VENDOR)/$(MODEL)
 
 # Compiler Paths
 ifdef TOOLCHAIN_PATH
