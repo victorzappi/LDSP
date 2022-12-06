@@ -34,7 +34,9 @@ float badnwidth = centralFrequency/2.0;
 float maxAmplitude = 0.3;
 float amplitudeDelta = 0.9;
 
-float lightFreq = 1;
+float lcdLightFreq = 1;
+float lcdLightPhasePrev = -1;
+unsigned int flashlight = 0;
 
 //------------------------------------------------
 
@@ -42,8 +44,8 @@ int periodsToPlay;
 float phase;
 float inverseSampleRate;
 
-float lightPhase;
-float lightInvSampleRate;
+float lcdLightPhase;
+float lcdLightInvSrate;
 
 //LinInterpolator accXinterpolated;
 //float prev_acc_x;
@@ -70,13 +72,12 @@ bool setup(LDSPcontext *context, void *userData)
 	//-----------------------------------------------------------
 
 
-    lightInvSampleRate = 1.0 / context->analogSampleRate;
-	lightPhase = 0.0;
+    lcdLightInvSrate = 1.0 / context->analogSampleRate;
+	lcdLightPhase = 0.0;
 
-	// for (int i = 0; i < chn_ain_count; i++)
-	// {
-	// 	printf("channel %d: %d, %s, %f\n", i, analogInSensorState(context, i), analogInSensorDetails(context, i).c_str(), analogInNormFactor(context, i));
-	// }
+	
+	
+	digitalWrite(context, chn_dout_ledB, on);
 	
 
     return true;
@@ -84,8 +85,6 @@ bool setup(LDSPcontext *context, void *userData)
 
 void render(LDSPcontext *context, void *userData)
 {
-	
-
 	float acc_x = analogRead(context, chn_ain_accelX);
 	float acc_z = analogRead(context, chn_ain_accelZ);
 
@@ -103,7 +102,7 @@ void render(LDSPcontext *context, void *userData)
 
 		out = amplitude * sinf(phase);
 		phase += 2.0f * (float)M_PI * frequency * inverseSampleRate;
-		while(phase > M_PI)
+		while(phase > 2.0f *M_PI)
 			phase -= 2.0f * (float)M_PI;
 
         //out = audioRead(context, n, 0);
@@ -114,11 +113,20 @@ void render(LDSPcontext *context, void *userData)
 	    //printf("out %f\n", out);
 	}
 
-	float lightout = map(sinf(lightPhase), -1, 1, 0.1, 1);
-	lightPhase += 2.0f * (float)M_PI * lightFreq * lightInvSampleRate;
-	while(lightPhase > M_PI)
-			lightPhase -= 2.0f * (float)M_PI;
-	analogWrite(context, chn_aout_lcdBacklight, lightout);
+	float lcdLight = map(sinf(lcdLightPhase), -1, 1, 0.1, 1);
+	lcdLightPhase += 2.0f * (float)M_PI * lcdLightFreq * lcdLightInvSrate;
+	while(lcdLightPhase > M_PI)
+		lcdLightPhase -= 2.0f * (float)M_PI;
+	analogWrite(context, chn_aout_lcdBacklight, lcdLight);
+
+	if(lcdLightPhasePrev < 0 && lcdLightPhase >=0)
+	{
+		digitalWrite(context, chn_dout_vibration, 500);
+		flashlight = (1-flashlight);
+		digitalWrite(context, chn_dout_flashlight, flashlight);
+	}
+	lcdLightPhasePrev = lcdLightPhase;
+
 
 	if(--periodsToPlay==0)
          LDSP_requestStop();

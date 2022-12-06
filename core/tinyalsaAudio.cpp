@@ -218,24 +218,13 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
     (*audioStruct)->config.period_count =settings->periodCount;
     (*audioStruct)->config.rate = settings->samplerate;
     (*audioStruct)->config.format = (pcm_format) gFormats[settings->pcmFormatString];
-    (*audioStruct)->config.silence_threshold = settings->periodSize * settings->periodCount; // 0
+    (*audioStruct)->config.silence_threshold = settings->periodSize * settings->periodCount; 
     (*audioStruct)->config.silence_size = 0;
-    (*audioStruct)->config.start_threshold = settings->periodSize; //2880
-	(*audioStruct)->config.stop_threshold = 0; //5760;
-
-	// huawei p8 lite alice
-	// needed params...
-	// ./LineageDSP -p 960 -b 4 -N 2
-	//TODO next:
-	// check output paths [only line out works] 
-	// check input paths
-	// where are the correct params written? in kernel? same problem with:
-	// _location of mixer paths file
-	// _location of files for output devices
-	// _info about sensors [low prio, because we leverage android to access sensors... does it get the info from kernel?!]
+    (*audioStruct)->config.start_threshold = settings->periodSize;
+	(*audioStruct)->config.stop_threshold = 0;
 
     (*audioStruct)->pcm = nullptr;
-    (*audioStruct)->fd = (int) NULL; // needs C's NULL
+    (*audioStruct)->fd = (int)NULL; // needs C's NULL
 
     if( audioVerbose && 
 		( is_playback || (!is_playback && fullDuplex) )
@@ -449,7 +438,7 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	// finish audio initialization
 	formatBits = LDSP_pcm_format_to_bits((int)audio_struct->config.format); // replaces/implements pcm_format_to_bits(), that is missing from old tinyalsa
 	audio_struct->formatBits = formatBits;
-	audio_struct->maxVal = (1 << (formatBits - 1)) - 1;
+	audio_struct->scaleVal = (1 << (formatBits - 1)) - 1;
 	audio_struct->physBps = formatBits / 8;  // size in bytes of the format var type used to store sample
 	// different than this, i.e., number of bytes actually used within that format var type!
 	if(audio_struct->config.format != gFormats["PCM_FORMAT_S24_3LE"] && audio_struct->config.format != gFormats["PCM_FORMAT_S24_3BE"]) // these vars span 32 bits, but only 24 are actually used! -> 3 bytes
@@ -526,7 +515,7 @@ void fromRawToFloat_int(audio_struct *audio_struct)
 	{
 			int res = byteCombine(sampleBytes, audio_struct); // function pointer, gets sample value by combining the consecutive bytes, organized in either little or big endian
 
-			audio_struct->audioBuffer[n] = res/((float)(audio_struct->maxVal)); // turn int sample into full scale normalized float
+			audio_struct->audioBuffer[n] = res/((float)(audio_struct->scaleVal)); // turn int sample into full scale normalized float
 
 			sampleBytes += audio_struct->bps; // jump to next sample
 	}
@@ -559,7 +548,7 @@ void fromFloatToRaw_int(audio_struct *audio_struct)
 
 	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 	{
-		int res = audio_struct->maxVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
+		int res = audio_struct->scaleVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
 		
 		byteSplit(sampleBytes, res, audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
 

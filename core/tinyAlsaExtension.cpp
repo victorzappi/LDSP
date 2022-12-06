@@ -20,7 +20,7 @@
 // these functions are inpsired to latest version of tinyalsa and replace the ones missing from the version that we are using
 
 
-
+//TODO remove these functions and file once we switch to tinyalsa source
 
 #include "tinyalsaAudio.h"
 

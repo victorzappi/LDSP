@@ -76,7 +76,7 @@ struct audio_struct {
 	void *rawBuffer;
 	float *audioBuffer;
 	unsigned int formatBits;
-	unsigned int maxVal;
+	unsigned int scaleVal;
 	unsigned int bps;
 	unsigned int physBps;
 };
@@ -103,6 +103,11 @@ struct LDSPinternalContext {
     string *analogOutDeviceDetails;
     float *analogInNormalFactor;
     float analogSampleRate; // sensors and output devices
+    unsigned int *digitalOut; // output devices
+    uint32_t digitalOutChannels;
+    outDeviceState *digitalOutDeviceState;
+    string *digitalOutDeviceDetails;
+    float digitalSampleRate; // output devices
 	//uint64_t audioFramesElapsed;
     //operator LDSPcontext () {return *(LDSPcontext*)this;}
 };

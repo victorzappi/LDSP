@@ -1,11 +1,13 @@
 #!/bin/bash
 #
-# This script stops the LDSP program running on the phone
+# This script stops the LDSP program ('ldsp') running on the phone
+# usage:
+# sh ldsp_stop.sh
 
-kill $(ps | grep LineageDSP | grep -Eo '[0-9]{2,5}' | grep -Eo '[0-9]{2,5}' -m 1)
+kill $(ps | grep ldsp | grep -Eo '[0-9]{2,5}' | grep -Eo '[0-9]{2,5}' -m 1)
 
 # ps -> prints all running processes
-# grep LineageDSP ->  prints all info of LineageDSP process as a line
+# grep ldsp ->  prints all info of ldsp process as a line
 # grep -Eo '[0-9]{2,5}' -> extracts all numerical entries [including pid] as different lines [pid is first one]
 # grep -Eo '[0-9]{2,5}' -m 1 -> extracts numerical entries but only on first line, effectively returning pid
 

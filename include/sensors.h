@@ -46,12 +46,13 @@ ENUM(LDSP_sensor, short,
     proximity     = ASENSOR_TYPE_PROXIMITY,
     count         = 5 // BE CAREFUL! this entry has to be updated manually and it does not matter if has same value as other entries
     // minimum set of sensors, compatible all the way down to Android 4.1 Jelly Bean, API level 16
+    //TODO extend this according to API LEVEL
 )
 // number of input channels associated with each sensor
 // BE CAREFUL! this has to updated manually, according to:
-// LDSP_sensor ENUMs 
+// LDSP_sensor ENUMs [same number of entries, sam order]
 // AND
-// analogInChannel enum in LDSP.h
+// analogInChannel enum in LDSP.h [each LDSP_sensor entry has to correspond to 1 or mulitple analogInChannel enum entry, according to number of channels set in here]
 static const string sensors_channelsInfo[LDSP_sensor::count][2] = {
     {"3", "acceleration on x [m/s^2], acceleration on y [m/s^2], acceleration on z [m/s^2]"}, // accelerometer 
     {"3", "magentic field on x [uT], magentic field on y [uT], magentic field on z [uT]"}, // magnetometer
@@ -69,6 +70,7 @@ static const float sensors_max[LDSP_sensor::count] = {
     10
 }; 
 //VIC any ways to retrieve this and range/max of sensor from freaking android API?!?!?
+// on Huawei P8 lite, found in /sys/class/sensors/.../max_range
 
 struct sensor_struct {
     const ASensor *asensor;
@@ -78,7 +80,7 @@ struct sensor_struct {
     analogInChannel *channels;
 };
 
-//TODO should split between analog and digital... if any! 
+//TODO should split between analog and digital... if any digital! 
 struct LDSPsensorsContext {
     unsigned int sensorsCount;
     sensor_struct sensors[LDSP_sensor::count];

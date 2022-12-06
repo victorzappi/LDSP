@@ -27,27 +27,51 @@
 #include <iostream>
 #include <fstream>
 
+// BE CAREFUL! this has to be updated manually, according to:
+// analogOutChannel enum in LDSP.h [order]
+// and
+// the keys in the hw_config.json file [names]
 static const string LDSP_analog_outDevices[chn_aout_count] = {
     "flashlight",
     "lcd-backlight",
-    "led", 
+    "led",
+    "led-red",
+    "led-green",
+    "led-blue", 
     "buttons-backlight",
+};
+// BE CAREFUL! this has to updated manually, according to:
+// digitalOutChannel enum in LDSP.h [order]
+// and
+// the keys in the hw_config.json file [names]
+static const string LDSP_digital_outDevices[chn_dout_count] = {
+    "flashlight",
+    "lcd-backlight",
+    "led",
+    "led-red",
+    "led-green",
+    "led-blue",  
+    "buttons-backlight",
+    "vibration" // vibration is time-based and what we pass is the duration of the vibration [ms]
 };
 
 struct outdev_struct {
     bool configured;
     ofstream file;
-    unsigned int maxVal;
+    unsigned int scaleVal;
     unsigned int prevVal;
     unsigned int initialVal;
 };
 
-//TODO next add digital! 
 struct LDSPoutDevContext {
     outdev_struct analogOutDevices[chn_aout_count];
     float analogOutDevBuffer[chn_aout_count];
     outDeviceState analogDevicesStates[chn_aout_count];
     string analogDevicesDetails[chn_aout_count];
+    outdev_struct digitalOutDevices[chn_dout_count];
+    unsigned int digitalOutDevBuffer[chn_dout_count];
+    outDeviceState digitalDevicesStates[chn_dout_count];
+    string digitalDevicesDetails[chn_dout_count];
 };
 
 

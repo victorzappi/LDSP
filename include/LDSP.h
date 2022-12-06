@@ -52,7 +52,12 @@ enum sensorState {
 
 enum outDeviceState {
     device_configured = 1,
-    device_not_configured = 0,
+    device_not_configured = 0
+};
+
+enum digitalOuput {
+    on = 1,
+    off = 0
 };
 
 struct LDSPcontext {
@@ -72,6 +77,11 @@ struct LDSPcontext {
     const string *analogOutDeviceDetails;
     const float *analogInNormalFactor;
     const float analogSampleRate;
+    unsigned int * const digitalOut; 
+    const uint32_t digitalOutChannels;
+    const outDeviceState *digitalOutDeviceState;
+    const string *digitalOutDeviceDetails;
+    const float digitalSampleRate;
 	//uint64_t audioFramesElapsed;
 };
 
@@ -94,15 +104,23 @@ enum analogInChannel {
 enum analogOutChannel {
     chn_aout_flashlight, 
     chn_aout_lcdBacklight,
-    chn_aout_led, // TODO add RGB leds
+    chn_aout_led,
+    chn_aout_ledR,
+    chn_aout_ledG,
+    chn_aout_ledB, 
     chn_aout_buttonsBacklight,
     chn_aout_count
 };
 
 enum digitalOutChannel {
     chn_dout_flashlight, 
-    chn_dout_led, // TODO add RGB leds
-    chn_dout_vibration, //TODO make it work!
+    chn_dout_lcdBacklight,
+    chn_dout_led,
+    chn_dout_ledR,
+    chn_dout_ledG,
+    chn_dout_ledB, 
+    chn_dout_buttonsBacklight, 
+    chn_dout_vibration,
     chn_dout_count
 };
 
@@ -135,10 +153,15 @@ static inline void audioWrite(LDSPcontext *context, int frame, int channel, floa
 static inline float audioRead(LDSPcontext *context, int frame, int channel);
 
 static inline float analogRead(LDSPcontext *context, analogInChannel channel);
-static inline void analogWrite(LDSPcontext *context, analogOutChannel channel);
+static inline void analogWrite(LDSPcontext *context, analogOutChannel channel, float value);
 static inline float analogRead(LDSPcontext *context, int frame, analogInChannel channel);
-static inline void analogWrite(LDSPcontext *context, int frame, analogOutChannel channel);
-static inline void analogWriteOnce(LDSPcontext *context, int frame, analogOutChannel channel);
+static inline void analogWrite(LDSPcontext *context, int frame, analogOutChannel channel, float value);
+static inline void analogWriteOnce(LDSPcontext *context, int frame, analogOutChannel channel, float value);
+
+
+static inline void digitalWrite(LDSPcontext *context, digitalOutChannel channel, unsigned int value);
+static inline void digitalWrite(LDSPcontext *context, int frame, digitalOutChannel channel, unsigned int value);
+static inline void digitalWriteOnce(LDSPcontext *context, int frame, digitalOutChannel channel, unsigned int value);
 
 
 static inline sensorState analogInSensorState(LDSPcontext *context, analogInChannel channel);
@@ -147,6 +170,9 @@ static inline float analogInNormFactor(LDSPcontext *context, analogInChannel cha
 
 //TODO analogOutDeviceState(...)
 //TODO analogOutDeviceDetails(...)
+
+//TODO digitalOutDeviceState(...)
+//TODO digitalOutDeviceDetails(...)
 
 //-----------------------------------------------------------------------------------------------
 // inline
@@ -214,6 +240,7 @@ static inline void analogWrite(LDSPcontext *context, analogOutChannel channel, f
 {
     context->analogOut[channel] = value;
 }
+//TODO remove?
 // for full compatibility with Bela, ignores frame
 static inline void analogWrite(LDSPcontext *context, int frame, analogOutChannel channel, float value) 
 {
@@ -225,6 +252,23 @@ static inline void analogWriteOnce(LDSPcontext *context, int frame, analogOutCha
     analogWrite(context, channel, value);
 }
 
-
+// digitalWrite()
+//
+// Sets a given analog output channel to a value, that is always persistent
+static inline void digitalWrite(LDSPcontext *context, digitalOutChannel channel, unsigned int value) 
+{
+    context->digitalOut[channel] = value;
+}
+//TODO remove?
+// for full compatibility with Bela, ignores frame
+static inline void digitalWrite(LDSPcontext *context, int frame, digitalOutChannel channel, unsigned int value) 
+{
+    digitalWrite(context, channel, value);
+}
+// for full compatibility with Bela, ignores frame
+static inline void digitalWriteOnce(LDSPcontext *context, int frame, digitalOutChannel channel, unsigned int value) 
+{
+    digitalWrite(context, channel, value);
+}
 
 #endif /* LDSP_H_ */

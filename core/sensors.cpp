@@ -52,10 +52,12 @@ void LDSP_initSensors(LDSPinitSettings *settings)
     intContext.analogInSensorState = sensorsContext.sensorsStates;
     intContext.analogInSensorDetails = sensorsContext.sensorsDetails;
     intContext.analogInNormalFactor = sensorsContext.sensorsNormalFactors;
+
+    intContext.digitalSampleRate = intContext.analogSampleRate;
     //VIC user context is reference of this internal one, so no need to update it
 
-    //TODO spawm a low pior thread that unlocks screen and keeps it unlocked
-    // otherwise on some phones sensors do not work [idle]
+    //TODO add function that spawns a low pior thread that unlocks screen and keeps it unlocked
+    // otherwise on some phones sensors do not work [idle] ---> should be called in projects only if needed!
 
     // read a couple of times, to make sure we have some sensor data once our audio application starts
     sensorsRead();

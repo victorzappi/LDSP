@@ -246,6 +246,8 @@ int setDefaultMixerPath(mixer *mx, xml_document *xml)
 	return ret;	
 }
 
+//TODO make sure pcmYc and pcmYp is standard on all phones, otherwise need to change this ---> Xiaomi has hw0p0, but not sure if in proc or in sys/class/sound
+// then, add getDeviceNumber(int card, string id) so that we can pass id from command line, instead of card and device num only!
 int getDeviceId(int card, int device, string &pcmid, bool is_playback)
 {
 	// assemble file name

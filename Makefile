@@ -105,8 +105,8 @@ endif
 
 push:
 	@adb root
-	@adb push "$(HW_CONFIG)" /data/devel/ldsp_hw_config.json
-	@adb push "$(BUILD_DIR)/ldsp" /data/devel/ldsp
+	@adb push "$(HW_CONFIG)" /data/ldsp/ldsp_hw_config.json
+	@adb push "$(BUILD_DIR)/ldsp" /data/ldsp/ldsp
 
 clean:
 	@rm -rf "$(BUILD_DIR)"
@@ -134,6 +134,6 @@ cleanAll:
 	@rm -rf ./obj
 
 run:
-	adb shell "cd /data/devel/ && ./ldsp"
+	adb shell "cd /data/ldsp/ && ./ldsp"
 
 .PHONY: build push clean cleanAll run

@@ -33,4 +33,12 @@
 *.app
 
 # Build output
-/bin/
+bin/
+
+# Build objs
+obj/
+
+# IDE/Editor project files
+# -vscode
+.vscode/
+LDSP.code-workspace

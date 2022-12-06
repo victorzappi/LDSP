@@ -2,6 +2,8 @@
 #
 # This script prints the names and ids of all active devices on card 0
 # as well as the current hardware parameters
+# usage:
+# sh ldsp_active_audioDevices.sh
 
 # returns the list of active devices, with multiple occurences
 pcm=( $(grep -v closed /proc/asound/card0/*/sub0/status | grep -Eo 'pcm[0-9]{1,2}.') )

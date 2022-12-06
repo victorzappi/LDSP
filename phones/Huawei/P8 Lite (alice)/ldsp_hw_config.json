@@ -7,8 +7,8 @@
 		"mixer paths xml file": "/system/etc/audio/hissc/mixer_paths_ALICEPA.xml",
 		"mixer volumes xml file": "/system/etc/audio/hissc/mixer_volumes_ALICEPA_normal.xml",
 		"playback path names":
-		{
-			"line-out": "media-headphone",
+		{ 
+			"headphones": "media-headphone",
 			"speaker": "media-speaker",
 			"handset": "media-earpiece"
 		},
@@ -27,15 +27,42 @@
 	{
 		"analog devices":
 		{
+			"flashlight":
+			{
+				"control file": "/sys/class/leds/torch/brightness",
+				"max value": 7
+			},
 			"lcd-backlight":
 			{
-				"control": "/sys/class/leds/lcd_backlight0/brightness",
-				"max": "/sys/class/leds/lcd_backlight0/max_brightness"
+				"control file": "/sys/class/leds/lcd_backlight0/brightness",
+				"max value": "/sys/class/leds/lcd_backlight0/max_brightness"
 			}
 		},
 		"digital devices":
 		{
-			"flashlight": "/sys/class/leds/torch/brightness"
+			"flashlight": 
+			{	"control file": "/sys/class/leds/torch/brightness",
+				"on value": 1 
+			},
+			"led-red":
+			{
+				"control file": "/sys/class/leds/red/brightness",
+				"on value": "/sys/class/leds/red/max_brightness"
+			},
+			"led-green":
+			{
+				"control file": "/sys/class/leds/green/brightness",
+				"on value": "/sys/class/leds/green/max_brightness"
+			},
+			"led-blue":
+			{
+				"control file": "/sys/class/leds/blue/brightness",
+				"on value": "/sys/class/leds/blue/max_brightness"
+			},
+			"vibration":
+			{ 
+				"control file": "/sys/class/timed_output/vibrator/enable"
+			}
 		}
 	}
 }

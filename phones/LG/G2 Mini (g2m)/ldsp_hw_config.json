@@ -29,13 +29,17 @@
 		{
 			"lcd-backlight":
 			{
-				"control": "/sys/class/leds/lcd-backlight/brightness",
-				"max": "/sys/class/leds/lcd-backlight/max_brightness"
+				"control file": "/sys/class/leds/lcd-backlight/brightness",
+				"max value": "/sys/class/leds/lcd-backlight/max_brightness"
 			}
 		},
 		"digital devices":
 		{
-			"flashlight": "sys/class/leds/torch-light/brightness"
+			"flashlight":
+			{
+				"control file": "/sys/class/leds/torch-light/brightness",
+				"on value": 1
+			}
 		}
 	}
 }
