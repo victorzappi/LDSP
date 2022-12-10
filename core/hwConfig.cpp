@@ -263,7 +263,7 @@ void parseOutputDevices(ordered_json *config, LDSPhwConfig *hwconfig)
 				hwconfig->digitalOutDevices[DEVICE_SCALE][digital_devices_indices[key]] = to_string(onVal);
 			else
 				hwconfig->digitalOutDevices[DEVICE_SCALE][digital_devices_indices[key]] = "1"; // default! handy for vibration
-				// vibration does not need a specific on value, because what we write is time activation in milliseconds
+				// vibration does not need a specific on value, because what we write is activation time in milliseconds
 		}
 	}
 }

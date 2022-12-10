@@ -28,6 +28,8 @@
 #include <cstdio> // fprintf
 #include <fstream> // files
 #include <sstream> // ostringstream
+#include <filesystem> // directory_iterator
+#include <vector>
 
 #include <tinyalsa/asoundlib.h>
 
@@ -42,10 +44,11 @@ bool mixerVerbose = false;
 
 mixer *mix = nullptr;
 
+
+int setupDevicesNumAndId(LDSPinitSettings *settings, LDSPhwConfig *hwconfig);
 int mixerCtl_setInt(mixer *mx, const char *name, int val, int id=0, bool verbose=true);
 int mixerCtl_setStr(mixer *mx, const char *name, const char *val, bool verbose=true);
 int setDefaultMixerPath(mixer *mx, xml_document *xml);
-int getDeviceId(int card, int device, string &pcmid, bool is_playback);
 int activateDevice(mixer *mx, string &deviceActivationCtl, string device_id, LDSPhwConfig *hwconfig);
 void deactivateDevice(mixer *mx, string deviceActivationCtl);
 int loadPath(mixer *mx, xml_document *xml, unordered_map<string, string> *paths, vector<string> *paths_order, string &pathAlias, LDSPhwConfig *hwconfig);
@@ -62,11 +65,12 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	if(mixerVerbose)
 		printf("\nLDSP_setMixerPaths()\n");
 
-	// set default devices, using values from config file
-	if(settings->deviceOut == -1)
-		settings->deviceOut = hwconfig->default_dev_p ;
-	if(settings->deviceIn == -1)
-		settings->deviceIn = hwconfig->default_dev_c ;
+
+	// populate device's numbers and ids
+	if(setupDevicesNumAndId(settings, hwconfig)!=0)
+		return -2;
+
+
 
 	// open mixer
 	mix = mixer_open(settings->card);
@@ -74,7 +78,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	{
         fprintf(stderr, "Failed to open mixer\n");
 		LDSP_resetMixerPaths(hwconfig);
-        return -2;
+        return -3;
     }
 
 
@@ -85,7 +89,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
     if(!mixer_docs[0].load_file(hwconfig->xml_paths_file.c_str()))
 	{
 		LDSP_resetMixerPaths(hwconfig);
-		return -3;
+		return -4;
 	}
 	// load the mixer volumes XML file, if present
 	if(!hwconfig->xml_volumes_file.empty())
@@ -93,7 +97,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 		if(!mixer_docs[1].load_file(hwconfig->xml_volumes_file.c_str()))
 		{
 			LDSP_resetMixerPaths(hwconfig);
-			return -3;
+			return -4;
 		}
 	} 
 		
@@ -102,9 +106,6 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	setDefaultMixerPath(mix, &mixer_docs[0]);
 
 
-	// get id of both playback and capture device
-	getDeviceId(settings->card, settings->deviceOut, settings->deviceOutId, true);
-	getDeviceId(settings->card, settings->deviceIn, settings->deviceInId, false);
 	
 	// if necessary, activate devices
 	if(!hwconfig->deviceActivationCtl_p.empty())
@@ -112,7 +113,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 		if(activateDevice(mix, hwconfig->deviceActivationCtl_p , settings->deviceOutId, hwconfig) < 0)
 		{
 			LDSP_resetMixerPaths(hwconfig);
-			return -4;
+			return -5;
 		}
 	}
 	if(!settings->outputOnly)
@@ -122,7 +123,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 			if(activateDevice(mix, hwconfig->deviceActivationCtl_c , settings->deviceInId, hwconfig) < 0)
 			{
 				LDSP_resetMixerPaths(hwconfig);
-				return -4;
+				return -5;
 			}
 		}
 	}
@@ -135,7 +136,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	{
 		fprintf(stderr, "Playback path error\n");
 		LDSP_resetMixerPaths(hwconfig);
-		return -5;
+		return -6;
 	}
 	if(mixerVerbose)
 		printf("Playback path loaded: \"%s\"\n", pathAlias.c_str());
@@ -149,7 +150,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 		{
 			fprintf(stderr, "Capture path error\n");
 			LDSP_resetMixerPaths(hwconfig);
-			return -5;
+			return -6;
 		}
 		if(mixerVerbose)
 			printf("Capture path loaded: \"%s\"\n", pathAlias.c_str());
@@ -174,6 +175,159 @@ void LDSP_resetMixerPaths(LDSPhwConfig *hwconfig)
 
 //----------------------------------------------------------------------------------
 
+
+void getDeviceInfoPaths(int card, vector<string> &infoPath_p, vector<string> &infoPath_c)
+{
+	// adapted from: https://stackoverflow.com/a/612176
+	string cardPath = "/proc/asound/card"+to_string(card);
+	for(const auto &entry : __fs::filesystem::directory_iterator(cardPath))
+	{
+		string devicePath = entry.path();
+		string deviceFolder = entry.path().filename();
+
+		// all device folders end with a digit [part of the device num] and either 'p' [for playback] or 'c' [for capture]
+		char last = deviceFolder.back();
+		char secondLast = deviceFolder[deviceFolder.length()-2];
+		if(isdigit(secondLast))
+		{
+			stringstream pathstream;
+			pathstream << cardPath << "/" << deviceFolder << "/info"; // assemble info file path
+			if(last=='p')
+				infoPath_p.push_back(pathstream.str());
+			else if(last=='c')
+				infoPath_c.push_back(pathstream.str());
+			else // not a device folder, least likely case
+				continue;
+		}
+	}
+}
+
+int getDeviceInfo(string infoFilePath, string infoString, string &info)
+{
+	// open file
+	ifstream infoFile;
+	infoFile.open(infoFilePath);
+	if( !infoFile.is_open() )
+		return -1;
+
+	string line;
+	// let's look for infoString, line by line
+	while(infoFile) 
+	{
+		getline(infoFile, line);
+		size_t pos = line.find(infoString);
+		if(pos!= string::npos)
+		{
+			info = line.substr(pos+infoString.length()); // remove substring	
+			return 0;
+		}
+	}
+	return -2;
+}
+
+int findDeviceInfo(vector<string> deviceInfoPath, string match_a, string name, string match_b, string &value)
+{
+	// iterate all info files of all devices, cos we don't know which one belongs to current device
+	for(auto path : deviceInfoPath)
+	{
+		string info;
+		// first, we need to locate the info file that belongs to current device
+		// so we extract first piece of info, that we will compare with passed name
+		// if they match, this is the right info file!
+		// and we will extract the actual piece of info we are looking for [value]
+		int ret=getDeviceInfo(path, match_a, info);
+
+		if(ret==-1)
+		{
+			printf("Warning! Could not open \"%s\" to retrieve device %s's \"%s\"\n", path.c_str(), name.c_str(), match_b.c_str());
+			continue;
+		}
+		if(ret==-2)
+		{
+			printf("Warning! Could not find \"%s\" in \"%s\" while looking for %s's \"%s\"\n", match_a.c_str(), path.c_str(), name.c_str(), match_b.c_str());
+			continue;
+		}
+
+		// check if passed name is contained in piece of info we retrieved
+		size_t found = info.find(name);
+		// if it's not, this is not the info file of the current device
+		if(found==std::string::npos)
+			continue;
+		// if the searched value is a number, we go for an exact match!
+		if(isdigit(name.c_str()[0]))
+		{
+			if(stoi(info)!=stoi(name))
+				continue;
+		}
+		// in case we are serching for an id, the actual string may have an extra (*) termination
+		// so we have to avoid an exact match search
+		
+		// if we get here, this is the right info file!
+		// let's extract the piece of info we are looking for and store it in value
+		ret=getDeviceInfo(path, match_b, value);
+		if(ret==-2)
+		{
+			fprintf(stderr, "Could not find %s's \"%s\" in \"%s\"\n", name.c_str(), match_b.c_str(), path.c_str());
+			return -1;
+		}
+		break;
+	}
+	return 0;
+}
+
+int setupDeviceNumAndId(vector<string> deviceInfoPath, int &deviceNum, int defaultNum, string &deviceId)
+{
+	// if device is set by name...
+	if(deviceId!="")
+	{
+		// look for device number in info files 
+		string num;
+		int ret = findDeviceInfo(deviceInfoPath, "id: ", deviceId, "device: ", num);
+		if(ret!=0)
+			return -1;
+		deviceNum = stoi(num);
+	}
+	else
+	{
+		// if device number is not set, set default using values from config file
+		if(deviceNum == -1)
+			deviceNum = defaultNum;
+		// look for device id in info files 
+		string id;
+		int ret = findDeviceInfo(deviceInfoPath, "device: ", to_string(deviceNum), "id: ", id);
+		if(ret!=0)
+			return -2;
+		// sometimes device id ends with (*)... let's remove it
+		int len = id.length();
+		if(id.compare(len-3,4,"(*)") == 0)
+			id = id.substr(0, len-3);
+		deviceId = id;
+	}
+	
+	return 0;
+}
+
+int setupDevicesNumAndId(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
+{
+	vector<string> deviceInfoPath_p;
+	vector<string> deviceInfoPath_c;
+
+	// get the paths to the info files of all devices 
+	getDeviceInfoPaths(settings->card, deviceInfoPath_p, deviceInfoPath_c);
+
+	// playback
+	if(setupDeviceNumAndId(deviceInfoPath_p, settings->deviceOutNum, hwconfig->default_dev_p, settings->deviceOutId)!=0)
+		return -1;
+
+	if(!settings->outputOnly)
+	{
+		// capture
+		if(setupDeviceNumAndId(deviceInfoPath_c, settings->deviceInNum, hwconfig->default_dev_c, settings->deviceInId)!=0)
+			return -1;
+	}
+
+	return 0;
+}
 
 // these are 2 helper functions to quickly set mixer controls via their name
 int mixerCtl_setInt(mixer *mx, const char *name, int val, int id, bool verbose) // input is number
@@ -245,49 +399,6 @@ int setDefaultMixerPath(mixer *mx, xml_document *xml)
 
 	return ret;	
 }
-
-//TODO make sure pcmYc and pcmYp is standard on all phones, otherwise need to change this ---> Xiaomi has hw0p0, but not sure if in proc or in sys/class/sound
-// then, add getDeviceNumber(int card, string id) so that we can pass id from command line, instead of card and device num only!
-int getDeviceId(int card, int device, string &pcmid, bool is_playback)
-{
-	// assemble file name
-	// the id of the device/pcm will be in "/proc/asound/cardX/pcmY_/info" where _ = p or c
-	std::ostringstream namestream;
-	char dir;
-	if(is_playback)
-		dir = 'p'; // playback
-	else
-		dir = 'c';  // capture
-	namestream << "/proc/asound/card" << card <<"/pcm" << device << dir << "/info"; 
-	string pcmfilename = namestream.str();
-
-	// open file
-	std::ifstream pcmfile_;
-	pcmfile_.open(pcmfilename);
-	if ( !pcmfile_.is_open() )
-	{
-		printf("Warning! Could not open \"%s\" to retrieve id\n", pcmfilename.c_str());
-		return -1;
-	}
-
-	// the id is preceeded by this substring
-	string check_str = "id: ";
-	string line;
-	// let's look for it
-	while(pcmfile_) 
-	{
-		getline(pcmfile_, line);
-		size_t pos = line.find(check_str);
-		if(pos!= string::npos)
-		{
-			pcmid = line.substr(pos+check_str.length()); // remove substring
-			return 0;
-		}
-	}
-
-	return -2;
-}
-
 
 // first completes device activation control string and then activates device
 int activateDevice(mixer *mx, string &deviceActivationCtl, string device_id, LDSPhwConfig *hwconfig)

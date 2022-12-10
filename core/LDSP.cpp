@@ -37,8 +37,8 @@ void LDSP_defaultSettings(LDSPinitSettings *settings)
 
 	// set default values for settings
     settings->card = 0; // only card in most devices
-    settings->deviceOut = -1; // default will be set from hw config json file
-    settings->deviceIn = -1; // default will be set from hw config json file
+    settings->deviceOutNum = -1; // default will be set from hw config json file
+    settings->deviceInNum = -1; // default will be set from hw config json file
     settings->periodSize = 256; // somewhat big, to make it easy for most devices
     settings->periodCount = 2; // typical lowest value supported [multiple periods probably not used at all]
     settings->numAudioOutChannels = 2; // stereo output is common
@@ -49,6 +49,6 @@ void LDSP_defaultSettings(LDSPinitSettings *settings)
     settings->pathIn = ""; // default is first input path in hw config json file, typically built-in mic
     settings->outputOnly = 0; // full duplex engine by default
     settings->verbose = 1; //0; // shut up by default
-    settings->deviceOutId = ""; // extracted at run-time 
-    settings->deviceInId = ""; // extracted at run-time
+    settings->deviceOutId = ""; // if not specified, extracted at run-time //VIC! remove 
+    settings->deviceInId = ""; // if not specified, extracted at run-time 
 }

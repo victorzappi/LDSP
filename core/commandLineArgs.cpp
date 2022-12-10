@@ -43,7 +43,7 @@ void LDSP_usage(const char *argv)
     // fprintf(stderr, "-C | --capture-card <card number>	[0]  	The playback card\n");
     // fprintf(stderr, "-D | --capture-device <device number>	[15]	Playback card's device\n");
 	// fprintf(stderr, "-n | --playback-channels <count> 	[2]     The number of output channels\n");
-	// fprintf(stderr, "-n | --capture- channels <count> 	[1]     The number of output channels\n");
+	// fprintf(stderr, "-n | --capture-channels <count> 	[1]     The number of output channels\n");
     // fprintf(stderr, "-p | --period-size <size> 		[256]	The size of the PCM's period\n");
     // fprintf(stderr, "-b | --period-count <count> 		[2]	The number of PCM periods in each PCM buffer\n");
     // fprintf(stderr, "-r | --rate <rate> 			[48000]	The sample rate [Hz]\n");
@@ -74,8 +74,10 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 	struct optparse opts;
 	struct optparse_long long_options[] = {
 		{ "card",         		'c', OPTPARSE_REQUIRED },
-		{ "output-device",		'd', OPTPARSE_REQUIRED },
-		{ "input-device",    	'D', OPTPARSE_REQUIRED },
+		{ "output-device-num",	'd', OPTPARSE_REQUIRED },
+		{ "input-device-num",   'D', OPTPARSE_REQUIRED },
+		{ "output-device-id",	's', OPTPARSE_REQUIRED },
+		{ "input-device-id",    'S', OPTPARSE_REQUIRED },
 		{ "period-size",  		'p', OPTPARSE_REQUIRED },
 		{ "period-count", 		'b', OPTPARSE_REQUIRED },
 		{ "audio-out-channels", 'n', OPTPARSE_REQUIRED },
@@ -98,10 +100,10 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 				settings->card = atoi(opts.optarg);
 				break;
 			case 'd':
-				settings->deviceOut = atoi(opts.optarg);
+				settings->deviceOutNum = atoi(opts.optarg);
 				break;
 			case 'D':
-				settings->deviceIn = atoi(opts.optarg);
+				settings->deviceInNum = atoi(opts.optarg);
 				break;
 			case 'p':
 				settings->periodSize = atoi(opts.optarg);

@@ -201,13 +201,13 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
     if(is_playback)
     {
         (*audioStruct)->flags = PCM_OUT;
-        (*audioStruct)->device = settings->deviceOut;
+        (*audioStruct)->device = settings->deviceOutNum;
         (*audioStruct)->config.channels = settings->numAudioOutChannels;
     }
     else
     {
         (*audioStruct)->flags = PCM_IN;
-        (*audioStruct)->device = settings->deviceIn;
+        (*audioStruct)->device = settings->deviceInNum;
 		if(fullDuplex)
         	(*audioStruct)->config.channels = settings->numAudioInChannels;
 		else

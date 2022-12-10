@@ -27,8 +27,8 @@ using namespace std;
 struct LDSPinitSettings {
 	// these items might be adjusted by the user:
     int card;
-    int deviceOut;
-    int deviceIn;
+    int deviceOutNum;
+    int deviceInNum;
 	int periodSize;
 	int periodCount;
     int numAudioOutChannels;
@@ -39,7 +39,7 @@ struct LDSPinitSettings {
     string pathIn;
     int outputOnly;
     int verbose;
-    // these are automatically populated according to paths
+    // these have priority over deviceOut/InNum and if not specificied are automatically populated according to device numbers
     string deviceOutId;
     string deviceInId;
 };
