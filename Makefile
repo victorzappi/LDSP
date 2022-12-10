@@ -108,6 +108,10 @@ push:
 	@adb push "$(HW_CONFIG)" /data/ldsp/ldsp_hw_config.json
 	@adb push "$(BUILD_DIR)/ldsp" /data/ldsp/ldsp
 
+push_shell:
+  @adb push "$(HW_CONFIG)" /sdcard/ldsp/ldsp_hw_config.json
+  @adb push "$(BUILD_DIR)/ldsp" /sdcard/ldsp/ldsp
+
 clean:
 	@rm -rf "$(BUILD_DIR)"
 	@rm -rf "$(OBJECT_DIR)"
@@ -117,6 +121,8 @@ build:
 	@echo "MODEL is not set"
 push:
 	@echo "MODEL is not set"
+push_shell:
+	@echo "MODEL is not set"
 clean:
 	@echo "MODEL is not set"
 endif
@@ -124,6 +130,8 @@ else
 build:
 	@echo "VENDOR is not set"
 push:
+	@echo "VENDOR is not set"
+push_shell:
 	@echo "VENDOR is not set"
 clean:
 	@echo "VENDOR is not set"
@@ -136,4 +144,4 @@ cleanAll:
 run:
 	adb shell "cd /data/ldsp/ && ./ldsp"
 
-.PHONY: build push clean cleanAll run
+.PHONY: build push push_shell clean cleanAll run
