@@ -268,42 +268,41 @@ int initFormatFunctions(string format)
 	int err = 0;
     switch(f)
     {
-    	case LDSP_pcm_format::PCM_FORMAT_S16_LE:
-    	case LDSP_pcm_format::PCM_FORMAT_S32_LE:
-    	case LDSP_pcm_format::PCM_FORMAT_S8:  // but it doesn't really matter, single byte no need to split/combine
-    	case LDSP_pcm_format::PCM_FORMAT_S24_LE:
-    	case LDSP_pcm_format::PCM_FORMAT_S24_3LE:
+    	case LDSP_pcm_format::S16_LE:
+    	case LDSP_pcm_format::S32_LE:
+    	case LDSP_pcm_format::S8:  // but it doesn't really matter, single byte no need to split/combine
+    	case LDSP_pcm_format::S24_LE:
+    	case LDSP_pcm_format::S24_3LE:
 			byteCombine = byteCombine_littleEndian;
     		byteSplit = byteSplit_littleEndian;
 			fromRawToFloat = fromRawToFloat_int;
     		fromFloatToRaw = fromFloatToRaw_int;
     		break;
-    	case LDSP_pcm_format::PCM_FORMAT_S16_BE:
-    	case LDSP_pcm_format::PCM_FORMAT_S32_BE:
-    	case LDSP_pcm_format::PCM_FORMAT_S24_BE:
-    	case LDSP_pcm_format::PCM_FORMAT_S24_3BE:
+    	case LDSP_pcm_format::S16_BE:
+    	case LDSP_pcm_format::S32_BE:
+    	case LDSP_pcm_format::S24_BE:
+    	case LDSP_pcm_format::S24_3BE:
     	    byteCombine = byteCombine_bigEndian;
 			byteSplit = byteSplit_bigEndian;
 			fromRawToFloat = fromRawToFloat_int;
     	    fromFloatToRaw = fromFloatToRaw_int;
     		break;
-    	case LDSP_pcm_format::PCM_FORMAT_FLOAT_LE:
+    	case LDSP_pcm_format::FLOAT_LE:
 			byteCombine = byteCombine_littleEndian;
     		byteSplit = byteSplit_littleEndian;
 			fromRawToFloat = fromRawToFloat_float32;
     		fromFloatToRaw = fromFloatToRaw_float32;
     		break;
-    	case LDSP_pcm_format::PCM_FORMAT_FLOAT_BE:
+    	case LDSP_pcm_format::FLOAT_BE:
 		    byteCombine = byteCombine_bigEndian;
     	    byteSplit = byteSplit_bigEndian;
 			fromRawToFloat = fromRawToFloat_float32;
     	    fromFloatToRaw = fromFloatToRaw_float32;
 			break;
-    	case LDSP_pcm_format::PCM_FORMAT_INVALID:
-    	case LDSP_pcm_format::PCM_FORMAT_MAX:
+    	case LDSP_pcm_format::MAX:
     	default:
     		fprintf(stderr, "Invalid format %s\n", format.c_str());
-    		format = PCM_FORMAT_MAX;
+    		format = LDSP_pcm_format::MAX;
     		err = -1;
     		break;
     }
@@ -436,12 +435,13 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float)); // quiet please!
 
 	// finish audio initialization
-	formatBits = LDSP_pcm_format_to_bits((int)audio_struct->config.format); // replaces/implements pcm_format_to_bits(), that is missing from old tinyalsa
+	//formatBits = LDSP_pcm_format_to_bits((int)audio_struct->config.format); // replaces/implements pcm_format_to_bits(), that is missing from old tinyalsa
+	formatBits = pcm_format_to_bits(audio_struct->config.format);
 	audio_struct->formatBits = formatBits;
 	audio_struct->scaleVal = (1 << (formatBits - 1)) - 1;
 	audio_struct->physBps = formatBits / 8;  // size in bytes of the format var type used to store sample
 	// different than this, i.e., number of bytes actually used within that format var type!
-	if(audio_struct->config.format != gFormats["PCM_FORMAT_S24_3LE"] && audio_struct->config.format != gFormats["PCM_FORMAT_S24_3BE"]) // these vars span 32 bits, but only 24 are actually used! -> 3 bytes
+	if(audio_struct->config.format != gFormats["S24_3LE"] && audio_struct->config.format != gFormats["S24_3BE"]) // these vars span 32 bits, but only 24 are actually used! -> 3 bytes
 		audio_struct->bps = audio_struct->physBps;
 	else
 		audio_struct->bps = 3;
@@ -580,16 +580,49 @@ void fromFloatToRaw_float32(audio_struct *audio_struct)
 	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 }
 
+
+int checkCardFormats(struct pcm_params *params, unsigned int value)
+{
+	int mismatch = -1;
+
+	printf("\tFormats:\n");
+	for(int f=0; f<LDSP_pcm_format::MAX; f++)
+	{
+		int supported = pcm_params_format_test(params, (pcm_format)f);
+		LDSP_pcm_format ff = (LDSP_pcm_format::_enum)LDSP_pcm_format::_from_index(f);
+        string name = ff._to_string();		
+		if(supported)
+			printf("\t\t %s: supported\n", name.c_str());
+		else
+		{
+			printf("\t\t %s: not supported\n", name.c_str());
+			if(value == f)
+				mismatch = f;
+		}
+	}
+
+	if(mismatch>=0)
+	{
+		LDSP_pcm_format ff = (LDSP_pcm_format::_enum)LDSP_pcm_format::_from_index(value);
+        string name = ff._to_string();	
+		fprintf(stderr, "Device does not support requested format %s!\n", name.c_str());
+		return -1;
+	}
+
+	return 0;
+}
 // adapted from here:
 // https://github.com/intel/bat/blob/master/bat/tinyalsa.c
-int checkCardParam(LDSP_pcm_params *params, LDSP_pcm_param param, unsigned int value, string param_name, string param_unit)
+int checkCardParam(/*LDSP_*/pcm_params *params, /*LDSP_*/pcm_param param, unsigned int value, string param_name, string param_unit)
 {
 	unsigned int min;
 	unsigned int max;
 	int ret = 0;
 
-	min = LDSP_pcm_params_get_min(params, param);
-	max = LDSP_pcm_params_get_max(params, param);
+	// min = LDSP_pcm_params_get_min(params, param);
+	// max = LDSP_pcm_params_get_max(params, param);
+	min = pcm_params_get_min(params, param);
+	max = pcm_params_get_max(params, param);
 
 
 	printf("\t%s min and max: [%u, %u]\n", param_name.c_str(), min, max);
@@ -611,10 +644,11 @@ int checkCardParam(LDSP_pcm_params *params, LDSP_pcm_param param, unsigned int v
 
 int checkAllCardParams(audio_struct *audioStruct)
 {
-	LDSP_pcm_params *params;
+	//LDSP_pcm_params *params;
+	pcm_params *params;
 	int err = 0;
 
-	params = LDSP_pcm_params_get(audioStruct->card, audioStruct->device, audioStruct->flags);
+	params = /* LDSP_ */pcm_params_get(audioStruct->card, audioStruct->device, audioStruct->flags);
 	if (params == NULL) {
 		fprintf(stderr, "Unable to open PCM card %u device %u!\n", audioStruct->card, audioStruct->device);
 		return -1;
@@ -623,19 +657,20 @@ int checkAllCardParams(audio_struct *audioStruct)
 
     printf("\nSupported params:\n");
 
-	err = checkCardParam(params, LDSP_PCM_PARAM_PERIOD_SIZE, audioStruct->config.period_size, "Period size", "Hz");
+	err = checkCardParam(params, /* LDSP_ */PCM_PARAM_PERIOD_SIZE, audioStruct->config.period_size, "Period size", "Hz");
 	if(err==0)
-		err = checkCardParam(params, LDSP_PCM_PARAM_PERIODS, audioStruct->config.period_count, "Period count", "");
+		err = checkCardParam(params, /* LDSP_ */PCM_PARAM_PERIODS, audioStruct->config.period_count, "Period count", "");
 	if(err==0)
-		err = checkCardParam(params, LDSP_PCM_PARAM_CHANNELS, audioStruct->config.channels, "Channels", "channels");
+		err = checkCardParam(params, /* LDSP_ */PCM_PARAM_CHANNELS, audioStruct->config.channels, "Channels", "channels");
 	if(err==0)
-		err = checkCardParam(params, LDSP_PCM_PARAM_RATE, audioStruct->config.rate, "Sample rate", "Hz");
-	// if(err==0)
-	// 	err = checkCardFormats(params, hw_params.config.format);
+		err = checkCardParam(params, /* LDSP_ */PCM_PARAM_RATE, audioStruct->config.rate, "Sample rate", "Hz");
+	if(err==0)
+	 	err = checkCardFormats(params, audioStruct->config.format);
 
 	printf("\n");
 
-	LDSP_pcm_params_free(params);
+	//LDSP_pcm_params_free(params);
+	pcm_params_free(params);
 
 	return err;
 }

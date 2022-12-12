@@ -20,8 +20,7 @@ void interrupt_handler(int sig)
 }
 
 
-//TODO next
-// move mixer setup/reset into audio calls
+//TODO move mixer setup/reset into audio calls
 // and combine sensors and output calls into a single container file
 // this will simplify a lot the default main file
 

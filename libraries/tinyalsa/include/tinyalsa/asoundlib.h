@@ -26,6 +26,14 @@
 ** DAMAGE.
 */
 
+//VIC this is the source of tinyalsa, version in use in LineageOS 14 [equivalent to Android 7.0 (NOUGAT), API level 24]
+// by including the source in the project as opposed to linking the tinyalsa lib in the phone, we are sure that every phone uses
+// the same version of tinyalsa
+// and maybe our code works also on phones that do not come with tinyalsa lib installed [Android 4.0 ICE_CREAM_SANDWICH (API level 14)]?
+// still have to try!
+
+//TODO update source to latest version
+
 #ifndef ASOUNDLIB_H
 #define ASOUNDLIB_H
 

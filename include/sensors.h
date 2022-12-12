@@ -60,6 +60,8 @@ static const string sensors_channelsInfo[LDSP_sensor::count][2] = {
     {"1", "illuminance [lx]"}, // light
     {"1", "distance [cm]"}  // proximity 
 }; 
+//VIC any ways to retrieve number of channels per sensor from freaking android API?!?!?
+
 // if max values are reported in here, the sensor input is normalized
 // BE CAREFUL! this has to updated manually, according to LDSP_sensor ENUMs
 static const float sensors_max[LDSP_sensor::count] = {
@@ -71,6 +73,7 @@ static const float sensors_max[LDSP_sensor::count] = {
 }; 
 //VIC any ways to retrieve this and range/max of sensor from freaking android API?!?!?
 // on Huawei P8 lite, found in /sys/class/sensors/.../max_range
+//TODO give users possibility to choose sensor max and this as info
 
 struct sensor_struct {
     const ASensor *asensor;
@@ -93,6 +96,10 @@ struct LDSPsensorsContext {
 };
 
 void sensorsRead();
+
+
+//TODO add user function that can spawn a low prio thread that unlocks screen and keeps it unlocked
+// otherwise on some phones sensors do not work [idle] ---> should be called in projects only if needed!
 
 #endif /* SENSORS_H_ */
 

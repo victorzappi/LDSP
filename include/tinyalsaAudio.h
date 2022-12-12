@@ -25,13 +25,6 @@
 #include <tinyalsa/asoundlib.h>
 #include "enums.h"
 
-#include "tinyAsound.h"
-// #include <sys/ioctl.h> // for pcm_link/unlink()
-// // from asound.h File Reference, https://docs.huihoo.com/doxygen/linux/kernel/3.7/asound_8h.html
-// // could remove whenver we include asound.h here
-// #define SNDRV_PCM_IOCTL_LINK   _IOW('A', 0x60, int)
-// #define SNDRV_PCM_IOCTL_UNLINK   _IO('A', 0x61)
-
 using namespace std;
 
 
@@ -68,7 +61,7 @@ struct audio_struct {
     unsigned int card;
     unsigned int device;
     int flags;
-    LDSP_pcm_config config;
+    /* LDSP_ */pcm_config config;
     unsigned int frameBytes;
     unsigned int numOfSamples;
     pcm *pcm;
@@ -116,20 +109,21 @@ struct LDSPinternalContext {
 
 // wrapper of tinyalsa pmc_format, to ensure compatibility with older and newer versions of tinyalsa
 // this is a special wrapper, that permits to print the ENUM ad to cycle via indices
+//VIC note that until we update the source of tinnyalsa to latest version, BE entries will not work
 ENUM(LDSP_pcm_format, short, 
-    PCM_FORMAT_INVALID = -1,
-    PCM_FORMAT_S16_LE,     /** Signed 16-bit, little endian */
-    PCM_FORMAT_S32_LE,     /** Signed, 32-bit, little endian */ // last supported format from Android 4.0 ICE_CREAM_SANDWICH [API level 14] to Android 4.2.2 JELLY_BEAN_MR1 [API level 17] 
-    PCM_FORMAT_S8,         /** Signed, 8-bit */
-    PCM_FORMAT_S24_LE,     /** Signed, 24-bit (32-bit in memory), little endian */ // last supported format from Android 4.3 JELLY_BEAN_MR2 [API level 18] to Android 4.4 KITKAT [API level 19] 
-    PCM_FORMAT_S24_3LE,    /** Signed, 24-bit, little endian */ // last supported format from Android 5.0 LOLLIPOP [API level 21] to Android 13 TIRAMISU [API level 33] 
-    PCM_FORMAT_S16_BE,     /** Signed, 16-bit, big endian */ // from here on, formats supported by tinyalsa nut not by current Android implmentaitons of libtinyalsa
-    PCM_FORMAT_S24_BE,     /** Signed, 24-bit (32-bit in memory), big endian */
-    PCM_FORMAT_S24_3BE,    /** Signed, 24-bit, big endian */
-    PCM_FORMAT_S32_BE,     /** Signed, 32-bit, big endian */
-    PCM_FORMAT_FLOAT_LE,   /** 32-bit float, little endian */
-    PCM_FORMAT_FLOAT_BE,   /** 32-bit float, big endian */
-    PCM_FORMAT_MAX         /** Max of the enumeration list, not an actual format. */ //VIC for now
+    //INVALID = -1,
+    S16_LE = 0, /** Signed 16-bit, little endian */
+    S32_LE,     /** Signed, 32-bit, little endian */ // last supported format from Android 4.0 ICE_CREAM_SANDWICH [API level 14] to Android 4.2.2 JELLY_BEAN_MR1 [API level 17] 
+    S8,         /** Signed, 8-bit */
+    S24_LE,     /** Signed, 24-bit (32-bit in memory), little endian */ // last supported format from Android 4.3 JELLY_BEAN_MR2 [API level 18] to Android 4.4 KITKAT [API level 19] 
+    S24_3LE,    /** Signed, 24-bit, little endian */ // last supported format from Android 5.0 LOLLIPOP [API level 21] to Android 13 TIRAMISU [API level 33] 
+    S16_BE,     /** Signed, 16-bit, big endian */ // from here on, formats supported by tinyalsa nut not by current Android implmentaitons of libtinyalsa
+    S24_BE,     /** Signed, 24-bit (32-bit in memory), big endian */
+    S24_3BE,    /** Signed, 24-bit, big endian */
+    S32_BE,     /** Signed, 32-bit, big endian */
+    FLOAT_LE,   /** 32-bit float, little endian */
+    FLOAT_BE,   /** 32-bit float, big endian */
+    MAX         /** Max of the enumeration list, not an actual format. */ //VIC for now
 )
 
 
@@ -137,44 +131,5 @@ ENUM(LDSP_pcm_format, short,
 int LDSP_pcm_link(audio_struct *audio_struct_p, audio_struct *audio_struct_c);
 // re-implements tinyalsa pcm_unlink()
 void LDSP_pcm_unlink(audio_struct *audio_struct);
-// re-implements tinyalsa pcm_format_to_bits()
-unsigned int LDSP_pcm_format_to_bits(int format);
-
-
-// hides pcm_param and matches alsa implementation
-enum LDSP_pcm_param
-{
-    /* mask parameters */
-    LDSP_PCM_PARAM_ACCESS = SNDRV_PCM_HW_PARAM_ACCESS,
-    LDSP_PCM_PARAM_FORMAT = SNDRV_PCM_HW_PARAM_FORMAT,
-    LDSP_PCM_PARAM_SUBFORMAT = SNDRV_PCM_HW_PARAM_SUBFORMAT,
-    /* interval parameters */
-    LDSP_PCM_PARAM_SAMPLE_BITS = SNDRV_PCM_HW_PARAM_SAMPLE_BITS,
-    LDSP_PCM_PARAM_FRAME_BITS = SNDRV_PCM_HW_PARAM_FRAME_BITS,
-    LDSP_PCM_PARAM_CHANNELS = SNDRV_PCM_HW_PARAM_CHANNELS,
-    LDSP_PCM_PARAM_RATE = SNDRV_PCM_HW_PARAM_RATE,
-    LDSP_PCM_PARAM_PERIOD_TIME = SNDRV_PCM_HW_PARAM_PERIOD_TIME,
-    LDSP_PCM_PARAM_PERIOD_SIZE = SNDRV_PCM_HW_PARAM_PERIOD_SIZE,
-    LDSP_PCM_PARAM_PERIOD_BYTES = SNDRV_PCM_HW_PARAM_PERIOD_BYTES,
-    LDSP_PCM_PARAM_PERIODS = SNDRV_PCM_HW_PARAM_PERIODS,
-    LDSP_PCM_PARAM_BUFFER_TIME = SNDRV_PCM_HW_PARAM_BUFFER_TIME,
-    LDSP_PCM_PARAM_BUFFER_SIZE = SNDRV_PCM_HW_PARAM_BUFFER_SIZE,
-    LDSP_PCM_PARAM_BUFFER_BYTES = SNDRV_PCM_HW_PARAM_BUFFER_BYTES,
-    LDSP_PCM_PARAM_TICK_TIME = SNDRV_PCM_HW_PARAM_TICK_TIME
-};
-
-// incomplete structure that hides pcm_params and works as pointed to alsa struct
-struct LDSP_pcm_params;
-
-// re-implements tinyalsa pcm_params_get()
-LDSP_pcm_params *LDSP_pcm_params_get(unsigned int card, unsigned int device, unsigned int flags);
-// re-implements tinyalsa pcm_params_get_min()
-unsigned int LDSP_pcm_params_get_min(struct LDSP_pcm_params *pcm_params, LDSP_pcm_param param);
-// re-implements tinyalsa pcm_params_get_max()
-unsigned int LDSP_pcm_params_get_max(struct LDSP_pcm_params *pcm_params, LDSP_pcm_param param);
-// re-implements tinyalsa pcm_params_free()
-void LDSP_pcm_params_free(struct LDSP_pcm_params *pcm_params);
-
-
 
 #endif /* TINY_ALSA_AUDIO_H_ */

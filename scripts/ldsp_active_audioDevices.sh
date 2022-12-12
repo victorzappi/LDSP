@@ -14,7 +14,7 @@
 rate=0			# sample rate
 per=0		 	# period size
 buf=0 			# period count (size*count=buffer size)
-#TODO format!
+format=''
 # different for playback and capture
 num=(-1 -1)
 chn=(-1 -1)
@@ -24,7 +24,7 @@ chn=(-1 -1)
 ratearg='-r'	# sample rate
 perarg='-p' 	# period size
 bufarg='-b' 	# period count (size*count=buffer size)
-#TODO format!
+formatarg='-f'	# format
 # different for playback and capture
 idarg=("-s" "-S") #VIC string array must have double quotes
 numarg=("-d" "-D") #VIC string array must have double quotes
@@ -35,7 +35,7 @@ ratepos=9
 perpos=12
 bufpos=14
 chnpos=7
-#TODO format!
+formatpos=3
 
 
 extract_id()
@@ -73,7 +73,7 @@ print_params()
 	per=${params[$perpos]}
 	buf=${params[$bufpos]}
 	buf=$(($buf/$per)) # this is actually the buffer count
-	#TODO format!
+	format=${params[$formatpos]}
 	
 	chn[$dir]=${params[$chnpos]}
 	# device number has been retrieved and displayed already
@@ -81,19 +81,13 @@ print_params()
 	echo '   ''rate:' $rate '('${ratearg}')'
 	echo '   ''period:' $per '('${perarg}')'
 	echo '   ''buffer count:' $buf '('${bufarg}')'
+	echo '   ''format:' $format '('${formatarg}')'
 	echo '   ''channel count:' ${chn[$dir]} '('${chnarg[$dir]}')'
 
 	#DEBUG prtints all params
-	# get len of list
-	#len="${#params[@]}"
-	# prepare to loop through list of params
-	#len=$(($len-1))
-	#ii=0
-	#while [[ $ii -le $len ]]
-	#do
-#		curr=${params[$ii]}
+#	for curr in "${params[@]}"
+#	do
 #		echo $curr
-#		ii=$(($ii+1))
 #	done
 }
 
@@ -185,7 +179,7 @@ if [ "$playfound" == 1 ]; then
 	echo
 	echo 'Equivalent command line arguments:'
 	# first soecific args, than shared ones
-	echo $playargs $capargs ${ratearg} ${rate} ${perarg} ${per} ${bufarg} ${buf}
+	echo $playargs $capargs ${ratearg} ${rate} ${perarg} ${per} ${bufarg} ${buf} ${formatarg} ${format} 
 fi
 
 

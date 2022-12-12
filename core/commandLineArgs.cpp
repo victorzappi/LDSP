@@ -33,6 +33,7 @@ using namespace std;
 unordered_map<string, int> gFormats; // extern in tinyalsaAudio.cpp
 
 
+
 void LDSP_usage(const char *argv)
 {
 	// fprintf(stderr, "Passthrough from buil-in mic to headphones, via the selected devices\n");
@@ -61,7 +62,7 @@ void LDSP_usage(const char *argv)
 int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 {
     // first populate format map 
-    for(int i=0; i<=(int)LDSP_pcm_format::PCM_FORMAT_MAX; i++)
+    for(int i=0; i<=(int)LDSP_pcm_format::MAX; i++)
     {
         LDSP_pcm_format format = (LDSP_pcm_format::_enum)LDSP_pcm_format::_from_index(i);
         string name = format._to_string();
@@ -80,8 +81,8 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 		{ "input-device-id",    'S', OPTPARSE_REQUIRED },
 		{ "period-size",  		'p', OPTPARSE_REQUIRED },
 		{ "period-count", 		'b', OPTPARSE_REQUIRED },
-		{ "audio-out-channels", 'n', OPTPARSE_REQUIRED },
-		{ "audio-in-channels",  'N', OPTPARSE_REQUIRED },
+		{ "output-channels", 	'n', OPTPARSE_REQUIRED },
+		{ "input-channels",  	'N', OPTPARSE_REQUIRED },
 		{ "samplerate",    		'r', OPTPARSE_REQUIRED },
 		{ "format",       		'f', OPTPARSE_REQUIRED },
 		{ "output-path",       	'o', OPTPARSE_REQUIRED },

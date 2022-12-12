@@ -44,7 +44,7 @@ void LDSP_defaultSettings(LDSPinitSettings *settings)
     settings->numAudioOutChannels = 2; // stereo output is common
     settings->numAudioInChannels = 1; // mono input is common, cos phones have mono built-in mic
     settings->samplerate = 48000; // common standard in phones
-    settings->pcmFormatString = "PCM_FORMAT_S16_LE"; // supported by most devices
+    settings->pcmFormatString = "S16_LE"; // supported by most devices
     settings->pathOut = ""; // default is first output path in hw config json file, typically headphones
     settings->pathIn = ""; // default is first input path in hw config json file, typically built-in mic
     settings->outputOnly = 0; // full duplex engine by default

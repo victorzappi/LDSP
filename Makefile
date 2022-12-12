@@ -109,8 +109,8 @@ push:
 	@adb push "$(BUILD_DIR)/ldsp" /data/ldsp/ldsp
 
 push_shell:
-  @adb push "$(HW_CONFIG)" /sdcard/ldsp/ldsp_hw_config.json
-  @adb push "$(BUILD_DIR)/ldsp" /sdcard/ldsp/ldsp
+	@adb push "$(HW_CONFIG)" /sdcard/ldsp/ldsp_hw_config.json
+	@adb push "$(BUILD_DIR)/ldsp" /sdcard/ldsp/ldsp
 
 clean:
 	@rm -rf "$(BUILD_DIR)"
