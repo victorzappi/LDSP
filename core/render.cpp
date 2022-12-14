@@ -105,7 +105,7 @@ void render(LDSPcontext *context, void *userData)
 		while(phase > 2.0f *M_PI)
 			phase -= 2.0f * (float)M_PI;
 
-        //out = audioRead(context, n, 0);
+        //out = audioRead(context, n, 0)*0.1;
 		
 		for(int chn=0; chn<context->audioOutChannels; chn++)
             audioWrite(context, n, chn, out);

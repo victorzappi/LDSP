@@ -333,10 +333,10 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 	// 	return -2;
 	// }
 
-	audio_struct_p->frameBytes =  pcm_frames_to_bytes(audio_struct_p->pcm, config_p->period_size); //VIC note that we are using period size, not buffer size
+	audio_struct_p->frameBytes = pcm_frames_to_bytes(audio_struct_p->pcm, config_p->period_size); //VIC note that we are using period size, not buffer size
     
     if(audioVerbose)
-	    printf("Playback audio card opened\n");
+	    printf("Playback audio device opened\n");
 
 
 
@@ -357,14 +357,14 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 		audio_struct_c->frameBytes =  pcm_frames_to_bytes(audio_struct_c->pcm, config_c->period_size); //VIC note that we are using period size, not buffer size
 
 		if(audioVerbose)
-			printf("Capture audio card opened\n");
+			printf("Capture audio device opened\n");
 
 
 		if(LDSP_pcm_link(audio_struct_p, audio_struct_c) <0)
 			return -2;
 		
 		if(audioVerbose)
-			printf("Playback and Capture audio card linked!\n");
+			printf("Playback and Capture audio device linked!\n");
 	}
 
     return 0;
@@ -381,7 +381,7 @@ void closePcm(audio_struct* audio_struct, bool is_playback)
             {
 			    LDSP_pcm_unlink(audio_struct);
                 if(audioVerbose)
-                    printf("Playback audio card unlinked from Capture audio card!\n");
+                    printf("Playback audio device unlinked from Capture audio device!\n");
             }
 
 			pcm_close(audio_struct->pcm);
@@ -391,7 +391,7 @@ void closePcm(audio_struct* audio_struct, bool is_playback)
                     printf("Playback");    
                 else
                     printf("Capture");    
-			    printf(" audio card closed\n");
+			    printf(" audio device closed\n");
             }
 		}
 	}
@@ -514,7 +514,16 @@ void fromRawToFloat_int(audio_struct *audio_struct)
 	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 	{
 			int res = byteCombine(sampleBytes, audio_struct); // function pointer, gets sample value by combining the consecutive bytes, organized in either little or big endian
-
+			
+			// if retrieved value is greater than maximum value allowed within current format
+			// we have to manualluy complete the 2's complement 
+			if(audio_struct->bps<sizeof(int) && res>audio_struct->scaleVal)
+			{
+				int mask = 0x00000000;
+				for (int i = 0; i<sizeof(int)-audio_struct->bps; i++)
+					mask |= (0xFF000000 >> i*8);
+				res |= mask;
+			}
 			audio_struct->audioBuffer[n] = res/((float)(audio_struct->scaleVal)); // turn int sample into full scale normalized float
 
 			sampleBytes += audio_struct->bps; // jump to next sample
@@ -687,6 +696,7 @@ inline int byteCombine_littleEndian(unsigned char *sampleBytes, struct audio_str
 	int value = 0;
 	for (int i = 0; i<audio_struct->bps; i++)
 		value += (int) (*(sampleBytes + i)) << i * 8;  // combines each sample [which stretches over 1 or more bytes, according to format] in single integer
+		
 	return value;
 }
 // little endian -> byte_n-1, byte_n-2, ..., byte_0
