@@ -31,7 +31,7 @@
 // analogOutChannel enum in LDSP.h [order]
 // and
 // the keys in the hw_config.json file [names]
-static const string LDSP_analog_outDevices[chn_aout_count] = {
+static const string LDSP_analog_ctrlOutput[chn_aout_count] = {
     "flashlight",
     "lcd-backlight",
     "led",
@@ -44,7 +44,7 @@ static const string LDSP_analog_outDevices[chn_aout_count] = {
 // digitalOutChannel enum in LDSP.h [order]
 // and
 // the keys in the hw_config.json file [names]
-static const string LDSP_digital_outDevices[chn_dout_count] = {
+static const string LDSP_digital_ctrlOutput[chn_dout_count] = {
     "flashlight",
     "lcd-backlight",
     "led",
@@ -55,7 +55,7 @@ static const string LDSP_digital_outDevices[chn_dout_count] = {
     "vibration" // vibration is time-based and what we pass is the duration of the vibration [ms]
 };
 
-struct outdev_struct {
+struct ctrlout_struct {
     bool configured;
     ofstream file;
     unsigned int scaleVal;
@@ -63,22 +63,22 @@ struct outdev_struct {
     unsigned int initialVal;
 };
 
-struct LDSPoutDevContext {
-    outdev_struct analogOutDevices[chn_aout_count];
-    float analogOutDevBuffer[chn_aout_count];
-    outDeviceState analogDevicesStates[chn_aout_count];
-    string analogDevicesDetails[chn_aout_count];
-    outdev_struct digitalOutDevices[chn_dout_count];
-    unsigned int digitalOutDevBuffer[chn_dout_count];
-    outDeviceState digitalDevicesStates[chn_dout_count];
-    string digitalDevicesDetails[chn_dout_count];
+struct LDSPctrlOutContext {
+    ctrlout_struct analogCtrlOutputs[chn_aout_count];
+    float analogCtrlOutBuffer[chn_aout_count];
+    ctrlOutState analogCtrlOutStates[chn_aout_count];
+    string analogCtrlOutDetails[chn_aout_count];
+    ctrlout_struct digitalCtrlOutputs[chn_dout_count];
+    unsigned int digitalCtrlOutBuffer[chn_dout_count];
+    ctrlOutState digitalCtrlOutStates[chn_dout_count];
+    string digitalCtrlOutDetails[chn_dout_count];
 };
 
 
-int LDSP_initOutDevices(LDSPinitSettings *settings, LDSPhwConfig *hwconfig);
-void LDSP_cleanupOutDevices();
+int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig);
+void LDSP_cleanupCtrlOutputs();
 
-void outputDevWrite();
+void ctrlOutputsWrite();
 void write(ofstream *file, int value);
 
 //---------------------------------------------------------------

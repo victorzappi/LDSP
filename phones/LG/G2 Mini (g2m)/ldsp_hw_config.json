@@ -23,9 +23,9 @@
 		"mixer playback device activation": "SLIMBUS_0_RX Audio Mixer DEVICE_ID",
 		"mixer capture device activation": "DEVICE_ID Mixer SLIM_0_TX"
 	},
-	"output devices":
+	"control outputs":
 	{
-		"analog devices":
+		"analog control outputs":
 		{
 			"lcd-backlight":
 			{
@@ -33,7 +33,7 @@
 				"max value": "/sys/class/leds/lcd-backlight/max_brightness"
 			}
 		},
-		"digital devices":
+		"digital control outputs":
 		{
 			"flashlight":
 			{

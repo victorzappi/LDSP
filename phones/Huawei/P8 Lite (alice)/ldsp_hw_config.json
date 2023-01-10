@@ -23,9 +23,9 @@
 		"mixer playback device activation": "",
 		"mixer capture device activation": ""
 	},
-	"output devices":
+	"control outputs":
 	{
-		"analog devices":
+		"analog control outputs":
 		{
 			"flashlight":
 			{
@@ -38,7 +38,7 @@
 				"max value": "/sys/class/leds/lcd_backlight0/max_brightness"
 			}
 		},
-		"digital devices":
+		"digital control outputs":
 		{
 			"flashlight": 
 			{	"control file": "/sys/class/leds/torch/brightness",

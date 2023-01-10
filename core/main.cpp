@@ -6,7 +6,7 @@
 #include "hwConfig.h"
 #include "commandLineArgs.h"
 #include "mixer.h"
-#include "outDevices.h"
+#include "ctrlOutputs.h"
 
 
 using namespace std;
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	if(LDSP_initOutDevices(settings, hwconfig) < 0)
+	if(LDSP_initCtrlOutputs(settings, hwconfig) < 0)
 	{
 		LDSP_resetMixerPaths(hwconfig);
 		LDSP_HwConfig_free(hwconfig);
@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 
 	if(LDSP_initAudio(settings, 0) != 0) 
 	{
-		LDSP_cleanupOutDevices();
+		LDSP_cleanupCtrlOutputs();
 		LDSP_resetMixerPaths(hwconfig);
 		LDSP_HwConfig_free(hwconfig);
 		LDSP_InitSettings_free(settings);
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 		// Clean up any resources allocated
 		LDSP_cleanupSensors();
 	 	LDSP_cleanupAudio();
-		LDSP_cleanupOutDevices();
+		LDSP_cleanupCtrlOutputs();
 		LDSP_resetMixerPaths(hwconfig);
 		LDSP_HwConfig_free(hwconfig);
 	 	return 1;
@@ -99,7 +99,7 @@ int main(int argc, char** argv)
 
 	LDSP_resetMixerPaths(hwconfig);
 
-	LDSP_cleanupOutDevices();
+	LDSP_cleanupCtrlOutputs();
 
 	LDSP_HwConfig_free(hwconfig);
 	

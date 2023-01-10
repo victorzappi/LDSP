@@ -19,7 +19,7 @@
 
 #include <fstream> // files
 #include "hwConfig.h"
-#include "outDevices.h"
+#include "ctrlOutputs.h"
 #include "libraries/JSON/json.hpp"
 #include "libraries/JSON/fifo_map.hpp"
 
@@ -38,7 +38,7 @@ bool hwconfigVerbose = false;
 
 
 void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig);
-void parseOutputDevices(ordered_json *config, LDSPhwConfig *hwconfig);
+void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig);
 
 
 LDSPhwConfig* LDSP_HwConfig_alloc()
@@ -52,14 +52,14 @@ LDSPhwConfig* LDSP_HwConfig_alloc()
     hwconfig->default_dev_c = 0;
 	hwconfig->deviceActivationCtl_p = "";
     hwconfig->deviceActivationCtl_c = "";
-    hwconfig->analogOutDevices[DEVICE_CTRL_FILE] = new string[chn_aout_count];
-	hwconfig->analogOutDevices[DEVICE_SCALE] = new string[chn_aout_count];
+    hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE] = new string[chn_aout_count];
+	hwconfig->analogCtrlOutputs[DEVICE_SCALE] = new string[chn_aout_count];
 	// for(int i=0; i<chn_aout_count; i++)
-	// 	hwconfig->analogOutDevices[DEVICE_CTRL_FILE][i] = "";
-	hwconfig->digitalOutDevices[DEVICE_CTRL_FILE] = new string[chn_dout_count];
-	hwconfig->digitalOutDevices[DEVICE_SCALE] = new string[chn_dout_count];
+	// 	hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE][i] = "";
+	hwconfig->digitalCtrlOutputs[DEVICE_CTRL_FILE] = new string[chn_dout_count];
+	hwconfig->digitalCtrlOutputs[DEVICE_SCALE] = new string[chn_dout_count];
 	// for(int i=0; i<chn_dout_count; i++)
-	// 	hwconfig->digitalOutDevices[i] = "";
+	// 	hwconfig->digitalCtrlOutputs[i] = "";
 
     return hwconfig;
 }
@@ -67,10 +67,10 @@ LDSPhwConfig* LDSP_HwConfig_alloc()
 
 void LDSP_HwConfig_free(LDSPhwConfig* hwconfig)
 {
-	delete[] hwconfig->analogOutDevices[DEVICE_CTRL_FILE];
-	delete[] hwconfig->analogOutDevices[DEVICE_SCALE];
-	delete[] hwconfig->digitalOutDevices[DEVICE_CTRL_FILE];
-	delete[] hwconfig->digitalOutDevices[DEVICE_SCALE];
+	delete[] hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE];
+	delete[] hwconfig->analogCtrlOutputs[DEVICE_SCALE];
+	delete[] hwconfig->digitalCtrlOutputs[DEVICE_CTRL_FILE];
+	delete[] hwconfig->digitalCtrlOutputs[DEVICE_SCALE];
 	delete hwconfig;
 }
 
@@ -99,7 +99,7 @@ int LDSP_parseHwConfigFile(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 
     // parse specific settings
 	parseMixerSettings(&config, hwconfig);
-	parseOutputDevices(&config, hwconfig);
+	parseCtrlOutputs(&config, hwconfig);
 	
     // done parsing config file
 	f_config.close();
@@ -178,42 +178,42 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
     }
 }
 
-void parseOutputDevices(ordered_json *config, LDSPhwConfig *hwconfig)
+void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 {
     if(hwconfigVerbose)
         printf("Parsing output devices...\n");
 
 
-	// temporary map for quick retrieval of device index from name
-	unordered_map<string, int> analog_devices_indices;
+	// temporary map for quick retrieval of ctrlOutput index from name
+	unordered_map<string, int> analog_ctrlOut_indices;
 	for (unsigned int i=0; i<chn_aout_count; i++)
-		analog_devices_indices[LDSP_analog_outDevices[i]] = i;
+		analog_ctrlOut_indices[LDSP_analog_ctrlOutput[i]] = i;
 
-	unordered_map<string, int> digital_devices_indices;
+	unordered_map<string, int> digital_ctrlOut_indices;
 	for (unsigned int i=0; i<chn_dout_count; i++)
-		digital_devices_indices[LDSP_digital_outDevices[i]] = i;
+		digital_ctrlOut_indices[LDSP_digital_ctrlOutput[i]] = i;
 	
 
     // parse output devices container
     ordered_json config_ = *(config);
-	ordered_json devices = config_["output devices"];
+	ordered_json devices = config_["control outputs"];
 
 	// these are all optional
 
 	//TODO move redundant code to function
 	// parse analog out devices
-	ordered_json analog_devices = devices["analog devices"];
-	for(auto &it : analog_devices.items()) 
+	ordered_json analog_ctrlOutputs = devices["analog control outputs"];
+	for(auto &it : analog_ctrlOutputs.items()) 
 	{
 		string key = it.key();
-		// check if device name is in list
-		if(analog_devices_indices.find(key)!=analog_devices_indices.end())
+		// check if ctrlOutput name is in list
+		if(analog_ctrlOut_indices.find(key)!=analog_ctrlOut_indices.end())
 		{
 			// retrieve control file name
-			ordered_json device = it.value();
-			json val = device["control file"];
+			ordered_json ctrlOutput = it.value();
+			json val = ctrlOutput["control file"];
 			
-			// if not string or empty, this device won't be configured and we move on
+			// if not string or empty, this ctrlOutput won't be configured and we move on
 			if(!val.is_string())
 				continue;
 			string ctrl = val;
@@ -221,32 +221,32 @@ void parseOutputDevices(ordered_json *config, LDSPhwConfig *hwconfig)
 				continue;
 
 			// assign control file and max file
-			hwconfig->analogOutDevices[DEVICE_CTRL_FILE][analog_devices_indices[key]] = ctrl;
-			json max = device["max value"];
+			hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE][analog_ctrlOut_indices[key]] = ctrl;
+			json max = ctrlOutput["max value"];
 			if(max.is_string())
-				hwconfig->analogOutDevices[DEVICE_SCALE][analog_devices_indices[key]] = max;
+				hwconfig->analogCtrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = max;
 			else if(max.is_number_integer())
-				hwconfig->analogOutDevices[DEVICE_SCALE][analog_devices_indices[key]] = to_string(max);
+				hwconfig->analogCtrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = to_string(max);
 			else
-				hwconfig->analogOutDevices[DEVICE_SCALE][digital_devices_indices[key]] = "255"; // default!
+				hwconfig->analogCtrlOutputs[DEVICE_SCALE][digital_ctrlOut_indices[key]] = "255"; // default!
 		}
 	}
 
 	// parse digital out devices
-	ordered_json digital_devices = devices["digital devices"];
+	ordered_json digital_ctrlOutputs = devices["digital control outputs"];
 	
-	for(auto &it : digital_devices.items()) 
+	for(auto &it : digital_ctrlOutputs.items()) 
 	{
 		string key = it.key();
 
-		// check if device name is in list
-		if(digital_devices_indices.find(key)!=digital_devices_indices.end())
+		// check if ctrlOutput name is in list
+		if(digital_ctrlOut_indices.find(key)!=digital_ctrlOut_indices.end())
 		{
 			// retrieve control file name
-			ordered_json device = it.value();
-			json val = device["control file"];
+			ordered_json ctrlOutput = it.value();
+			json val = ctrlOutput["control file"];
 			
-			// if not string or empty, this device won't be configured and we move on
+			// if not string or empty, this ctrlOutput won't be configured and we move on
 			if(!val.is_string())
 				continue;
 			string ctrl = val;
@@ -254,15 +254,15 @@ void parseOutputDevices(ordered_json *config, LDSPhwConfig *hwconfig)
 				continue;
 
 			// assign control file and max file
-			hwconfig->digitalOutDevices[DEVICE_CTRL_FILE][digital_devices_indices[key]] = ctrl;
+			hwconfig->digitalCtrlOutputs[DEVICE_CTRL_FILE][digital_ctrlOut_indices[key]] = ctrl;
 	
-			json onVal = device["on value"];
+			json onVal = ctrlOutput["on value"];
 			if(onVal.is_string())
-				hwconfig->digitalOutDevices[DEVICE_SCALE][digital_devices_indices[key]] = onVal;
+				hwconfig->digitalCtrlOutputs[DEVICE_SCALE][digital_ctrlOut_indices[key]] = onVal;
 			else if(val.is_number_integer())
-				hwconfig->digitalOutDevices[DEVICE_SCALE][digital_devices_indices[key]] = to_string(onVal);
+				hwconfig->digitalCtrlOutputs[DEVICE_SCALE][digital_ctrlOut_indices[key]] = to_string(onVal);
 			else
-				hwconfig->digitalOutDevices[DEVICE_SCALE][digital_devices_indices[key]] = "1"; // default! handy for vibration
+				hwconfig->digitalCtrlOutputs[DEVICE_SCALE][digital_ctrlOut_indices[key]] = "1"; // default! handy for vibration
 				// vibration does not need a specific on value, because what we write is activation time in milliseconds
 		}
 	}

@@ -43,8 +43,8 @@ struct LDSPhwConfig {
     int default_dev_c;
     string deviceActivationCtl_p;
     string deviceActivationCtl_c;
-    string *analogOutDevices[2]; // control file and max value (or max file)
-    string *digitalOutDevices[2]; // control file only and on value (or on file)
+    string *analogCtrlOutputs[2]; // control file and max value (or max file)
+    string *digitalCtrlOutputs[2]; // control file only and on value (or on file)
 };
 
 LDSPhwConfig* LDSP_HwConfig_alloc();

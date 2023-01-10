@@ -50,7 +50,7 @@ enum sensorState {
     sensor_not_supported = -1
 };
 
-enum outDeviceState {
+enum ctrlOutState {
     device_configured = 1,
     device_not_configured = 0
 };
@@ -72,15 +72,15 @@ struct LDSPcontext {
     const uint32_t analogInChannels;
     const uint32_t analogOutChannels;
     const sensorState *analogInSensorState;
-    const outDeviceState *analogOutDeviceState;
+    const ctrlOutState *analogCtrlOutputState;
     const string *analogInSensorDetails;
-    const string *analogOutDeviceDetails;
+    const string *analogCtrlOutputDetails;
     const float *analogInNormalFactor;
     const float analogSampleRate;
     unsigned int * const digitalOut; 
     const uint32_t digitalOutChannels;
-    const outDeviceState *digitalOutDeviceState;
-    const string *digitalOutDeviceDetails;
+    const ctrlOutState *digitalCtrlOutputState;
+    const string *digitalCtrlOutputDetails;
     const float digitalSampleRate;
 	//uint64_t audioFramesElapsed;
 };
@@ -168,11 +168,11 @@ static inline sensorState analogInSensorState(LDSPcontext *context, analogInChan
 static inline string analogInSensorDetails(LDSPcontext *context, analogInChannel channel);
 static inline float analogInNormFactor(LDSPcontext *context, analogInChannel channel);
 
-//TODO analogOutDeviceState(...)
-//TODO analogOutDeviceDetails(...)
+//TODO analogCtrlOutputState(...)
+//TODO analogCtrlOutputDetails(...)
 
-//TODO digitalOutDeviceState(...)
-//TODO digitalOutDeviceDetails(...)
+//TODO digitalCtrlOutputState(...)
+//TODO digitalCtrlOutputDetails(...)
 
 //-----------------------------------------------------------------------------------------------
 // inline

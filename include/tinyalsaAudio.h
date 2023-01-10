@@ -72,6 +72,7 @@ struct audio_struct {
 	unsigned int scaleVal;
 	unsigned int bps;
 	unsigned int physBps;
+    int mask; // used for capture only
 };
 
 struct LDSPpcmContext {
@@ -91,15 +92,15 @@ struct LDSPinternalContext {
     uint32_t analogInChannels;
     uint32_t analogOutChannels;
     sensorState *analogInSensorState;
-    outDeviceState *analogOutDeviceState;
+    ctrlOutState *analogCtrlOutputState;
     string *analogInSensorDetails;
-    string *analogOutDeviceDetails;
+    string *analogCtrlOutputDetails;
     float *analogInNormalFactor;
     float analogSampleRate; // sensors and output devices
     unsigned int *digitalOut; // output devices
     uint32_t digitalOutChannels;
-    outDeviceState *digitalOutDeviceState;
-    string *digitalOutDeviceDetails;
+    ctrlOutState *digitalCtrlOutputState;
+    string *digitalCtrlOutputDetails;
     float digitalSampleRate; // output devices
 	//uint64_t audioFramesElapsed;
     //operator LDSPcontext () {return *(LDSPcontext*)this;}

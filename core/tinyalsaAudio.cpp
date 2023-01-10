@@ -40,7 +40,7 @@
 // /#include "tinyAlsaExtension.h"
 #include "priority_utils.h"
 #include "sensors.h"
-#include "outDevices.h"
+#include "ctrlOutputs.h"
 
 using namespace std;
 
@@ -446,6 +446,12 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	else
 		audio_struct->bps = 3;
 
+	// this is used for capture only
+	// we compute the mask necessary to complete the two's complment of received raw samples
+	audio_struct->mask = 0x00000000;
+	for (int i = 0; i<sizeof(int)-audio_struct->bps; i++)
+		audio_struct->mask |= (0xFF000000 >> i*8);
+			
 	return 0;
 }
 
@@ -496,7 +502,7 @@ void *audioLoop(void*)
 			fprintf(stderr, "Playback error, aborting...\n");
 		}
 
-		outputDevWrite();
+		ctrlOutputsWrite();
 	}
 
 	if(audioVerbose)
@@ -514,16 +520,10 @@ void fromRawToFloat_int(audio_struct *audio_struct)
 	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 	{
 			int res = byteCombine(sampleBytes, audio_struct); // function pointer, gets sample value by combining the consecutive bytes, organized in either little or big endian
-			
 			// if retrieved value is greater than maximum value allowed within current format
-			// we have to manualluy complete the 2's complement 
-			if(audio_struct->bps<sizeof(int) && res>audio_struct->scaleVal)
-			{
-				int mask = 0x00000000;
-				for (int i = 0; i<sizeof(int)-audio_struct->bps; i++)
-					mask |= (0xFF000000 >> i*8);
-				res |= mask;
-			}
+			// we have to manually complete the 2's complement 
+			if(res>audio_struct->scaleVal)
+				res |= audio_struct->mask;
 			audio_struct->audioBuffer[n] = res/((float)(audio_struct->scaleVal)); // turn int sample into full scale normalized float
 
 			sampleBytes += audio_struct->bps; // jump to next sample
