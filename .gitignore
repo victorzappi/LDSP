@@ -47,4 +47,6 @@ LDSP.code-workspace
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-Makefile
+.ninja_deps
+.ninja_log
+build.ninja
