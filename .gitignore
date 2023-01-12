@@ -42,3 +42,9 @@ obj/
 # -vscode
 .vscode/
 LDSP.code-workspace
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
