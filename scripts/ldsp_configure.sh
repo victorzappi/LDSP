@@ -33,9 +33,14 @@ api_version=$($(dirname $0)/ldsp_convert_android_version.sh $version_full)
 
 # support for NEON floating-point unit
 neon_setting=$(grep 'supports neon floating point unit' "$hw_config" | cut -d \" -f 4)
-if [[ $neon_setting =~ ^(true|True|yes|Yes|1|)$ ]] && [[ $arch == "armv7a" ]];
+if [[ $arch == "armv7a" ]];
 then
-    neon="-DANDROID_ARM_NEON=ON"
+    if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
+    then
+        neon="-DANDROID_ARM_NEON=ON"
+    else
+        neon="-DANDROID_ARM_NEON=OFF"
+    fi
 else
     neon=""
 fi
