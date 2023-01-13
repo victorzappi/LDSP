@@ -42,7 +42,7 @@
 #include "sensors.h"
 #include "ctrlOutputs.h"
 
-using namespace std;
+using std::string;
 
 bool volatile gShouldStop = false; // flag that tells the audio process to stop
 
@@ -491,7 +491,7 @@ void *audioLoop(void*)
 			fromRawToFloat(pcmContext.capture);
 		}
 
-		sensorsRead();
+		readSensors();
 
 		render(userContext, 0);
 
@@ -502,7 +502,7 @@ void *audioLoop(void*)
 			fprintf(stderr, "Playback error, aborting...\n");
 		}
 
-		ctrlOutputsWrite();
+		writeCtrlOutputs();
 	}
 
 	if(audioVerbose)

@@ -26,7 +26,7 @@
 #define HW_CONFIG_FILE "ldsp_hw_config.json"
 #define DEV_ID_PLCHLDR_STR "DEVICE_ID"
 
-
+using std::ifstream;
 using json = nlohmann::json;
 // workaround to have json parser maintain order of objects
 // adapted from here: https://github.com/nlohmann/json/issues/485#issuecomment-333652309
@@ -54,12 +54,6 @@ LDSPhwConfig* LDSP_HwConfig_alloc()
     hwconfig->deviceActivationCtl_c = "";
     hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE] = new string[chn_aout_count];
 	hwconfig->analogCtrlOutputs[DEVICE_SCALE] = new string[chn_aout_count];
-	// for(int i=0; i<chn_aout_count; i++)
-	// 	hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE][i] = "";
-	hwconfig->digitalCtrlOutputs[DEVICE_CTRL_FILE] = new string[chn_dout_count];
-	hwconfig->digitalCtrlOutputs[DEVICE_SCALE] = new string[chn_dout_count];
-	// for(int i=0; i<chn_dout_count; i++)
-	// 	hwconfig->digitalCtrlOutputs[i] = "";
 
     return hwconfig;
 }
@@ -69,8 +63,6 @@ void LDSP_HwConfig_free(LDSPhwConfig* hwconfig)
 {
 	delete[] hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE];
 	delete[] hwconfig->analogCtrlOutputs[DEVICE_SCALE];
-	delete[] hwconfig->digitalCtrlOutputs[DEVICE_CTRL_FILE];
-	delete[] hwconfig->digitalCtrlOutputs[DEVICE_SCALE];
 	delete hwconfig;
 }
 
@@ -189,81 +181,56 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 	for (unsigned int i=0; i<chn_aout_count; i++)
 		analog_ctrlOut_indices[LDSP_analog_ctrlOutput[i]] = i;
 
-	unordered_map<string, int> digital_ctrlOut_indices;
-	for (unsigned int i=0; i<chn_dout_count; i++)
-		digital_ctrlOut_indices[LDSP_digital_ctrlOutput[i]] = i;
-	
-
     // parse output devices container
     ordered_json config_ = *(config);
 	ordered_json devices = config_["control outputs"];
 
 	// these are all optional
 
-	//TODO move redundant code to function
+	//TODO remove "analog contorl outputs" from json structure!
 	// parse analog out devices
 	ordered_json analog_ctrlOutputs = devices["analog control outputs"];
 	for(auto &it : analog_ctrlOutputs.items()) 
 	{
+		int ctrlOut;
 		string key = it.key();
 		// check if ctrlOutput name is in list
 		if(analog_ctrlOut_indices.find(key)!=analog_ctrlOut_indices.end())
 		{
-			// retrieve control file name
 			ordered_json ctrlOutput = it.value();
+			
+			// control file
+			// retrieve control file name
 			json val = ctrlOutput["control file"];
 			
-			// if not string or empty, this ctrlOutput won't be configured and we move on
-			if(!val.is_string())
-				continue;
-			string ctrl = val;
-			if(ctrl.compare("")==0)
-				continue;
+			string ctrl;
+			if(val.is_string())
+				ctrl = val;
+			// remains empty otherwise and auto fill will be tried later on
+				
+			// assign control file 
+			ctrlOut = analog_ctrlOut_indices[key];
+			hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE][ctrlOut] = ctrl;
 
-			// assign control file and max file
-			hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE][analog_ctrlOut_indices[key]] = ctrl;
+
+			// max file/max value
+			// vibration does not have this entry in hw config file!
+			if(ctrlOut==chn_aout_vibration)
+			{
+				// alway assigne default max value!
+				hwconfig->analogCtrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = "1"; // default is no scale!
+				continue;
+			}
+			// other control outputs
+			// retrieve max file name/max value
 			json max = ctrlOutput["max value"];
+			// assign max file
 			if(max.is_string())
 				hwconfig->analogCtrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = max;
 			else if(max.is_number_integer())
-				hwconfig->analogCtrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = to_string(max);
-			else
-				hwconfig->analogCtrlOutputs[DEVICE_SCALE][digital_ctrlOut_indices[key]] = "255"; // default!
-		}
-	}
-
-	// parse digital out devices
-	ordered_json digital_ctrlOutputs = devices["digital control outputs"];
-	
-	for(auto &it : digital_ctrlOutputs.items()) 
-	{
-		string key = it.key();
-
-		// check if ctrlOutput name is in list
-		if(digital_ctrlOut_indices.find(key)!=digital_ctrlOut_indices.end())
-		{
-			// retrieve control file name
-			ordered_json ctrlOutput = it.value();
-			json val = ctrlOutput["control file"];
-			
-			// if not string or empty, this ctrlOutput won't be configured and we move on
-			if(!val.is_string())
-				continue;
-			string ctrl = val;
-			if(ctrl.compare("")==0)
-				continue;
-
-			// assign control file and max file
-			hwconfig->digitalCtrlOutputs[DEVICE_CTRL_FILE][digital_ctrlOut_indices[key]] = ctrl;
-	
-			json onVal = ctrlOutput["on value"];
-			if(onVal.is_string())
-				hwconfig->digitalCtrlOutputs[DEVICE_SCALE][digital_ctrlOut_indices[key]] = onVal;
-			else if(val.is_number_integer())
-				hwconfig->digitalCtrlOutputs[DEVICE_SCALE][digital_ctrlOut_indices[key]] = to_string(onVal);
-			else
-				hwconfig->digitalCtrlOutputs[DEVICE_SCALE][digital_ctrlOut_indices[key]] = "1"; // default! handy for vibration
-				// vibration does not need a specific on value, because what we write is activation time in milliseconds
+				hwconfig->analogCtrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = to_string(max); // can be a number, but still needs to be stringified
+			else 
+				hwconfig->analogCtrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = ""; // default! will be tenatively auto filled
 		}
 	}
 }

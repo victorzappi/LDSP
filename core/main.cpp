@@ -9,7 +9,8 @@
 #include "ctrlOutputs.h"
 
 
-using namespace std;
+using std::string;
+using std::cout;
 
 
 // Handle Ctrl-C by requesting that the audio rendering stop
@@ -26,7 +27,7 @@ void interrupt_handler(int sig)
 
 int main(int argc, char** argv)
 {
- 	cout << "Hello!\n" << endl;
+ 	cout << "Hello!\n" << "\n";
 
 	LDSPinitSettings* settings = LDSP_InitSettings_alloc();	// Standard audio settings
 	LDSP_defaultSettings(settings);
@@ -103,7 +104,7 @@ int main(int argc, char** argv)
 
 	LDSP_HwConfig_free(hwconfig);
 	
-	cout << "\nBye!" << endl;
+	cout << "\nBye!" << "\n";
 
 	return 0;
 }

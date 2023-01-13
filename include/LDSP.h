@@ -22,7 +22,7 @@
 #include <string>
 #include "../libraries/BelaUtilities.h"
 
-using namespace std;
+using std::string;
 
 struct LDSPinitSettings {
 	// these items might be adjusted by the user:
@@ -77,14 +77,10 @@ struct LDSPcontext {
     const string *analogCtrlOutputDetails;
     const float *analogInNormalFactor;
     const float analogSampleRate;
-    unsigned int * const digitalOut; 
-    const uint32_t digitalOutChannels;
-    const ctrlOutState *digitalCtrlOutputState;
-    const string *digitalCtrlOutputDetails;
-    const float digitalSampleRate;
 	//uint64_t audioFramesElapsed;
 };
 
+//TODO change from analog to sensorIn
 enum analogInChannel {
     chn_ain_accelX,
     chn_ain_accelY,
@@ -100,7 +96,7 @@ enum analogInChannel {
     chn_ain_count
 };
 
-
+//TODO change from analog to ctrlOut
 enum analogOutChannel {
     chn_aout_flashlight, 
     chn_aout_lcdBacklight,
@@ -109,19 +105,8 @@ enum analogOutChannel {
     chn_aout_ledG,
     chn_aout_ledB, 
     chn_aout_buttonsBacklight,
+    chn_aout_vibration,
     chn_aout_count
-};
-
-enum digitalOutChannel {
-    chn_dout_flashlight, 
-    chn_dout_lcdBacklight,
-    chn_dout_led,
-    chn_dout_ledR,
-    chn_dout_ledG,
-    chn_dout_ledB, 
-    chn_dout_buttonsBacklight, 
-    chn_dout_vibration,
-    chn_dout_count
 };
 
 
@@ -152,16 +137,12 @@ void cleanup(LDSPcontext *context, void *userData);
 static inline void audioWrite(LDSPcontext *context, int frame, int channel, float value);
 static inline float audioRead(LDSPcontext *context, int frame, int channel);
 
+//TODO change to sensorRead() and ctrlWrite()
 static inline float analogRead(LDSPcontext *context, analogInChannel channel);
 static inline void analogWrite(LDSPcontext *context, analogOutChannel channel, float value);
 static inline float analogRead(LDSPcontext *context, int frame, analogInChannel channel);
 static inline void analogWrite(LDSPcontext *context, int frame, analogOutChannel channel, float value);
 static inline void analogWriteOnce(LDSPcontext *context, int frame, analogOutChannel channel, float value);
-
-
-static inline void digitalWrite(LDSPcontext *context, digitalOutChannel channel, unsigned int value);
-static inline void digitalWrite(LDSPcontext *context, int frame, digitalOutChannel channel, unsigned int value);
-static inline void digitalWriteOnce(LDSPcontext *context, int frame, digitalOutChannel channel, unsigned int value);
 
 
 static inline sensorState analogInSensorState(LDSPcontext *context, analogInChannel channel);
@@ -171,8 +152,6 @@ static inline float analogInNormFactor(LDSPcontext *context, analogInChannel cha
 //TODO analogCtrlOutputState(...)
 //TODO analogCtrlOutputDetails(...)
 
-//TODO digitalCtrlOutputState(...)
-//TODO digitalCtrlOutputDetails(...)
 
 //-----------------------------------------------------------------------------------------------
 // inline
@@ -250,25 +229,6 @@ static inline void analogWrite(LDSPcontext *context, int frame, analogOutChannel
 static inline void analogWriteOnce(LDSPcontext *context, int frame, analogOutChannel channel, float value) 
 {
     analogWrite(context, channel, value);
-}
-
-// digitalWrite()
-//
-// Sets a given analog output channel to a value, that is always persistent
-static inline void digitalWrite(LDSPcontext *context, digitalOutChannel channel, unsigned int value) 
-{
-    context->digitalOut[channel] = value;
-}
-//TODO remove?
-// for full compatibility with Bela, ignores frame
-static inline void digitalWrite(LDSPcontext *context, int frame, digitalOutChannel channel, unsigned int value) 
-{
-    digitalWrite(context, channel, value);
-}
-// for full compatibility with Bela, ignores frame
-static inline void digitalWriteOnce(LDSPcontext *context, int frame, digitalOutChannel channel, unsigned int value) 
-{
-    digitalWrite(context, channel, value);
 }
 
 #endif /* LDSP_H_ */

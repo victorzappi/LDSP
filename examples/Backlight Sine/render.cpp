@@ -77,7 +77,7 @@ bool setup(LDSPcontext *context, void *userData)
 
 	
 	
-	digitalWrite(context, chn_dout_ledB, on);
+	analogWrite(context, chn_aout_ledB, on);
 	
 
     return true;
@@ -121,9 +121,9 @@ void render(LDSPcontext *context, void *userData)
 
 	if(lcdLightPhasePrev < 0 && lcdLightPhase >=0)
 	{
-		digitalWrite(context, chn_dout_vibration, 500);
+		analogWrite(context, chn_aout_vibration, 500);
 		flashlight = (1-flashlight);
-		digitalWrite(context, chn_dout_flashlight, flashlight);
+		analogWrite(context, chn_aout_flashlight, flashlight*0.5);
 	}
 	lcdLightPhasePrev = lcdLightPhase;
 

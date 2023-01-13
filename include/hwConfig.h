@@ -19,16 +19,16 @@
 #ifndef HW_CONFIG_H_
 #define HW_CONFIG_H_
 
-#include <string>
 #include <unordered_map> // unordered_map
 #include <vector> // vector
 
 #include "LDSP.h"
 
+using std::vector;
+using std::unordered_map;
+
 #define DEVICE_CTRL_FILE 0
 #define DEVICE_SCALE 1
-
-using namespace std;
 
 struct LDSPhwConfig {
     string hw_confg_file;
@@ -44,7 +44,6 @@ struct LDSPhwConfig {
     string deviceActivationCtl_p;
     string deviceActivationCtl_c;
     string *analogCtrlOutputs[2]; // control file and max value (or max file)
-    string *digitalCtrlOutputs[2]; // control file only and on value (or on file)
 };
 
 LDSPhwConfig* LDSP_HwConfig_alloc();

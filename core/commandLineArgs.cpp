@@ -28,7 +28,8 @@
 #define OPTPARSE_IMPLEMENTATION
 #include "optparse.h"
 
-using namespace std;
+using std::string;
+using std::unordered_map;
 
 unordered_map<string, int> gFormats; // extern in tinyalsaAudio.cpp
 
