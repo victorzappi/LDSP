@@ -36,28 +36,21 @@
 			{
 				"control file": "/sys/class/leds/lcd_backlight0/brightness",
 				"max value": "/sys/class/leds/lcd_backlight0/max_brightness"
-			}
-		},
-		"digital control outputs":
-		{
-			"flashlight": 
-			{	"control file": "/sys/class/leds/torch/brightness",
-				"on value": 1 
 			},
 			"led-red":
 			{
 				"control file": "/sys/class/leds/red/brightness",
-				"on value": "/sys/class/leds/red/max_brightness"
+				"max value": "/sys/class/leds/red/max_brightness"
 			},
 			"led-green":
 			{
 				"control file": "/sys/class/leds/green/brightness",
-				"on value": "/sys/class/leds/green/max_brightness"
+				"max value": "/sys/class/leds/green/max_brightness"
 			},
 			"led-blue":
 			{
 				"control file": "/sys/class/leds/blue/brightness",
-				"on value": "/sys/class/leds/blue/max_brightness"
+				"max value": "/sys/class/leds/blue/max_brightness"
 			},
 			"vibration":
 			{ 

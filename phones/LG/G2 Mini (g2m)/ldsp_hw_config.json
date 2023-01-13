@@ -27,18 +27,19 @@
 	{
 		"analog control outputs":
 		{
+			"flashlight":
+			{
+				"control file": "/sys/class/leds/led:flash_torch/brightness",
+				"max value": "/sys/class/leds/led:flash_torch/max_brightness"
+			},
 			"lcd-backlight":
 			{
 				"control file": "/sys/class/leds/lcd-backlight/brightness",
 				"max value": "/sys/class/leds/lcd-backlight/max_brightness"
-			}
-		},
-		"digital control outputs":
-		{
-			"flashlight":
-			{
-				"control file": "/sys/class/leds/torch-light/brightness",
-				"on value": 1
+			}, 
+			"vibration":
+			{ 
+				"control file": "/sys/class/timed_output/vibrator/enable"
 			}
 		}
 	}

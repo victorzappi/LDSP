@@ -20,13 +20,28 @@
 #include "LDSP.h"
 
 #include <sstream> // for ostream
+#include <dirent.h> // to search for files
+#include <memory> // smart pointers
+#include <regex> // replace substring
+
+using std::ifstream;
+using std::ostringstream;
+using std::shared_ptr;
+using std::make_shared;
+using std::regex;
+using std::regex_replace;
+
+#define CTRL_BASE_PATH "/sys/class"
 
 bool ctrlOutputsVerbose = false;
 
 LDSPctrlOutContext ctrlOutputsContext;
 extern LDSPinternalContext intContext;
 
-int initCtrlOutputs(string **ctrlOutputsFiles, unsigned int chCount, ctrlout_struct *ctrlOutputs, ctrlOutState *ctrlOutputsStates, string *ctrlOutputsDetails, bool isAnalog=true);
+
+
+int initCtrlOutputs(string **ctrlOutputsFiles, unsigned int chCount, ctrlout_struct *ctrlOutputs, ctrlOutState *ctrlOutputsStates, string *ctrlOutputsDetails);
+
 
 
 
@@ -37,25 +52,10 @@ int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
     if(ctrlOutputsVerbose)
         printf("\nLDSP_initCtrlOutputs()\n");
 
-    // analog control outputs
-    if(ctrlOutputsVerbose)
-        printf("Analog output ctrlOutput list:\n");
-
     int retVal = initCtrlOutputs(hwconfig->analogCtrlOutputs, chn_aout_count, ctrlOutputsContext.analogCtrlOutputs, 
                                 ctrlOutputsContext.analogCtrlOutStates, ctrlOutputsContext.analogCtrlOutDetails);
     if(retVal!=0)
         return retVal;
-
-
-    // digital control outputs
-    if(ctrlOutputsVerbose)
-        printf("Digital output ctrlOutput list:\n");
-
-    retVal = initCtrlOutputs(hwconfig->digitalCtrlOutputs, chn_dout_count, ctrlOutputsContext.digitalCtrlOutputs, 
-                            ctrlOutputsContext.digitalCtrlOutStates, ctrlOutputsContext.digitalCtrlOutDetails, false);
-    if(retVal!=0)
-        return retVal;
-
 
     // update context
     // --analog outputs
@@ -63,12 +63,6 @@ int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
     intContext.analogOutChannels = chn_aout_count;
     intContext.analogCtrlOutputState = ctrlOutputsContext.analogCtrlOutStates;
     intContext.analogCtrlOutputDetails = ctrlOutputsContext.analogCtrlOutDetails;
-    // --digital outputs
-    intContext.digitalOut = ctrlOutputsContext.digitalCtrlOutBuffer;
-    intContext.digitalOutChannels = chn_dout_count;
-    intContext.digitalCtrlOutputState = ctrlOutputsContext.digitalCtrlOutStates;
-    intContext.digitalCtrlOutputDetails = ctrlOutputsContext.digitalCtrlOutDetails;
-
     return 0;
 }
 
@@ -80,131 +74,279 @@ void LDSP_cleanupCtrlOutputs()
     if(ctrlOutputsVerbose)
         printf("LDSP_cleanupCtrlOutputs()\n");
 
-    // analog devices
+    // analog control outputs
     cleanupCtrlOutputs(ctrlOutputsContext.analogCtrlOutputs, chn_aout_count);
-    // digital devices
-    cleanupCtrlOutputs(ctrlOutputsContext.digitalCtrlOutputs, chn_dout_count);
 }
 
 
 
 
-int initCtrlOutputs(string **ctrlOutputsFiles, unsigned int chCount, ctrlout_struct *ctrlOutputs, ctrlOutState *ctrlOutputsStates, string *ctrlOutputsDetails, bool isAnalog)
+bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, string &control_file)
+{        
+    DIR* directory;
+    string path;
+    
+    // first try to open one of the possible container folders
+    for(string folder : keywords->folders[out])
+    {
+        path = string(CTRL_BASE_PATH) + "/" + folder;
+        directory = opendir(path.c_str());
+        if (directory != nullptr)
+            break;
+        path = "";
+    }
+    // cannot find any folder ):
+    if(path == "")
+    {
+        closedir(directory);
+        return false;
+    }
+
+    // if we found folder, 
+    // search for a subfolder whose name contains one of the strings
+    dirent* entry;
+    string content = "";
+    while( (entry = readdir(directory)) != nullptr ) 
+    {
+        string d_name = string(entry->d_name);
+        for(string str : keywords->subFolders_strings[out])
+        {
+            // skip if not an actual string to check
+            if(str == "")
+                continue;
+
+            size_t found = d_name.find(str);
+            // if found, we append subfolder to path
+            if (found != string::npos) 
+            {
+                content = path + "/" + d_name;
+                break;
+            }
+        }
+        // we can stop at this first string that we found!
+        if(content != "")
+        {
+            path = content;
+            break;
+        }
+    }
+    closedir(directory);
+    // cannot find any string in names ):
+    if(content == "")
+        return false;
+
+    // once we have folder and subfolder,
+    // finally check if the control file is there
+    directory = opendir(path.c_str());
+    if (directory == nullptr)
+    {
+        closedir(directory); 
+        fprintf(stderr, "Control output \"%s\", cannot open file \"%s\" during autofill!\n", LDSP_analog_ctrlOutput[out].c_str(), path.c_str());
+        return false;
+    }
+
+    //TODO next complete case of vibration with activate+duration
+    // also in the write function!!!
+    content = "";
+    while( (entry = readdir(directory)) != nullptr ) 
+    {
+        string d_name = string(entry->d_name);
+        // in most cases, there is a single possible name for the control file
+        if(d_name == keywords->files[out][0])
+        {
+            content = "/" + d_name;
+            break;
+        }
+        // onyl exception is vibraiton, that has two possibilities
+        else if(out==chn_aout_vibration && d_name == keywords->files[out][1])
+        {
+            content = "/" + d_name;
+            break;
+        }
+    }
+    // cannot find file ):
+    if(content == "")
+    {
+        closedir(directory);        
+        return false;
+    }
+
+    // this is the full path to the control file!
+    control_file = path + content;
+    
+    closedir(directory);     
+
+    return true;
+}
+
+
+void ctrlOutputAutoFill_scale(int out, shared_ptr<ctrlOutputKeywords> keywords, string control_file, string &scale_file)
 {
+    // this will never be called for vibration, cos vibration scale is set to 1 by default
+
+    scale_file = "255"; // default value, in case file cannot be found
+
+    // search for max file in same dir where control file is
+    // to obtain dir path, remove control file name from path!
+    string path = std::regex_replace(control_file, std::regex("/"+keywords->files[out][0]), "");
+    
+    DIR* directory = opendir(path.c_str());
+    if (directory == nullptr)
+    {
+        closedir(directory); 
+        fprintf(stderr, "Control output \"%s\", cannot open file \"%s\" during autofill!\n", LDSP_analog_ctrlOutput[out].c_str(), path.c_str());
+        return;
+    }
+
+    // then check if the max file is here too!
+    dirent* entry;
+    while( (entry = readdir(directory)) != nullptr ) 
+    {
+        string d_name = string(entry->d_name);
+        if(d_name == keywords->files[out][1])
+        {
+            scale_file = path + "/" + d_name;
+            break;
+        }
+    }            
+    
+    closedir(directory); 
+}
+
+
+int initCtrlOutputs(string **ctrlOutputsFiles, unsigned int chCount, ctrlout_struct *ctrlOutputs, ctrlOutState *ctrlOutputsStates, string *ctrlOutputsDetails)
+{
+    shared_ptr<ctrlOutputKeywords> keywords = make_shared<ctrlOutputKeywords>(); // will be useful in auto config
+
     ifstream readFile;
     for (int out=0; out<chCount; out++)
     {
+        int autoConfig_ctrl = false;
+        int autoConfig_scale = false;
         ctrlout_struct &ctrlOutput = ctrlOutputs[out];
 
-        // if empty, ctrlOutput not configured
+        // control file first
+
+        // if empty, try auto fill
         if(ctrlOutputsFiles[DEVICE_CTRL_FILE][out].compare("") == 0)
         {
-            ctrlOutput.configured = false;
-            
-            if(ctrlOutputsVerbose)
+            // and if still empty, ctrlOutput not configured
+            if( !ctrlOutputAutoFill_ctrl(out, keywords, ctrlOutputsFiles[DEVICE_CTRL_FILE][out]) )
             {
-                if(isAnalog)
+                ctrlOutput.configured = false;
+                
+                if(ctrlOutputsVerbose)
                     printf("\t%s not configured\n", LDSP_analog_ctrlOutput[out].c_str());
-                else
-                    printf("\t%s not configured\n", LDSP_digital_ctrlOutput[out].c_str());
+
+                //-------------------------------------------------------------------
+                // context update
+                ctrlOutputsStates[out] = device_not_configured;
+                ctrlOutputsDetails[out] =  "Not configured";
+                continue;
             }
-
-            //-------------------------------------------------------------------
-            // context update
-            ctrlOutputsStates[out] = device_not_configured;
-            ctrlOutputsDetails[out] =  "Not configured";
+            autoConfig_ctrl = true;
         }
-        else
-        {
-            string fileName = ctrlOutputsFiles[DEVICE_CTRL_FILE][out];
+      
+        string fileName = ctrlOutputsFiles[DEVICE_CTRL_FILE][out];
 
-            // configured
-            ctrlOutput.configured = true;
+        // configured
+        ctrlOutput.configured = true;
+        
+        // initial value
+        readFile.open(fileName);
+        if(!readFile.is_open())
+        {
+            fprintf(stderr, "Control output \"%s\", cannot open associated control file \"%s\"\n", LDSP_analog_ctrlOutput[out].c_str(), fileName.c_str());
             
-            // initial value
-            readFile.open(fileName);
+            LDSP_cleanupCtrlOutputs();
+            return -1;
+        }
+        char val[6];
+        readFile >> val;
+        ctrlOutput.initialVal = atoi(val);  
+        readFile.close();
+
+        // prev value
+        ctrlOutput.prevVal = 0; // the write buffer is filled with 0s and new values are only written if different from prev one
+        // hence the initial value is preserved until we explicitly make a change
+        
+        // control file
+        ctrlOutput.file.open(fileName);
+
+
+        // max file/max value then
+
+        // if empty, autofill!
+        // worst case scenario, autofill will put default "255"
+        // note that in the case of vibration hwConfig parser always puts "1", so no autofill is ever invoked
+        if(ctrlOutputsFiles[DEVICE_SCALE][out].compare("") == 0)
+        {
+            ctrlOutputAutoFill_scale(out, keywords, ctrlOutputsFiles[DEVICE_CTRL_FILE][out], ctrlOutputsFiles[DEVICE_SCALE][out]);
+            autoConfig_scale = true;
+        }
+        
+        // scale value
+        int scaleVal;
+        string content = ctrlOutputsFiles[DEVICE_SCALE][out]; 
+        int isNumber = isdigit(content.c_str()[0]);
+        // if this is a number, then use it as custom max value
+        if(isNumber)
+            scaleVal = stoi(content);
+        else // otherwise this is the path to the file that contains the max value
+        {
+            readFile.open(content);
             if(!readFile.is_open())
             {
-                if(isAnalog)
-                    fprintf(stderr, "Control output \"%s\", cannot open associated control file \"%s\"\n", LDSP_analog_ctrlOutput[out].c_str(), fileName.c_str());
-                else
-                    fprintf(stderr, "Control output \"%s\", cannot open associated control file \"%s\"\n", LDSP_digital_ctrlOutput[out].c_str(), fileName.c_str());
-
-                LDSP_cleanupCtrlOutputs();
-		        return -1;
-            }
-            char val[6];
-	        readFile >> val;
-            ctrlOutput.initialVal = atoi(val);  
-            readFile.close();
-
-            // prev value
-            ctrlOutput.prevVal = 0; // the write buffer is filled with 0s and new values are only written if different from prev one
-            // hence the initial value is preserved until we explicitly make a change
-            
-            // control file
-            ctrlOutput.file.open(fileName);
-
-            // scale value
-            int scaleVal;
-            string content = ctrlOutputsFiles[DEVICE_SCALE][out];
-            int isNumber = isdigit(content.c_str()[0]);
-            // if this is a number, then use it as custom max value
-            if(isNumber)
-                 scaleVal = stoi(content);
-            else // otherwise this is the path to the file that contains the max value
-            {
-                readFile.open(content);
-                if(!readFile.is_open())
-                {
-                    if(isAnalog)
-                        fprintf(stderr, "Control output \"%s\", cannot open associated max file \"%s\"\n", LDSP_analog_ctrlOutput[out].c_str(), ctrlOutputsFiles[DEVICE_SCALE][out].c_str());
-                    else
-                        fprintf(stderr, "Control output \"%s\", cannot open associated on value file \"%s\"\n", LDSP_digital_ctrlOutput[out].c_str(), fileName.c_str());
-
-                    LDSP_cleanupCtrlOutputs();
-                    return -1;
-                }
-                readFile >> val;
-                scaleVal = atoi(val);  
-                readFile.close();
-            }
-            // assign max               
-            ctrlOutput.scaleVal = scaleVal;
-
-            if(ctrlOutputsVerbose)
-            {
-
-                if(isAnalog)
-                    printf("\t%s configured!\n", LDSP_analog_ctrlOutput[out].c_str());
-                else
-                    printf("\t%s configured!\n", LDSP_digital_ctrlOutput[out].c_str());
-                printf("\t\tcontrol file \"%s\"\n", ctrlOutputsFiles[DEVICE_CTRL_FILE][out].c_str());
+                fprintf(stderr, "Control output \"%s\", cannot open associated max file \"%s\"\n", LDSP_analog_ctrlOutput[out].c_str(), ctrlOutputsFiles[DEVICE_SCALE][out].c_str());
                 
-                // we skip this info if vibration, as reading about the default scale value may be confusing  
-                if(isAnalog || out<chCount-1)
-                {
-                    string valueName = "on";
-                    if(isAnalog)
-                        valueName = "max";    
-                    if(isNumber)
-                        printf("\t\tmanually set %s value: %d\n", valueName.c_str(), ctrlOutput.scaleVal);
-                    else
-                        printf("\t\t%s value file \"%s\", containing value: %d\n", valueName.c_str(), ctrlOutputsFiles[DEVICE_SCALE][out].c_str(), ctrlOutput.scaleVal);
-                    printf("\t\tinitial value: %d\n", ctrlOutput.initialVal);
-                }
+                LDSP_cleanupCtrlOutputs();
+                return -1;
             }
-
-            //-------------------------------------------------------------------
-            // context update
-            ctrlOutputsStates[out] = device_configured;
-            ostringstream stream;
-            if(isAnalog)
-                stream << LDSP_analog_ctrlOutput[out] << ", with max value: " << ctrlOutput.scaleVal;
-            else
-                stream << LDSP_digital_ctrlOutput[out] << ", with on value value: " << ctrlOutput.scaleVal;
-            ctrlOutputsDetails[out] =  stream.str();
+            readFile >> val;
+            scaleVal = atoi(val);  
+            readFile.close();
         }
+        
+        // assign scale value               
+        ctrlOutput.scaleVal = scaleVal;
+
+        if(ctrlOutputsVerbose)
+        {
+            printf("\t%s configured!\n", LDSP_analog_ctrlOutput[out].c_str());
+            
+            string automatic = "";
+            if(autoConfig_ctrl)
+                automatic = " (set automatically)";
+            printf("\t\tcontrol file \"%s\"%s\n", ctrlOutputsFiles[DEVICE_CTRL_FILE][out].c_str(), automatic.c_str());
+            
+            // we skip this info if vibration, as reading about the default scale value may be confusing  
+            if(out!=chn_aout_vibration)
+            {
+                if(isNumber)
+                {
+                    automatic = "automatically";
+                    if(!autoConfig_scale)
+                        automatic = "manually";
+
+                    printf("\t\t%s set max value: %d\n", automatic.c_str(), ctrlOutput.scaleVal);
+                }
+                else
+                {
+                    automatic = "";
+                    if(autoConfig_scale)
+                        automatic = " (set automatically)";
+                    printf("\t\tmax value file \"%s\"%s, containing value: %d\n", ctrlOutputsFiles[DEVICE_SCALE][out].c_str(), automatic.c_str(), ctrlOutput.scaleVal);
+                }
+                printf("\t\tinitial value: %d\n", ctrlOutput.initialVal);
+            }
+        }
+
+        //-------------------------------------------------------------------
+        // context update
+        ctrlOutputsStates[out] = device_configured;
+        ostringstream stream;
+        stream << LDSP_analog_ctrlOutput[out] << ", with max value: " << ctrlOutput.scaleVal;
+        ctrlOutputsDetails[out] =  stream.str();
     }
 
     return 0;
@@ -212,7 +354,7 @@ int initCtrlOutputs(string **ctrlOutputsFiles, unsigned int chCount, ctrlout_str
 
 
 //TODO move redundant code to inline function[s]?
-void ctrlOutputsWrite()
+void writeCtrlOutputs()
 {
     //VIC output values are persistent! 
     // we don't reset the output buffers once written to the devices
@@ -236,34 +378,13 @@ void ctrlOutputsWrite()
         // write
         write(&ctrlOutput->file, outInt);
 
-        // update prev val for next call
-        ctrlOutput->prevVal = outInt;
-    }
-
-    // write to digital devices
-    for(int out=0; out<chn_dout_count; out++)
-    {
-        ctrlout_struct *ctrlOutput = &ctrlOutputsContext.digitalCtrlOutputs[out];
-
-        // nothing to do on non-configured devices
-        if(!ctrlOutput->configured)
-            continue;
-
-        unsigned int outInt = ctrlOutputsContext.digitalCtrlOutBuffer[out]*ctrlOutput->scaleVal;
-        // if scaled value is same as previous one, no need to update
-        if(outInt == ctrlOutput->prevVal)
-            continue;
-
-        // write
-        write(&ctrlOutput->file, outInt);
-        
         // vibration is timed based and the value that we write is the duration of vibration
         // once vibration ends, the written file goes automatically to zero 
         // hence, we reset the value in our buffer once written, to align with the file's behavior
         // this allows us to set vibration repeatedly regardless of previous value
-        if(out == chn_dout_vibration)
+        if(out == chn_aout_vibration)
         {
-            ctrlOutputsContext.digitalCtrlOutBuffer[out] = 0; // reset buffer value
+            ctrlOutputsContext.analogCtrlOutBuffer[out] = 0; // reset buffer value
             outInt = 0; // set prev value to 0, so that same value can be set in subsequent calls
         }
 

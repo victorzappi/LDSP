@@ -52,19 +52,17 @@ void LDSP_initSensors(LDSPinitSettings *settings)
     intContext.analogInSensorState = sensorsContext.sensorsStates;
     intContext.analogInSensorDetails = sensorsContext.sensorsDetails;
     intContext.analogInNormalFactor = sensorsContext.sensorsNormalFactors;
-
-    intContext.digitalSampleRate = intContext.analogSampleRate;
     //VIC user context is reference of this internal one, so no need to update it
 
     // read a couple of times, to make sure we have some sensor data once our audio application starts
-    sensorsRead();
+    readSensors();
     usleep(200000); // 200 ms
-    sensorsRead();
+    readSensors();
     // if non full duplex engine, we need to read an extra time, becuase initAudio() will take less time
     if(settings->outputOnly)
     {
         usleep(200000); // 200 ms
-        sensorsRead();
+        readSensors();
     }
 }
 
@@ -218,7 +216,7 @@ void initSensorBuffers()
     }
 }
 
-void sensorsRead()
+void readSensors()
 {
         ASensorEvent event;
     

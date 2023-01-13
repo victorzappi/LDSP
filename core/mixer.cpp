@@ -37,7 +37,10 @@
 #include "libraries/XML/pugixml.hpp"
 
 
-using namespace std;
+using std::string;
+using std::to_string;
+using std::stringstream;
+using std::ifstream;
 using namespace pugi;
 
 bool mixerVerbose = false;
@@ -180,7 +183,7 @@ void getDeviceInfoPaths(int card, vector<string> &infoPath_p, vector<string> &in
 {
 	// adapted from: https://stackoverflow.com/a/612176
 	string cardPath = "/proc/asound/card"+to_string(card);
-	for(const auto &entry : __fs::filesystem::directory_iterator(cardPath))
+	for(const auto &entry : std::__fs::filesystem::directory_iterator(cardPath))
 	{
 		string devicePath = entry.path();
 		string deviceFolder = entry.path().filename();

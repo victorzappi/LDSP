@@ -35,6 +35,8 @@
 #include "tinyalsaAudio.h" // for LDSPinternalContext
 #include "enums.h"
 
+using std::unordered_map;
+
 // wrapper of android sensor types, to ensure compatibility with older and newer versions of Android
 // note that we include only a subset of all the sensors supported by android, because many of them are not very 'useful'
 // this is a special wrapper, that permits to print the ENUM ad to cycle via indices
@@ -83,7 +85,6 @@ struct sensor_struct {
     analogInChannel *channels;
 };
 
-//TODO should split between analog and digital... if any digital! 
 struct LDSPsensorsContext {
     unsigned int sensorsCount;
     sensor_struct sensors[LDSP_sensor::count];
@@ -95,7 +96,7 @@ struct LDSPsensorsContext {
     float *sensorsNormalFactors;
 };
 
-void sensorsRead();
+void readSensors();
 
 
 //TODO add user function that can spawn a low prio thread that unlocks screen and keeps it unlocked

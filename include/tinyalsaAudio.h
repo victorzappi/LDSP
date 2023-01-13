@@ -25,9 +25,6 @@
 #include <tinyalsa/asoundlib.h>
 #include "enums.h"
 
-using namespace std;
-
-
 // wraps tinyalsa pmc_config
 struct LDSP_pcm_config {
     unsigned int channels;
@@ -97,11 +94,6 @@ struct LDSPinternalContext {
     string *analogCtrlOutputDetails;
     float *analogInNormalFactor;
     float analogSampleRate; // sensors and output devices
-    unsigned int *digitalOut; // output devices
-    uint32_t digitalOutChannels;
-    ctrlOutState *digitalCtrlOutputState;
-    string *digitalCtrlOutputDetails;
-    float digitalSampleRate; // output devices
 	//uint64_t audioFramesElapsed;
     //operator LDSPcontext () {return *(LDSPcontext*)this;}
 };
