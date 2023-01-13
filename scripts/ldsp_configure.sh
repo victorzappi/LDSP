@@ -31,6 +31,14 @@ fi
 api_version=$($(dirname $0)/ldsp_convert_android_version.sh $version_full)
 
 
-# TODO: NEON
+# support for NEON floating-point unit
+neon_setting=$(grep 'supports neon floating point unit' "$hw_config" | cut -d \" -f 4)
+if [[ $neon_setting =~ ^(true|True|yes|Yes|1|)$ ]] && [[ $arch == "armv7a" ]];
+then
+    neon="-DANDROID_ARM_NEON=ON"
+else
+    neon=""
+fi
 
-cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version -DANDROID_NDK=$NDK -G Ninja .
+
+cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version -DANDROID_NDK=$NDK $neon -G Ninja .
