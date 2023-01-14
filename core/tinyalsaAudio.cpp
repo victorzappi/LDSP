@@ -32,7 +32,6 @@
 // hopefully this will happen in a far future...
 
 #include <unordered_map> // unordered_map
-#include <pthread.h> // thread and prio
 
 #include "LDSP.h"
 #include "tinyalsaAudio.h"

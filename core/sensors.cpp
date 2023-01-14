@@ -218,7 +218,7 @@ void initSensorBuffers()
 
 void readSensors()
 {
-        ASensorEvent event;
+    ASensorEvent event;
     
     // get most current events, if any
     while(ASensorEventQueue_getEvents(event_queue, &event, 1) > 0) 

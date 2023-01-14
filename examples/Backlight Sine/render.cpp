@@ -18,14 +18,12 @@
  */
 
 #include "LDSP.h"
-//#include "libraries/LinInterpolator.h"
-#include "libraries/Bela/Biquad/Biquad.h"
-#include <math.h> // sin
+//#include "libraries/LinInterpolator/LinInterpolator.h"
+#include "libraries/Biquad/Biquad.h"
+#include "libraries/OscSender/OscSender.h"
+#include "libraries/OscReceiver/OscReceiver.h"
 
-// #include <iostream>
-// #include <fstream>
-// std::ofstream torch_file;
-// std::ifstream max_file;
+#include <math.h> // sin
 
 
 float duration = -1; // [s]
@@ -37,6 +35,12 @@ float amplitudeDelta = 0.9;
 float lcdLightFreq = 1;
 float lcdLightPhasePrev = -1;
 unsigned int flashlight = 0;
+
+OscReceiver oscReceiver;
+OscSender oscSender;
+int localPort = 7562;
+int remotePort = 7563;
+const char* remoteIp = "192.168.43.59";//"192.168.1.97";
 
 //------------------------------------------------
 
@@ -51,6 +55,17 @@ float lcdLightInvSrate;
 //float prev_acc_x;
 
 Biquad *smoothingFilter;
+
+
+
+void on_receive(oscpkt::Message* msg, const char* addr, void* arg)
+{
+	int n;
+	msg->match("/test").popNumber(n);
+	printf("From %s: %d\n", addr, n);
+}
+
+
 
 bool setup(LDSPcontext *context, void *userData)
 {
@@ -71,13 +86,14 @@ bool setup(LDSPcontext *context, void *userData)
 
 	//-----------------------------------------------------------
 
-
     lcdLightInvSrate = 1.0 / context->analogSampleRate;
 	lcdLightPhase = 0.0;
-
-	
 	
 	analogWrite(context, chn_aout_ledB, on);
+
+
+	oscReceiver.setup(localPort, on_receive);
+	oscSender.setup(remotePort, remoteIp);
 	
 
     return true;
@@ -130,6 +146,8 @@ void render(LDSPcontext *context, void *userData)
 
 	if(--periodsToPlay==0)
          LDSP_requestStop();
+
+	oscSender.newMessage("/osc-test").add(lcdLight).send();
 }
 
 void cleanup(LDSPcontext *context, void *userData)
