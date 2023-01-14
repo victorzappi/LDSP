@@ -27,7 +27,8 @@
 #ifndef PRIORITY_UTILS_H_
 #define PRIORITY_UTILS_H_
 
-#include <stdbool.h>
+//#include <stdbool.h>
+#include <pthread.h>
 
 //-----------------------------------------------------------------------------------------------------------
 // set maximum priority to this thread

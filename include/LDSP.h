@@ -20,7 +20,7 @@
 #define LDSP_H_
 
 #include <string>
-#include "../libraries/BelaUtilities.h"
+#include "BelaUtilities.h"
 
 using std::string;
 
