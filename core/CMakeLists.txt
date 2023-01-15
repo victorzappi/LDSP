@@ -2,17 +2,10 @@ cmake_minimum_required(VERSION 3.25)
 
 project(ldsp)
 
-set(SOURCES
-  commandLineArgs.cpp
-  ctrlOutputs.cpp
-  hwConfig.cpp
-  LDSP.cpp
-  main.cpp
-  mixer.cpp
-  priority_utils.cpp
-  sensors.cpp
-  tinyalsaAudio.cpp
-  tinyAlsaExtension.cpp
+# https://stackoverflow.com/a/62085797
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cpp *.c)
+
+list(APPEND SOURCES
   ${LDSP_PROJECT}/render.cpp
 )
 
@@ -28,8 +21,6 @@ target_include_directories(ldsp
 )
 
 target_link_libraries(ldsp
-  PRIVATE bela_biquad
-  PRIVATE tinyalsa
-  PRIVATE xml
+  PRIVATE libraries
   PRIVATE android
 )

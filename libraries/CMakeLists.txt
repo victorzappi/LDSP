@@ -1,7 +1,7 @@
-add_library(bela_biquad OBJECT Bela/Biquad/Biquad.cpp)
-add_library(tinyalsa OBJECT tinyalsa/mixer.c tinyalsa/pcm.c)
-add_library(xml OBJECT XML/pugixml.cpp)
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cpp *.c)
 
-target_include_directories(bela_biquad PUBLIC Bela/Biquad)
-target_include_directories(tinyalsa PUBLIC tinyalsa/include)
-target_include_directories(xml PUBLIC XML)
+add_library(libraries OBJECT ${SOURCES})
+
+target_include_directories(libraries PUBLIC Bela/Biquad)
+target_include_directories(libraries PUBLIC tinyalsa/include)
+target_include_directories(libraries PUBLIC XML)
