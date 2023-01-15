@@ -46,4 +46,4 @@ else
 fi
 
 
-cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version -DANDROID_NDK=$NDK $neon -G Ninja .
+cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version -DANDROID_NDK=$NDK $neon "-DLDSP_PROJECT=examples/Backlight Sine" -G Ninja .

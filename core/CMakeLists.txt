@@ -10,10 +10,10 @@ set(SOURCES
   main.cpp
   mixer.cpp
   priority_utils.cpp
-  render.cpp
   sensors.cpp
   tinyalsaAudio.cpp
   tinyAlsaExtension.cpp
+  ${LDSP_PROJECT}/render.cpp
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin/)
