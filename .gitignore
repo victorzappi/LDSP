@@ -42,3 +42,11 @@ obj/
 # -vscode
 .vscode/
 LDSP.code-workspace
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+.ninja_deps
+.ninja_log
+build.ninja
