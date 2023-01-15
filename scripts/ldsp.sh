@@ -190,6 +190,14 @@ configure () {
     exit 1
   fi
 
+  if [[ ! -d "$NDK" ]]; then
+    echo "Cannot configure: NDK not found"
+    echo "Please specify a valid NDK path with"
+    echo "    export NDK=<path to NDK>"
+    exit 1
+  fi
+
+
   cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version "-DANDROID_NDK=$NDK" $neon "-DLDSP_PROJECT=$PROJECT" -G Ninja .
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
