@@ -1,3 +1,6 @@
+#!/bin/bash
+# This script controls configuring the LDSP build system, building a project
+# using LDSP, and running the resulting binary on a phone.
 
 # Convert a human-readable Android version (e.g. 13, 6.0.1, 4.4) into an API level.
 get_api_level () {
@@ -252,6 +255,23 @@ run () {
   adb shell "cd /data/ldsp/ && ./ldsp $@"
 }
 
+# Print usage information.
+help () {
+  echo -e "usage: ldsp [options] [steps] [run args]"
+  echo -e "options:"
+  echo -e "  --vendor=VENDOR, -v VENDOR\tThe vendor of the phone to build for."
+  echo -e "  --model=MODEL, -m MODEL\tThe model of the phone to build for."
+  echo -e "  --project=PROJECT, -p PROJECT\tThe path to the user project to build."
+  echo -e "  --version=VERSION, -a VERSION\tThe Android version to build for."
+  echo -e "steps:"
+  echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone, version, and project."
+  echo -e "  build\t\t\t\tBuild the user project."
+  echo -e "  push\t\t\t\tPush the user project and LDSP hardware configuration to the phone."
+  echo -e "  push_sdcard\t\t\tPush the user project and LDSP hardware configuration to the phone's SD card."
+  echo -e "  run\t\t\t\tRun the user project on the phone."
+  echo -e "  \t\t\t\t(Any arguments passed after \"run\" are passed to the user project.)"
+}
+
 STEPS=()
 
 while [[ $# -gt 0 ]]; do
@@ -292,6 +312,10 @@ while [[ $# -gt 0 ]]; do
       shift
       shift
       ;;
+    --help|-h)
+      STEPS+=("help")
+      shift
+      ;;
     -*|--*)
       echo "Unknown option $1"
       exit 1
@@ -309,20 +333,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ ${#STEPS[@]} -eq 0 ] ; then
-  echo "ldsp: no steps specified"
-  echo "usage: ldsp [options] [steps] [run args]"
-  echo "options:"
-  echo "  --vendor=VENDOR, -v VENDOR\tThe vendor of the phone to build for."
-  echo "  --model=MODEL, -m MODEL\tThe model of the phone to build for."
-  echo "  --project=PROJECT, -p PROJECT\tThe path to the user project to build."
-  echo "  --version=VERSION, -a VERSION\tThe Android version to build for."
-  echo "steps:"
-  echo "  configure\t\t\tConfigure the LDSP build system for the specified phone, version, and project."
-  echo "  build\t\t\t\tBuild the user project."
-  echo "  push\t\t\t\tPush the user project and LDSP hardware configuration to the phone."
-  echo "  push_sdcard\t\t\tPush the user project and LDSP hardware configuration to the phone's SD card."
-  echo "  run\t\t\t\tRun the user project on the phone."
-  echo "  \t\t\t\t(Any arguments passed after \"run\" are passed to the user project.)"
+  help
+  exit 1
 fi
 
 for i in "${STEPS[@]}"; do
@@ -341,6 +353,9 @@ for i in "${STEPS[@]}"; do
       ;;
     run)
       run "${@:2}"
+      ;;
+    help)
+      help
       ;;
     *)
       echo "Unknown step $i"
