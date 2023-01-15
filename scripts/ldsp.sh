@@ -114,13 +114,35 @@ get_api_level () {
 		level=33
 	fi
 
+  if [[ $level == "" ]]; then
+    exit 1
+  fi
+
 	echo $level
 }
 
 # Configure the LDSP build system to build for the given phone model, Android version, and project path.
 configure () {
+  if [[ $VENDOR == "" ]]; then
+    echo "Cannot configure: Vendor not specified"
+    echo "Please specify a phone vendor with --vendor"
+    exit 1
+  fi
+
+  if [[ $MODEL == "" ]]; then
+    echo "Cannot configure: Model not specified"
+    echo "Please specify a phone model with --model"
+    exit 1
+  fi
+
   # path to hardware config
   hw_config="./phones/$VENDOR/$MODEL/ldsp_hw_config.json"
+
+  if [[ ! -f "$hw_config" ]]; then
+    echo "Cannot configure: Hardware config file not found"
+    echo "Please ensure that an ldsp_hw_config.json file exists for \"$VENDOR/$MODEL\""
+    exit 1
+  fi
 
   # target ABI
   arch=$(grep 'target architecture' "$hw_config" | cut -d \" -f 4)
@@ -133,12 +155,17 @@ configure () {
   elif [[ $arch == "x86_64" ]]; then
     abi="x86_64"
   else
-    echo "Unknown architecture: $arch"
+    echo "Cannot configure: Unknown architecture: $arch"
     exit 1
   fi
 
   # target Android version
   api_version=$(get_api_level "$VERSION")
+  exit_code=$?
+  if [[ $exit_code != 0 ]]; then
+    echo "Cannot configure: Unknown Android version: $version_full"
+    exit $exit_code
+  fi
 
   # support for NEON floating-point unit
   neon_setting=$(grep 'supports neon floating point unit' "$hw_config" | cut -d \" -f 4)
@@ -154,33 +181,70 @@ configure () {
     neon=""
   fi
 
+  if [[ $PROJECT == "" ]]; then
+    echo "Cannot configure: Project path not specified"
+    echo "Please specify a project path with --project"
+    exit 1
+  fi
 
   cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version "-DANDROID_NDK=$NDK" $neon "-DLDSP_PROJECT=$PROJECT" -G Ninja .
+  exit_code=$?
+  if [[ $exit_code != 0 ]]; then
+    echo "Cannot configure: CMake failed"
+    exit $exit_code
+  fi
 }
 
 # Build the user project.
 build () {
   ninja
+  exit_code=$?
+  if [[ $exit_code != 0 ]]; then
+    echo "Cannot build: Ninja failed"
+    exit $exit_code
+  fi
 }
 
 # Push the user project and LDSP hardware config to the phone.
 push () {
+  if [[ ! -f bin/ldsp ]]; then
+    echo "Cannot push: No ldsp executable found. Please run \"ldsp build\" first."
+    exit 1
+  fi
+
   hw_config="./phones/$VENDOR/$MODEL/ldsp_hw_config.json"
 
   adb root
   adb shell "mkdir -p /data/ldsp"
-	adb push "$hw_config" /data/ldsp/ldsp_hw_config.json
-	adb push bin/ldsp   /data/ldsp/ldsp
+
+  if [[ ! -f "$hw_config" ]]; then
+    echo "WARNING: Hardware config file not found, skipping..."
+  else
+    adb push "$hw_config" /data/ldsp/ldsp_hw_config.json
+  fi
+
+	adb push bin/ldsp /data/ldsp/ldsp
 }
 
 # Push the user project and LDSP hardware config to the phone's SD card.
 push_sdcard () {
+  if [[ ! -f bin/ldsp ]]; then
+    echo "Cannot push: No ldsp executable found. Please run \"ldsp build\" first."
+    exit 1
+  fi
+
   hw_config="./phones/$VENDOR/$MODEL/ldsp_hw_config.json"
 
   adb root
   adb shell "mkdir -p /sdcard/ldsp"
-	adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
-	adb push bin/ldsp   /sdcard/ldsp/ldsp
+
+  if [[ ! -f "$hw_config" ]]; then
+    echo "WARNING: Hardware config file not found, skipping..."
+  else
+    adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
+  fi
+
+	adb push bin/ldsp /sdcard/ldsp/ldsp
 }
 
 # Run the user project on the phone.
