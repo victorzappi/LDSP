@@ -81,8 +81,13 @@ if "%version_major%" == "13" exit /b 33
 exit /b 0
 Rem End of :get_api_level
 
+Rem Configure the LDSP build system to build for the given phone model, Android version, and project path.
+:configure
+
+set hw_config=".\phones\LG\G2 Mini (g2m)\ldsp_hw_config.json"
+
 :main
-set PROJECT=examples\Hello World
+set PROJECT=examples\Backlight Sine
 
 call :get_api_level 6.0.0
 set API_LEVEL=%ERRORLEVEL%
