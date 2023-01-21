@@ -21,6 +21,9 @@
 
 #include <string>
 #include "BelaUtilities.h"
+#include "hwConfig.h"
+
+#define MAX_TOUCHES 20
 
 using std::string;
 
@@ -47,17 +50,30 @@ struct LDSPinitSettings {
 enum sensorState {
     sensor_present = 1,
     sensor_not_present = 0,
-    sensor_not_supported = -1
+    sensor_not_supported = -1,
 };
 
+enum ctrlInState {
+    ctrlInput_supported = 1,
+    ctrlInput_not_supported = 0
+};
+
+
 enum ctrlOutState {
-    device_configured = 1,
-    device_not_configured = 0
+    ctrlOutput_configured = 1,
+    ctrlOutput_not_configured = 0
 };
 
 enum digitalOuput {
     on = 1,
     off = 0
+};
+
+struct multiTouchInfo {
+    float screenResolution[2];
+    int touchSlots;
+    int touchAxisMax;
+    int touchWidthMax;
 };
 
 struct LDSPcontext {
@@ -67,47 +83,74 @@ struct LDSPcontext {
 	const uint32_t audioInChannels;
 	const uint32_t audioOutChannels;
 	const float audioSampleRate;
-    const float * const analogIn;
-    float * const analogOut;
-    const uint32_t analogInChannels;
-    const uint32_t analogOutChannels;
-    const sensorState *analogInSensorState;
-    const ctrlOutState *analogCtrlOutputState;
-    const string *analogInSensorDetails;
-    const string *analogCtrlOutputDetails;
-    const float *analogInNormalFactor;
-    const float analogSampleRate;
+    const float * const sensors;
+    const int * const ctrlInputs;
+    float * const ctrlOutputs;
+    const uint32_t sensorChannels;
+    const uint32_t ctrlInChannels;
+    const uint32_t ctrlOutChannels;
+    const sensorState * const sensorsState;
+    const ctrlInState * const ctrlInputsState;
+    const ctrlOutState * const ctrlOutputsState;
+    const string * const sensorsDetails;
+    const string * const ctrlInputsDetails;
+    const string * const ctrlOutputsDetails;
+    //const float *analogInNormalFactor;
+    const float controlSampleRate;
+    const multiTouchInfo * const mtInfo;
 	//uint64_t audioFramesElapsed;
 };
 
-//TODO change from analog to sensorIn
-enum analogInChannel {
-    chn_ain_accelX,
-    chn_ain_accelY,
-    chn_ain_accelZ,
-    chn_ain_magX,
-    chn_ain_magY,
-    chn_ain_magZ,
-    chn_ain_gyroX,
-    chn_ain_gyroY,
-    chn_ain_gyroZ,
-    chn_ain_light,
-    chn_ain_proximity,
-    chn_ain_count
+enum sensorChannel {
+    chn_sens_accelX,
+    chn_sens_accelY,
+    chn_sens_accelZ,
+    chn_sens_magX,
+    chn_sens_magY,
+    chn_sens_magZ,
+    chn_sens_gyroX,
+    chn_sens_gyroY,
+    chn_sens_gyroZ,
+    chn_sens_light,
+    chn_sens_proximity,
+    chn_sens_count
 };
 
-//TODO change from analog to ctrlOut
-enum analogOutChannel {
-    chn_aout_flashlight, 
-    chn_aout_lcdBacklight,
-    chn_aout_led,
-    chn_aout_ledR,
-    chn_aout_ledG,
-    chn_aout_ledB, 
-    chn_aout_buttonsBacklight,
-    chn_aout_vibration,
-    chn_aout_count
+enum ctrlOutputChannel {
+    chn_cout_flashlight, 
+    chn_cout_lcdBacklight,
+    chn_cout_led,
+    chn_cout_ledR,
+    chn_cout_ledG,
+    chn_cout_ledB, 
+    chn_cout_buttonsBacklight,
+    chn_cout_vibration,
+    chn_cout_count
 };
+
+enum btnInputChannel {
+    chn_btn_power,
+    chn_btn_volUp,
+    chn_btn_volDown,
+    chn_btn_count
+};
+
+enum multiTouchInputChannel {
+    chn_mt_anyTouch,
+    chn_mt_x,
+    chn_mt_y,
+    chn_mt_majAxis,
+    chn_mt_minAxis,
+    chn_mt_orientation,
+    chn_mt_hoverX,
+    chn_mt_hoverY,
+    chn_mt_majWidth,
+    chn_mt_minWidth,
+    chn_mt_pressure,
+    chn_mt_id,
+    chn_mt_count
+};
+
 
 
 LDSPinitSettings* LDSP_InitSettings_alloc();
@@ -116,13 +159,27 @@ void LDSP_InitSettings_free(LDSPinitSettings* settings);
 
 void LDSP_defaultSettings(LDSPinitSettings *settings);
 
+LDSPhwConfig* LDSP_HwConfig_alloc();
+
+void LDSP_HwConfig_free(LDSPhwConfig* hwconfig);
+
+int LDSP_parseHwConfigFile(LDSPinitSettings *settings, LDSPhwConfig *hwconfig);
+
 int LDSP_initAudio(LDSPinitSettings *settings, void *userData);
 
 void LDSP_initSensors(LDSPinitSettings *settings);
 
+void LDSP_initCtrlInputs(LDSPinitSettings *settings);
+
+int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig);
+
 int LDSP_startAudio();
 
 void LDSP_cleanupSensors();
+
+void LDSP_cleanupCtrlInputs();
+
+void LDSP_cleanupCtrlOutputs();
 
 void LDSP_cleanupAudio();
 
@@ -137,20 +194,17 @@ void cleanup(LDSPcontext *context, void *userData);
 static inline void audioWrite(LDSPcontext *context, int frame, int channel, float value);
 static inline float audioRead(LDSPcontext *context, int frame, int channel);
 
-//TODO change to sensorRead() and ctrlWrite()
-static inline float analogRead(LDSPcontext *context, analogInChannel channel);
-static inline void analogWrite(LDSPcontext *context, analogOutChannel channel, float value);
-static inline float analogRead(LDSPcontext *context, int frame, analogInChannel channel);
-static inline void analogWrite(LDSPcontext *context, int frame, analogOutChannel channel, float value);
-static inline void analogWriteOnce(LDSPcontext *context, int frame, analogOutChannel channel, float value);
+static inline float sensorRead(LDSPcontext *context, sensorChannel channel);
+static inline int buttonRead(LDSPcontext *context, btnInputChannel channel);
+static inline int multitouchRead(LDSPcontext *context, multiTouchInputChannel channel, int touchSlot=0);
+static inline void ctrlOutputWrite(LDSPcontext *context, ctrlOutputChannel channel, float value);
 
+static inline sensorState sensorsState(LDSPcontext *context, sensorChannel channel);
+static inline string sensorsDetails(LDSPcontext *context, sensorChannel channel);
+//static inline float analogInNormFactor(LDSPcontext *context, sensorChannel channel);
 
-static inline sensorState analogInSensorState(LDSPcontext *context, analogInChannel channel);
-static inline string analogInSensorDetails(LDSPcontext *context, analogInChannel channel);
-static inline float analogInNormFactor(LDSPcontext *context, analogInChannel channel);
-
-//TODO analogCtrlOutputState(...)
-//TODO analogCtrlOutputDetails(...)
+//TODO ctrlOutputs/InputsState(...)
+//TODO ctrlOutputs/InputsDetails(...)
 
 
 //-----------------------------------------------------------------------------------------------
@@ -172,63 +226,61 @@ static inline void audioWrite(LDSPcontext *context, int frame, int channel, floa
 	context->audioOut[frame * context->audioOutChannels + channel] = value;
 }
 
-// analogRead()
+// sensorRead()
 //
 // Returns the value of the given analog input/sensor 
-static inline float analogRead(LDSPcontext *context, analogInChannel channel) 
+static inline float sensorRead(LDSPcontext *context, sensorChannel channel) 
 {
-	    return context->analogIn[channel]; // some of these sensors may not be present or unsupported, they return 0
-}
-// for full compatibility with Bela, ignores frame
-static inline float analogRead(LDSPcontext *context, int frame, analogInChannel channel)
-{
-    return analogRead(context, channel); // returns type of sensor even if not present on phone; returns "Not supported" if not supported by API
+	    return context->sensors[channel]; // some of these sensors may not be present or unsupported, they return 0
 }
 
-// analogInSensorState()
+// sensorsState()
 //
 // returns sate of the sensor accessed on the given channel
-static inline sensorState analogInSensorState(LDSPcontext *context, analogInChannel channel)
+static inline sensorState sensorsState(LDSPcontext *context, sensorChannel channel)
 {
  
-    return context->analogInSensorState[channel]; // sensor present or not present on phone, or unsupported by API
+    return context->sensorsState[channel]; // sensor present or not present on phone, or unsupported by API
 }
 
-// analogInSensorDetails()
+// sensorsDetails()
 //
 // returns sate of the sensor accessed on the given channel
-static inline string analogInSensorDetails(LDSPcontext *context, analogInChannel channel)
+static inline string sensorsDetails(LDSPcontext *context, sensorChannel channel)
 {
-    return context->analogInSensorDetails[channel]; // returns type of sensor even if not present on phone; returns "Not supported" if not supported by API
+    return context->sensorsDetails[channel]; // returns type of sensor even if not present on phone; returns "Not supported" if not supported by API
 }
 
 // analogInNormFactor()
 //
 // returns normalization factor of the given channel
 // all channel inputs are normalized [-1,1] and clamped to the maximum de-normalized absolute value
-static inline float analogInNormFactor(LDSPcontext *context, analogInChannel channel)
-{
-    return context->analogInNormalFactor[channel]; // returns 1 if sensor is not normalized, not present on phone or not supported by API
-}
+// static inline float analogInNormFactor(LDSPcontext *context, sensorChannel channel)
+// {
+//     return context->analogInNormalFactor[channel]; // returns 1 if sensor is not normalized, not present on phone or not supported by API
+// }
 
 
-// analogWrite()
+// ctrlOutputWrite()
 //
-// Sets a given analog output channel to a value, that is always persistent
-static inline void analogWrite(LDSPcontext *context, analogOutChannel channel, float value) 
+// Sets a given ctrl output channel to a value, that is always persistent [except for vibration]
+static inline void ctrlOutputWrite(LDSPcontext *context, ctrlOutputChannel channel, float value) 
 {
-    context->analogOut[channel] = value;
+    context->ctrlOutputs[channel] = value;
 }
-//TODO remove?
-// for full compatibility with Bela, ignores frame
-static inline void analogWrite(LDSPcontext *context, int frame, analogOutChannel channel, float value) 
+
+static inline int buttonRead(LDSPcontext *context, btnInputChannel channel)
 {
-    analogWrite(context, channel, value);
+    return context->ctrlInputs[channel];
 }
-// for full compatibility with Bela, ignores frame
-static inline void analogWriteOnce(LDSPcontext *context, int frame, analogOutChannel channel, float value) 
+
+static inline int multitouchRead(LDSPcontext *context, multiTouchInputChannel channel, int touchSlot)
 {
-    analogWrite(context, channel, value);
+    if(channel==chn_mt_anyTouch)
+        return context->ctrlInputs[chn_btn_count+chn_mt_anyTouch];
+    else
+        return context->ctrlInputs[chn_btn_count+1+channel*context->mtInfo->touchSlots + touchSlot];
 }
+
 
 #endif /* LDSP_H_ */

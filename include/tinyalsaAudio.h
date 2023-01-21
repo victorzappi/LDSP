@@ -84,16 +84,21 @@ struct LDSPinternalContext {
 	uint32_t audioInChannels;
 	uint32_t audioOutChannels;
 	float audioSampleRate;
-    float *analogIn; // sensors
-    float *analogOut; // output devices
-    uint32_t analogInChannels;
-    uint32_t analogOutChannels;
-    sensorState *analogInSensorState;
-    ctrlOutState *analogCtrlOutputState;
-    string *analogInSensorDetails;
-    string *analogCtrlOutputDetails;
-    float *analogInNormalFactor;
-    float analogSampleRate; // sensors and output devices
+    float *sensors; 
+    int *ctrlInputs;
+    float *ctrlOutputs;
+    uint32_t sensorChannels;
+    uint32_t ctrlInChannels;
+    uint32_t ctrlOutChannels;
+    sensorState *sensorsState;
+    ctrlInState *ctrlInputsState;
+    ctrlOutState *ctrlOutputsState;
+    string *sensorsDetails;
+    string *ctrlInputsDetails;
+    string *ctrlOutputsDetails;
+    //float *analogInNormalFactor;
+    float controlSampleRate; // sensors and output devices
+    multiTouchInfo *mtInfo;
 	//uint64_t audioFramesElapsed;
     //operator LDSPcontext () {return *(LDSPcontext*)this;}
 };

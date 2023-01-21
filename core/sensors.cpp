@@ -46,12 +46,12 @@ void LDSP_initSensors(LDSPinitSettings *settings)
     initSensorBuffers();
     
     // update context
-    intContext.analogIn = sensorsContext.sensorBuffer;
-    intContext.analogSampleRate = (int)(settings->samplerate / settings->periodSize);
-    intContext.analogInChannels = chn_ain_count;
-    intContext.analogInSensorState = sensorsContext.sensorsStates;
-    intContext.analogInSensorDetails = sensorsContext.sensorsDetails;
-    intContext.analogInNormalFactor = sensorsContext.sensorsNormalFactors;
+    intContext.sensors = sensorsContext.sensorBuffer;
+    intContext.controlSampleRate = (int)(settings->samplerate / settings->periodSize);
+    intContext.sensorChannels = chn_sens_count;
+    intContext.sensorsState = sensorsContext.sensorsStates;
+    intContext.sensorsDetails = sensorsContext.sensorsDetails;
+    //intContext.analogInNormalFactor = sensorsContext.sensorsNormalFactors;
     //VIC user context is reference of this internal one, so no need to update it
 
     // read a couple of times, to make sure we have some sensor data once our audio application starts
@@ -85,10 +85,13 @@ void LDSP_cleanupSensors()
     ASensorManager_destroyEventQueue(sensor_manager, event_queue);
 
     // daallocated sensor buffers
-    delete[] sensorsContext.sensorBuffer;
-    delete[] sensorsContext.sensorsStates;
-    delete[] sensorsContext.sensorsDetails;
-    delete[] sensorsContext.sensorsNormalFactors;
+    if(sensorsContext.sensorBuffer != nullptr)
+        delete[] sensorsContext.sensorBuffer;
+    if(sensorsContext.sensorsStates != nullptr)
+        delete[] sensorsContext.sensorsStates;
+    if(sensorsContext.sensorsDetails != nullptr)
+        delete[] sensorsContext.sensorsDetails;
+    //delete[] sensorsContext.sensorsNormalFactors;
 
 }
 
@@ -132,9 +135,9 @@ void initSensors()
             sens_struct.asensor = sensor;
             sens_struct.present = true;
             sens_struct.type = ASensor_getType(sensor);
-            sens_struct.channels = (analogInChannel*) new unsigned int[sens_struct.numOfChannels];
+            sens_struct.channels = (sensorChannel*) new unsigned int[sens_struct.numOfChannels];
             for(int chn=0; chn<sens_struct.numOfChannels; chn++) 
-                sens_struct.channels[chn] = (analogInChannel)channelIndex++;
+                sens_struct.channels[chn] = (sensorChannel)channelIndex++;
 
             sensorsContext.sensorsType_index[sens_struct.type] = i; // to quickly find this sensors in array
             
@@ -158,11 +161,11 @@ void initSensors()
 
 void initSensorBuffers()
 {
-        // allocate buffers for sensor input samples
-    sensorsContext.sensorBuffer  = new float[chn_ain_count]; // we allocate elements also for supported but non present sensors
-    sensorsContext.sensorsStates = new sensorState[chn_ain_count]; 
-    sensorsContext.sensorsDetails  = new string[chn_ain_count];
-    sensorsContext.sensorsNormalFactors  = new float[chn_ain_count];
+    // allocate buffers for sensor input samples
+    sensorsContext.sensorBuffer  = new float[chn_sens_count]; // we allocate elements also for supported but non present sensors
+    sensorsContext.sensorsStates = new sensorState[chn_sens_count]; 
+    sensorsContext.sensorsDetails  = new string[chn_sens_count];
+    //sensorsContext.sensorsNormalFactors  = new float[chn_sens_count];
 
     // initialize 
     int chnCnt = 0;
@@ -198,21 +201,21 @@ void initSensorBuffers()
             sensorsContext.sensorsDetails[chnCnt] = name + ", sensing " + chnDescr;
 
             // init normalization factor
-            float normFact = sensors_max[sens];
-            if(normFact == -1)
-                normFact = 1;
-            sensorsContext.sensorsNormalFactors[chnCnt] = normFact;
+            // float normFact = sensors_max[sens];
+            // if(normFact == -1)
+            //     normFact = 1;
+            // sensorsContext.sensorsNormalFactors[chnCnt] = normFact;
 
             chnCnt++;
         }
     }
     // unsupported sensors/channels
-    for(; chnCnt<chn_ain_count; chnCnt++)
+    for(; chnCnt<chn_sens_count; chnCnt++)
     {
         sensorsContext.sensorBuffer[chnCnt] = 0; // this value will never be update
         sensorsContext.sensorsStates[chnCnt] = sensor_not_supported;
         sensorsContext.sensorsDetails[chnCnt] = "Not supported";
-        sensorsContext.sensorsNormalFactors[chnCnt] = 1;
+        //sensorsContext.sensorsNormalFactors[chnCnt] = 1;
     }
 }
 
@@ -227,20 +230,20 @@ void readSensors()
         sensor_struct& sensor = sensorsContext.sensors[idx]; // get sensor of this type
         // fill sensorBuffer with sensor data, in the channels reserved to this type of sensor
         // normalized sensor
-        if(sensors_max[idx] > 0)
-        {
-            for(int chn=0; chn<sensor.numOfChannels; chn++)
-            {
-                float val = constrain(event.data[chn], -sensors_max[idx], sensors_max[idx]);
-                val /= sensors_max[idx];
-                sensorsContext.sensorBuffer[sensor.channels[chn]] = val;
-            }
-        }
-        else // non-normalized sensor
-        {
+        // if(sensors_max[idx] > 0)
+        // {
+        //     for(int chn=0; chn<sensor.numOfChannels; chn++)
+        //     {
+        //         float val = constrain(event.data[chn], -sensors_max[idx], sensors_max[idx]);
+        //         val /= sensors_max[idx];
+        //         sensorsContext.sensorBuffer[sensor.channels[chn]] = val;
+        //     }
+        // }
+        // else // non-normalized sensor
+        // {
             for(int chn=0; chn<sensor.numOfChannels; chn++)
                 sensorsContext.sensorBuffer[sensor.channels[chn]] = event.data[chn];
-        }
+        // }
 
         // if(event.type == ASENSOR_TYPE_ACCELEROMETER)
         // {

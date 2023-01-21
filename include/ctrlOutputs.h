@@ -16,12 +16,10 @@
  * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef OUT_DEVICES_H_
-#define OUT_DEVICES_H_
+#ifndef CTRL_OUTPUTS_H_
+#define CTRL_OUTPUTS_H_
 
 #include "LDSP.h"
-#include "tinyalsaAudio.h" // for LDSPinternalContext
-#include "hwConfig.h"
 #include "enums.h"
 
 #include <iostream>
@@ -33,10 +31,10 @@ using std::to_string;
 using std::array;
 
 // BE CAREFUL! this has to be updated manually, according to:
-// analogOutChannel enum in LDSP.h [order]
+// ctrlOutputChannel enum in LDSP.h [order]
 // and
 // the keys in the hw_config.json file [names]
-static const string LDSP_analog_ctrlOutput[chn_aout_count] = {
+static const string LDSP_analog_ctrlOutput[chn_cout_count] = {
     "flashlight",
     "lcd-backlight",
     "led",
@@ -47,9 +45,9 @@ static const string LDSP_analog_ctrlOutput[chn_aout_count] = {
     "vibration" // vibration is time-based and what we pass is the duration of the vibration [ms]
 };
 
-
+// for autocompletion of hw config of ctrl outputs
 struct ctrlOutputKeywords {
-    array<array<const string, 2>, chn_aout_count> folders = {
+    array<array<const string, 2>, chn_cout_count> folders = {
         {
             {"leds", ""},
             {"leds", ""},
@@ -61,7 +59,7 @@ struct ctrlOutputKeywords {
             {"timed_output", "leds"}
         }
     };
-    array<array<const string, 3>, chn_aout_count> subFolders_strings = {
+    array<array<const string, 3>, chn_cout_count> subFolders_strings = {
         {
             {"torch", "light", "flash"},
             {"lcd", "", ""},
@@ -73,7 +71,7 @@ struct ctrlOutputKeywords {
             {"vibrator", "", ""}
         }
     };
-    array<array<const string, 3>, chn_aout_count> files = {
+    array<array<const string, 3>, chn_cout_count> files = {
         {
             {"brightness", "max_brightness", ""},
             {"brightness", "max_brightness", ""},
@@ -96,16 +94,12 @@ struct ctrlout_struct {
     unsigned int initialVal;
 };
 
-struct LDSPctrlOutContext {
-    ctrlout_struct analogCtrlOutputs[chn_aout_count];
-    float analogCtrlOutBuffer[chn_aout_count];
-    ctrlOutState analogCtrlOutStates[chn_aout_count];
-    string analogCtrlOutDetails[chn_aout_count];
+struct LDSPctrlOutputsContext {
+    ctrlout_struct ctrlOutputs[chn_cout_count];
+    float ctrlOutBuffer[chn_cout_count];
+    ctrlOutState ctrlOutStates[chn_cout_count];
+    string ctrlOutDetails[chn_cout_count];
 };
-
-
-int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig);
-void LDSP_cleanupCtrlOutputs();
 
 void writeCtrlOutputs();
 void write(ofstream *file, int value);
@@ -119,4 +113,4 @@ inline void write(ofstream *file, int value)
     file->flush();
 }
 
-#endif /* OUT_DEVICES_H_ */
+#endif /* CTRL_OUTPUTS_H_ */

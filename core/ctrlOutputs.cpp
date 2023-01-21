@@ -18,6 +18,7 @@
  */
 #include "ctrlOutputs.h"
 #include "LDSP.h"
+#include "tinyalsaAudio.h" // for LDSPinternalContext
 
 #include <sstream> // for ostream
 #include <dirent.h> // to search for files
@@ -35,12 +36,12 @@ using std::regex_replace;
 
 bool ctrlOutputsVerbose = false;
 
-LDSPctrlOutContext ctrlOutputsContext;
+LDSPctrlOutputsContext ctrlOutputsContext;
 extern LDSPinternalContext intContext;
 
 
 
-int initCtrlOutputs(string **ctrlOutputsFiles, unsigned int chCount, ctrlout_struct *ctrlOutputs, ctrlOutState *ctrlOutputsStates, string *ctrlOutputsDetails);
+int initCtrlOutputs(string **ctrlOutputsFiles);
 
 
 
@@ -52,17 +53,16 @@ int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
     if(ctrlOutputsVerbose)
         printf("\nLDSP_initCtrlOutputs()\n");
 
-    int retVal = initCtrlOutputs(hwconfig->analogCtrlOutputs, chn_aout_count, ctrlOutputsContext.analogCtrlOutputs, 
-                                ctrlOutputsContext.analogCtrlOutStates, ctrlOutputsContext.analogCtrlOutDetails);
+    int retVal = initCtrlOutputs(hwconfig->ctrlOutputs);
     if(retVal!=0)
         return retVal;
 
     // update context
     // --analog outputs
-    intContext.analogOut = ctrlOutputsContext.analogCtrlOutBuffer;
-    intContext.analogOutChannels = chn_aout_count;
-    intContext.analogCtrlOutputState = ctrlOutputsContext.analogCtrlOutStates;
-    intContext.analogCtrlOutputDetails = ctrlOutputsContext.analogCtrlOutDetails;
+    intContext.ctrlOutputs = ctrlOutputsContext.ctrlOutBuffer;
+    intContext.ctrlOutChannels = chn_cout_count;
+    intContext.ctrlOutputsState = ctrlOutputsContext.ctrlOutStates;
+    intContext.ctrlOutputsDetails = ctrlOutputsContext.ctrlOutDetails;
     return 0;
 }
 
@@ -75,7 +75,7 @@ void LDSP_cleanupCtrlOutputs()
         printf("LDSP_cleanupCtrlOutputs()\n");
 
     // analog control outputs
-    cleanupCtrlOutputs(ctrlOutputsContext.analogCtrlOutputs, chn_aout_count);
+    cleanupCtrlOutputs(ctrlOutputsContext.ctrlOutputs, chn_cout_count);
 }
 
 
@@ -145,7 +145,7 @@ bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, s
         return false;
     }
 
-    //TODO next complete case of vibration with activate+duration
+    //TODO complete case of vibration with activate+duration
     // also in the write function!!!
     content = "";
     while( (entry = readdir(directory)) != nullptr ) 
@@ -158,7 +158,7 @@ bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, s
             break;
         }
         // onyl exception is vibraiton, that has two possibilities
-        else if(out==chn_aout_vibration && d_name == keywords->files[out][1])
+        else if(out==chn_cout_vibration && d_name == keywords->files[out][1])
         {
             content = "/" + d_name;
             break;
@@ -214,16 +214,19 @@ void ctrlOutputAutoFill_scale(int out, shared_ptr<ctrlOutputKeywords> keywords, 
 }
 
 
-int initCtrlOutputs(string **ctrlOutputsFiles, unsigned int chCount, ctrlout_struct *ctrlOutputs, ctrlOutState *ctrlOutputsStates, string *ctrlOutputsDetails)
+int initCtrlOutputs(string **ctrlOutputsFiles)
 {
     shared_ptr<ctrlOutputKeywords> keywords = make_shared<ctrlOutputKeywords>(); // will be useful in auto config
 
+    if(ctrlOutputsVerbose)
+        printf("Control output list:\n");
+
     ifstream readFile;
-    for (int out=0; out<chCount; out++)
+    for (int out=0; out<chn_cout_count; out++)
     {
         int autoConfig_ctrl = false;
         int autoConfig_scale = false;
-        ctrlout_struct &ctrlOutput = ctrlOutputs[out];
+        ctrlout_struct &ctrlOutput = ctrlOutputsContext.ctrlOutputs[out];
 
         // control file first
 
@@ -240,8 +243,8 @@ int initCtrlOutputs(string **ctrlOutputsFiles, unsigned int chCount, ctrlout_str
 
                 //-------------------------------------------------------------------
                 // context update
-                ctrlOutputsStates[out] = device_not_configured;
-                ctrlOutputsDetails[out] =  "Not configured";
+                ctrlOutputsContext.ctrlOutStates[out] = ctrlOutput_not_configured;
+                ctrlOutputsContext.ctrlOutDetails[out] =  "Not configured";
                 continue;
             }
             autoConfig_ctrl = true;
@@ -320,7 +323,7 @@ int initCtrlOutputs(string **ctrlOutputsFiles, unsigned int chCount, ctrlout_str
             printf("\t\tcontrol file \"%s\"%s\n", ctrlOutputsFiles[DEVICE_CTRL_FILE][out].c_str(), automatic.c_str());
             
             // we skip this info if vibration, as reading about the default scale value may be confusing  
-            if(out!=chn_aout_vibration)
+            if(out!=chn_cout_vibration)
             {
                 if(isNumber)
                 {
@@ -343,17 +346,16 @@ int initCtrlOutputs(string **ctrlOutputsFiles, unsigned int chCount, ctrlout_str
 
         //-------------------------------------------------------------------
         // context update
-        ctrlOutputsStates[out] = device_configured;
+        ctrlOutputsContext.ctrlOutStates[out] = ctrlOutput_configured;
         ostringstream stream;
         stream << LDSP_analog_ctrlOutput[out] << ", with max value: " << ctrlOutput.scaleVal;
-        ctrlOutputsDetails[out] =  stream.str();
+        ctrlOutputsContext.ctrlOutDetails[out] =  stream.str();
     }
 
     return 0;
 }
 
 
-//TODO move redundant code to inline function[s]?
 void writeCtrlOutputs()
 {
     //VIC output values are persistent! 
@@ -362,15 +364,15 @@ void writeCtrlOutputs()
     // NOTE: the only exception is vibration control, that is timed, so its value is reset to 0 once written
 
     // write to analog devices
-    for(int out=0; out<chn_aout_count; out++)
+    for(int out=0; out<chn_cout_count; out++)
     {
-        ctrlout_struct *ctrlOutput = &ctrlOutputsContext.analogCtrlOutputs[out];
+        ctrlout_struct *ctrlOutput = &ctrlOutputsContext.ctrlOutputs[out];
         
         // nothing to do on non-configured devices
         if(!ctrlOutput->configured)
             continue;
 
-        unsigned int outInt = ctrlOutputsContext.analogCtrlOutBuffer[out]*ctrlOutput->scaleVal;
+        unsigned int outInt = ctrlOutputsContext.ctrlOutBuffer[out]*ctrlOutput->scaleVal;
         // if scaled (de-normalized) value is same as previous one, no need to update
         if(outInt == ctrlOutput->prevVal)
             continue;
@@ -382,9 +384,9 @@ void writeCtrlOutputs()
         // once vibration ends, the written file goes automatically to zero 
         // hence, we reset the value in our buffer once written, to align with the file's behavior
         // this allows us to set vibration repeatedly regardless of previous value
-        if(out == chn_aout_vibration)
+        if(out == chn_cout_vibration)
         {
-            ctrlOutputsContext.analogCtrlOutBuffer[out] = 0; // reset buffer value
+            ctrlOutputsContext.ctrlOutBuffer[out] = 0; // reset buffer value
             outInt = 0; // set prev value to 0, so that same value can be set in subsequent calls
         }
 

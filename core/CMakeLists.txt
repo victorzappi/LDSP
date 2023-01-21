@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.25)
-
 project(ldsp)
 
 # https://stackoverflow.com/a/62085797

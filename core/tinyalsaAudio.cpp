@@ -39,11 +39,12 @@
 // /#include "tinyAlsaExtension.h"
 #include "priority_utils.h"
 #include "sensors.h"
+#include "ctrlInputs.h"
 #include "ctrlOutputs.h"
 
 using std::string;
 
-bool volatile gShouldStop = false; // flag that tells the audio process to stop
+bool volatile gShouldStop = false; // flag that tells the audio process to stop, extern in ctrlInputs.cpp
 
 bool fullDuplex;
 
@@ -491,6 +492,7 @@ void *audioLoop(void*)
 		}
 
 		readSensors();
+		readCtrlInputs();
 
 		render(userContext, 0);
 

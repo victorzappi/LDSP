@@ -3,7 +3,6 @@
 #include <signal.h> //SIGINT, SIGTERM
 
 #include "LDSP.h"
-#include "hwConfig.h"
 #include "commandLineArgs.h"
 #include "mixer.h"
 #include "ctrlOutputs.h"
@@ -22,7 +21,7 @@ void interrupt_handler(int sig)
 
 
 //TODO move mixer setup/reset into audio calls
-// and combine sensors and output calls into a single container file
+// and combine sensors ctrl inputs and outputs calls into a single container file
 // this will simplify a lot the default main file
 
 int main(int argc, char** argv)
@@ -55,26 +54,31 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	LDSP_initSensors(settings);
+
+	LDSP_initCtrlInputs(settings);
+
 	if(LDSP_initCtrlOutputs(settings, hwconfig) < 0)
 	{
 		LDSP_resetMixerPaths(hwconfig);
 		LDSP_HwConfig_free(hwconfig);
+		LDSP_cleanupSensors();
+		LDSP_cleanupCtrlInputs();
 		LDSP_InitSettings_free(settings);
-		fprintf(stderr,"Error: unable to intialize output devices\n");
+		fprintf(stderr,"Error: unable to intialize control outputs\n");
 		return 1;
 	}
 
 	if(LDSP_initAudio(settings, 0) != 0) 
 	{
 		LDSP_cleanupCtrlOutputs();
+		LDSP_cleanupCtrlInputs();
+		LDSP_cleanupSensors();
 		LDSP_resetMixerPaths(hwconfig);
 		LDSP_HwConfig_free(hwconfig);
-		LDSP_InitSettings_free(settings);
 		fprintf(stderr,"Error: unable to initialize audio\n");
 		return 1;
 	}
-
-	LDSP_initSensors(settings);
 
 	LDSP_InitSettings_free(settings);
 
@@ -86,22 +90,21 @@ int main(int argc, char** argv)
 	if(LDSP_startAudio()) 
 	{
 		// Clean up any resources allocated
-		LDSP_cleanupSensors();
 	 	LDSP_cleanupAudio();
 		LDSP_cleanupCtrlOutputs();
+		LDSP_cleanupCtrlInputs();
+		LDSP_cleanupSensors();
 		LDSP_resetMixerPaths(hwconfig);
 		LDSP_HwConfig_free(hwconfig);
 	 	return 1;
 	}
 
-	LDSP_cleanupSensors();
 
 	LDSP_cleanupAudio();
-
-	LDSP_resetMixerPaths(hwconfig);
-
 	LDSP_cleanupCtrlOutputs();
-
+	LDSP_cleanupCtrlInputs();
+	LDSP_cleanupSensors();
+	LDSP_resetMixerPaths(hwconfig);
 	LDSP_HwConfig_free(hwconfig);
 	
 	cout << "\nBye!" << "\n";

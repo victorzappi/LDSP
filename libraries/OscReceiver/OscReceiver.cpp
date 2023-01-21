@@ -75,7 +75,6 @@ void OscReceiver::setup(int port, std::function<void(oscpkt::Message* msg, const
 		return;
 	}
 
-	prioOrder = 2;
 	//receive_task = std::unique_ptr<std::thread>(new std::thread(&OscReceiver::receive_thread_func, this));
 	pthread_create(&receive_thread, NULL, receive_thread_func, this);
 

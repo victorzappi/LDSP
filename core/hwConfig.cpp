@@ -52,8 +52,8 @@ LDSPhwConfig* LDSP_HwConfig_alloc()
     hwconfig->default_dev_c = 0;
 	hwconfig->deviceActivationCtl_p = "";
     hwconfig->deviceActivationCtl_c = "";
-    hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE] = new string[chn_aout_count];
-	hwconfig->analogCtrlOutputs[DEVICE_SCALE] = new string[chn_aout_count];
+    hwconfig->ctrlOutputs[DEVICE_CTRL_FILE] = new string[chn_cout_count];
+	hwconfig->ctrlOutputs[DEVICE_SCALE] = new string[chn_cout_count];
 
     return hwconfig;
 }
@@ -61,8 +61,8 @@ LDSPhwConfig* LDSP_HwConfig_alloc()
 
 void LDSP_HwConfig_free(LDSPhwConfig* hwconfig)
 {
-	delete[] hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE];
-	delete[] hwconfig->analogCtrlOutputs[DEVICE_SCALE];
+	delete[] hwconfig->ctrlOutputs[DEVICE_CTRL_FILE];
+	delete[] hwconfig->ctrlOutputs[DEVICE_SCALE];
 	delete hwconfig;
 }
 
@@ -178,7 +178,7 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 
 	// temporary map for quick retrieval of ctrlOutput index from name
 	unordered_map<string, int> analog_ctrlOut_indices;
-	for (unsigned int i=0; i<chn_aout_count; i++)
+	for (unsigned int i=0; i<chn_cout_count; i++)
 		analog_ctrlOut_indices[LDSP_analog_ctrlOutput[i]] = i;
 
     // parse output devices container
@@ -210,15 +210,15 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 				
 			// assign control file 
 			ctrlOut = analog_ctrlOut_indices[key];
-			hwconfig->analogCtrlOutputs[DEVICE_CTRL_FILE][ctrlOut] = ctrl;
+			hwconfig->ctrlOutputs[DEVICE_CTRL_FILE][ctrlOut] = ctrl;
 
 
 			// max file/max value
 			// vibration does not have this entry in hw config file!
-			if(ctrlOut==chn_aout_vibration)
+			if(ctrlOut==chn_cout_vibration)
 			{
 				// alway assigne default max value!
-				hwconfig->analogCtrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = "1"; // default is no scale!
+				hwconfig->ctrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = "1"; // default is no scale!
 				continue;
 			}
 			// other control outputs
@@ -226,11 +226,11 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 			json max = ctrlOutput["max value"];
 			// assign max file
 			if(max.is_string())
-				hwconfig->analogCtrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = max;
+				hwconfig->ctrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = max;
 			else if(max.is_number_integer())
-				hwconfig->analogCtrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = to_string(max); // can be a number, but still needs to be stringified
+				hwconfig->ctrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = to_string(max); // can be a number, but still needs to be stringified
 			else 
-				hwconfig->analogCtrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = ""; // default! will be tenatively auto filled
+				hwconfig->ctrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = ""; // default! will be tenatively auto filled
 		}
 	}
 }

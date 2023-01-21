@@ -77,7 +77,7 @@ bool setup(LDSPcontext *context, void *userData)
 	BiquadCoeff::Settings filterSettings;
 	filterSettings.fs = context->audioSampleRate;
 	filterSettings.type = BiquadCoeff::lowpass;
-	filterSettings.cutoff = context->analogSampleRate/4;
+	filterSettings.cutoff = context->controlSampleRate/4;
 	filterSettings.q = 0.707;
 	filterSettings.peakGainDb = 0;
 
@@ -86,10 +86,10 @@ bool setup(LDSPcontext *context, void *userData)
 
 	//-----------------------------------------------------------
 
-    lcdLightInvSrate = 1.0 / context->analogSampleRate;
+    lcdLightInvSrate = 1.0 / context->controlSampleRate;
 	lcdLightPhase = 0.0;
 	
-	analogWrite(context, chn_aout_ledB, on);
+	ctrlOutputWrite(context, chn_cout_ledB, on);
 
 
 	oscReceiver.setup(localPort, on_receive);
@@ -101,18 +101,27 @@ bool setup(LDSPcontext *context, void *userData)
 
 void render(LDSPcontext *context, void *userData)
 {
-	float acc_x = analogRead(context, chn_ain_accelX);
-	float acc_z = analogRead(context, chn_ain_accelZ);
+	const float maxAcc = 2*9.8;
+	float acc_x = constrain(sensorRead(context, chn_sens_accelX), -maxAcc, maxAcc)/maxAcc;
+	float acc_z = constrain(sensorRead(context, chn_sens_accelZ), -maxAcc, maxAcc)/maxAcc;
 
 	//accXinterpolated.setup(prev_acc_x, acc_x, context->audioFrames);
 	//prev_acc_x = acc_x;
 
 	float frequency = centralFrequency + badnwidth*acc_z;
 
-	float out;
+	int posx = multitouchRead(context, chn_mt_x, 0);
+	float lcdFreqMul = posx/(context->mtInfo->screenResolution[0]-1);
+	lcdFreqMul = map(lcdFreqMul, 0, 1, 1, 4);
+
+	//int up = buttonRead(context, chn_btn_volUp);
+	
+
+
+	float out, amplitude;
 	for(int n=0; n<context->audioFrames; n++)
 	{
-		float amplitude = maxAmplitude*(1-amplitudeDelta);
+		amplitude = maxAmplitude*(1-amplitudeDelta);
 		//amplitude += accXinterpolated[n]*amplitudeDelta;
 		amplitude += smoothingFilter->process(acc_x)*amplitudeDelta;
 
@@ -130,16 +139,16 @@ void render(LDSPcontext *context, void *userData)
 	}
 
 	float lcdLight = map(sinf(lcdLightPhase), -1, 1, 0.1, 1);
-	lcdLightPhase += 2.0f * (float)M_PI * lcdLightFreq * lcdLightInvSrate;
+	lcdLightPhase += 2.0f * (float)M_PI * lcdLightFreq*lcdFreqMul * lcdLightInvSrate;
 	while(lcdLightPhase > M_PI)
 		lcdLightPhase -= 2.0f * (float)M_PI;
-	analogWrite(context, chn_aout_lcdBacklight, lcdLight);
+	ctrlOutputWrite(context, chn_cout_lcdBacklight, lcdLight);
 
 	if(lcdLightPhasePrev < 0 && lcdLightPhase >=0)
 	{
-		analogWrite(context, chn_aout_vibration, 500);
+		ctrlOutputWrite(context, chn_cout_vibration, 500/lcdFreqMul);
 		flashlight = (1-flashlight);
-		analogWrite(context, chn_aout_flashlight, flashlight*0.5);
+		ctrlOutputWrite(context, chn_cout_flashlight, flashlight*0.5);
 	}
 	lcdLightPhasePrev = lcdLightPhase;
 

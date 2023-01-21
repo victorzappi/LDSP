@@ -20,10 +20,10 @@
 #define HW_CONFIG_H_
 
 #include <unordered_map> // unordered_map
+#include <string>
 #include <vector> // vector
 
-#include "LDSP.h"
-
+using std::string;
 using std::vector;
 using std::unordered_map;
 
@@ -43,13 +43,8 @@ struct LDSPhwConfig {
     int default_dev_c;
     string deviceActivationCtl_p;
     string deviceActivationCtl_c;
-    string *analogCtrlOutputs[2]; // control file and max value (or max file)
+    string *ctrlOutputs[2]; // control file and max value (or max file)
 };
 
-LDSPhwConfig* LDSP_HwConfig_alloc();
-
-void LDSP_HwConfig_free(LDSPhwConfig* hwconfig);
-
-int LDSP_parseHwConfigFile(LDSPinitSettings *settings, LDSPhwConfig *hwconfig);
 
 #endif /* HW_CONFIG_H_ */
