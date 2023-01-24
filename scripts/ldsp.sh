@@ -190,6 +190,8 @@ configure () {
     exit 1
   fi
 
+  # TODO: make sure provided project dir exists!
+
   if [[ ! -d "$NDK" ]]; then
     echo "Cannot configure: NDK not found"
     echo "Please specify a valid NDK path with"
@@ -216,6 +218,8 @@ build () {
   fi
 }
 
+# TODO: clean
+
 # Push the user project and LDSP hardware config to the phone.
 push () {
   if [[ ! -f bin/ldsp ]]; then
@@ -225,7 +229,6 @@ push () {
 
   hw_config="./phones/$VENDOR/$MODEL/ldsp_hw_config.json"
 
-  adb root
   adb shell "mkdir -p /data/ldsp"
 
   if [[ ! -f "$hw_config" ]]; then
@@ -238,7 +241,7 @@ push () {
 }
 
 # Push the user project and LDSP hardware config to the phone's SD card.
-push_sdcard () {
+push_shell () {
   if [[ ! -f bin/ldsp ]]; then
     echo "Cannot push: No ldsp executable found. Please run \"ldsp build\" first."
     exit 1
@@ -258,9 +261,21 @@ push_sdcard () {
 	adb push bin/ldsp /sdcard/ldsp/ldsp
 }
 
+# Install the LDSP scripts on the phone.
+install_scripts() {
+  adb shell "mkdir -p /data/ldsp/scripts"
+  adb push ./scripts/* /data/ldsp/scripts/
+}
+
 # Run the user project on the phone.
+# TODO: exit immediately
 run () {
   adb shell "cd /data/ldsp/ && ./ldsp $@"
+}
+
+# Stop the currently-running user project on the phone.
+stop () {
+  adb shell "sh /data/ldsp/scripts/ldsp_stop.sh"
 }
 
 # Print usage information.
@@ -275,7 +290,7 @@ help () {
   echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone, version, and project."
   echo -e "  build\t\t\t\tBuild the user project."
   echo -e "  push\t\t\t\tPush the user project and LDSP hardware configuration to the phone."
-  echo -e "  push_sdcard\t\t\tPush the user project and LDSP hardware configuration to the phone's SD card."
+  echo -e "  push_shell\t\t\tPush the user project and LDSP hardware configuration to the phone's SD card."
   echo -e "  run\t\t\t\tRun the user project on the phone."
   echo -e "  \t\t\t\t(Any arguments passed after \"run\" are passed to the user project.)"
 }
@@ -356,11 +371,17 @@ for i in "${STEPS[@]}"; do
     push)
       push
       ;;
-    push_sdcard)
-      push_sdcard
+    push_shell)
+      push_shell
+      ;;
+    install_scripts)
+      install_scripts
       ;;
     run)
       run "${@:2}"
+      ;;
+    stop)
+      stop
       ;;
     help)
       help
