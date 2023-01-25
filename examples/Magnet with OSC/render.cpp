@@ -23,6 +23,8 @@ void render(LDSPcontext *context, void *userData) {
   float mag_y = sensorRead(context, chn_sens_magY);
   float mag_z = sensorRead(context, chn_sens_magZ);
 
+  printf("%f %f %f \n", mag_x, mag_y, mag_z);
+
   float magnitude = sqrt(mag_x * mag_x + mag_y * mag_y + mag_z * mag_z);
 
   // printf("%f \n", magnitude);
