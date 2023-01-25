@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include "LDSP.h"
+#include "libraries/OscSender/OscSender.h"
 
 const float MAX_MAGNITUDE = 300;
 const float MIN_MAGNITUDE = 30;
@@ -10,7 +11,12 @@ const float MIN_RATE = 1;
 
 float time_until_next_vibrate = 0;
 
-bool setup(LDSPcontext *context, void *userData) { return true; }
+OscSender oscSender;
+
+bool setup(LDSPcontext *context, void *userData) {
+  oscSender.setup(2737, "192.168.51.82");
+  return true;
+}
 
 void render(LDSPcontext *context, void *userData) {
   float mag_x = sensorRead(context, chn_sens_magX);
@@ -43,6 +49,14 @@ void render(LDSPcontext *context, void *userData) {
 
   time_until_next_vibrate -=
       1.0 / (context->audioSampleRate / context->audioFrames);
+
+  for (int n = 0; n < context->audioFrames; n++) {
+    for (int chn = 0; chn < context->audioOutChannels; chn++) {
+      audioWrite(context, n, chn, 0);
+    }
+  }
+
+  oscSender.newMessage("/mag").add(mag_x).add(mag_y).add(mag_z).send();
 }
 
 void cleanup(LDSPcontext *context, void *userData) {}
