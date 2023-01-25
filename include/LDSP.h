@@ -279,7 +279,7 @@ static inline int multitouchRead(LDSPcontext *context, multiTouchInputChannel ch
     if(channel==chn_mt_anyTouch)
         return context->ctrlInputs[chn_btn_count+chn_mt_anyTouch];
     else
-        return context->ctrlInputs[chn_btn_count+1+channel*context->mtInfo->touchSlots + touchSlot];
+        return context->ctrlInputs[chn_btn_count+1+(channel-1)*context->mtInfo->touchSlots + touchSlot];
 }
 
 
