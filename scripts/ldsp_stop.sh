@@ -4,7 +4,8 @@
 # usage:
 # sh ldsp_stop.sh
 
-kill $(ps | grep ldsp | grep -Eo '[0-9]{2,5}' | grep -Eo '[0-9]{2,5}' -m 1)
+PID=$(ps | grep ldsp | grep -Eo '[0-9]{2,5}' | grep -Eo '[0-9]{2,5}' -m 1)
+kill $PID
 
 # ps -> prints all running processes
 # grep ldsp ->  prints all info of ldsp process as a line

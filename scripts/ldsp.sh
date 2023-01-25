@@ -190,7 +190,11 @@ configure () {
     exit 1
   fi
 
-  # TODO: make sure provided project dir exists!
+  if [[ ! -d "$PROJECT" ]]; then
+    echo "Cannot configure: Project directory does not exist"
+    echo "Please specify a valid project path with --project"
+    exit 1
+  fi
 
   if [[ ! -d "$NDK" ]]; then
     echo "Cannot configure: NDK not found"
@@ -218,7 +222,10 @@ build () {
   fi
 }
 
-# TODO: clean
+# Clean the built files.
+clean () {
+  ninja clean
+}
 
 # Push the user project and LDSP hardware config to the phone.
 push () {
@@ -268,9 +275,12 @@ install_scripts() {
 }
 
 # Run the user project on the phone.
-# TODO: exit immediately
 run () {
-  adb shell "cd /data/ldsp/ && ./ldsp $@"
+  cat <<EOF | adb shell > /dev/null 2>&1
+  cd /data/ldsp/
+  nohup ./ldsp $@ > /dev/null 2>&1 &
+  exit
+EOF
 }
 
 # Stop the currently-running user project on the phone.
@@ -367,6 +377,9 @@ for i in "${STEPS[@]}"; do
       ;;
     build)
       build
+      ;;
+    clean)
+      clean
       ;;
     push)
       push
