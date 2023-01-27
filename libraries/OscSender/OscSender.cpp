@@ -1,6 +1,6 @@
 // This code is based on the code credited below, but it has been modified
 // further by Victor Zappi
- 
+
  /*
  ___  _____ _        _
 | __ )| ____| |      / \
@@ -47,15 +47,15 @@ void OscSender::setup(int port, std::string ip_address){
     pw = std::unique_ptr<oscpkt::PacketWriter>(new oscpkt::PacketWriter());
     msg = std::unique_ptr<oscpkt::Message>(new oscpkt::Message());
     msg->reserve(OSCSENDER_MAX_ARGS, OSCSENDER_MAX_BYTES);
-    
+
     socket = std::unique_ptr<UdpClient>(new UdpClient());
 	socket->setup(port, ip_address.c_str());
-	
+
 	//send_task = std::unique_ptr<AuxTaskNonRT>(new AuxTaskNonRT());
 	//send_task->create(std::string("OscSndrTsk_") + ip_address + std::to_string(port), [this](void* buf, int size){send_task_func(buf, size); });
 
 	pw_immediate = std::unique_ptr<oscpkt::PacketWriter>(new oscpkt::PacketWriter());
-	
+
 	pthread_create(&send_thread, NULL, send_thread_func, this);
 }
 
@@ -100,12 +100,12 @@ void OscSender::send(const oscpkt::Message& extMsg){
 
 void OscSender::sendNow(){
 	pw_immediate->init().addMessage(*msg);
-	socket->send(pw->packetData(), pw->packetSize());	
+	socket->send(pw_immediate->packetData(), pw_immediate->packetSize());
 }
 
 void OscSender::sendNow(const oscpkt::Message& extMsg){
 	pw_immediate->init().addMessage(extMsg);
-	socket->send(pw->packetData(), pw->packetSize());	
+	socket->send(pw_immediate->packetData(), pw_immediate->packetSize());
 }
 
 void *OscSender::send_thread_func(void* ptr){

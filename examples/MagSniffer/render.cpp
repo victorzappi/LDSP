@@ -58,7 +58,7 @@ void render(LDSPcontext *context, void *userData) {
     }
   }
 
-  oscSender.newMessage("/mag").add(mag_x).add(mag_y).add(mag_z).send();
+  oscSender.newMessage("/mag").add(mag_x).add(mag_y).add(mag_z).sendNow();
 }
 
 void cleanup(LDSPcontext *context, void *userData) {}
