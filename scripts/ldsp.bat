@@ -7,7 +7,7 @@ goto main
 
 :get_api_level
   rem Convert a human-readable Android version (e.g. 13, 6.0.1, 4.4) into an API level.
-  set version_full=%1
+  set version_full=%~1
 
   set major=0
   set minor=0
@@ -82,6 +82,13 @@ rem End of :get_api_level
 
 :configure
   rem Configure the LDSP build system to build for the given phone model, Android version, and project path.
+
+  set vendor=%~1
+  set model=%~2
+  set version=%~3
+  set project=%~4
+
+  pause
 
   if "%vendor%" == "" (
     echo Cannot configure: Vendor not specified
@@ -258,52 +265,81 @@ rem End of :help
 rem Parse command line arguments.
 
 setlocal enabledelayedexpansion
+set steps=
 
-set "steps="
-set "arg_index=0"
-set "skip_next=0"
-
-for %%a in (%*) do (
-  shift
-  set "arg=%%a"
-  set /a "arg_index+=1"
-
-  echo !arg! %!arg_index!%
-
-  if !skip_next! == 1 (
-    set "skip_next=0"
-  ) else if "!arg!" == "--vendor" (
-    set "skip_next=1"
-    set "vendor=%!arg_index!%"
-  ) else if "!arg!" == "--model" (
-    set "skip_next=1"
-    set "model=%!arg_index!%"
-  ) else if "!arg!" == "--project" (
-    set "skip_next=1"
-    set "project=%!arg_index!%"
-  ) else if "!arg!" == "--version" (
-    set "skip_next=1"
-    set "version=%!arg_index!%"
-  ) else if "!arg!" == "--help" (
+:loop
+if "%~1" == "" (
+  goto :end_parsing
+) else (
+  if "%~1" == "--vendor" (
+    set vendor=%~2
+    shift
+    shift
+  ) else if "%~1" == "--model" (
+    set model=%~2
+    shift
+    shift
+  ) else if "%~1" == "--project" (
+    set project=%~2
+    shift
+    shift
+  ) else if "%~1" == "--version" (
+    set version=%~2
+    shift
+    shift
+  ) else if "%~1" == "-v" (
+    set vendor=%~2
+    shift
+    shift
+  ) else if "%~1" == "-m" (
+    set model=%~2
+    shift
+    shift
+  ) else if "%~1" == "-p" (
+    set project=%~2
+    shift
+    shift
+  ) else if "%~1" == "-a" (
+    set version=%~2
+    shift
+    shift
+  ) else if "%~1" == "--help" (
     set "steps=!steps! help"
-  ) else if "!arg!" == "run" (
+    shift
+  ) else if "%~1" == "-h" (
+    set "steps=!steps! help"
+    shift
+  ) else if "%~1" == "run" (
     set "steps=!steps! run"
+    shift
     goto :end_parsing
   ) else (
-    set "steps=!steps! !arg!"
+    set "steps=!steps! %~1"
+    shift
   )
 )
+goto :loop
+
 :end_parsing
+
+rem remove the leading space from the steps list
+set steps=!steps:~1!
 
 if "!steps!" == "" (
   call :help
   exit /b 1
 )
 
-for /f "delims=" %%i in ('echo %steps%') do (
-  set "step=%%i"
-  if "!step!"=="configure" (
-    call :configure
+pause
+echo Steps: "!steps!"
+for %%i in (%steps%) do (
+  echo in loop
+  echo %%i
+  set step=%%i
+  echo Running step !step!
+  pause
+  if !step!=="configure" (
+    call :configure "%vendor%" "%model%" "%version%" "%project%"
   ) else if "!step!"=="build" (
     call :build
   ) else if "!step!"=="push" (
