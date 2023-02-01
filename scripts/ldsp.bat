@@ -84,22 +84,22 @@ rem End of :get_api_level
   rem Configure the LDSP build system to build for the given phone model, Android version, and project path.
 
   if "%vendor%" == "" (
-    echo "Cannot configure: Vendor not specified"
-    echo "Please specify a vendor with --vendor"
+    echo Cannot configure: Vendor not specified
+    echo Please specify a vendor with --vendor
     exit /b 1
   )
 
   if "%model%" == "" (
-    echo "Cannot configure: Model not specified"
-    echo "Please specify a phone model with --model"
+    echo Cannot configure: Model not specified
+    echo Please specify a phone model with --model
     exit /b 1
   )
 
   set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
 
   if not exist %hw_config% (
-    echo "Cannot configure: Hardware config file not found"
-    echo "Please ensure that an ldsp_hw_config.json file exists for \"%vendor% %model%\""
+    echo Cannot configure: Hardware config file not found
+    echo Please ensure that an ldsp_hw_config.json file exists for "%vendor% %model%"
     exit /b 1
   )
 
@@ -110,7 +110,7 @@ rem End of :get_api_level
   if "%arch%" == "x86" set "abi=x86"
   if "%arch%" == "x86_64" set "abi=x86_64"
   if "%abi%" == "" (
-    echo "Cannot configure: Unknown target architecture \"%arch%\"
+    echo Cannot configure: Unknown target architecture "%arch%
     exit /b 1
   )
 
@@ -118,7 +118,7 @@ rem End of :get_api_level
   call :get_api_level %version%
   set "api_level=%ERRORLEVEL%"
   if "%api_level%" == "0" (
-    echo "Cannot configure: Unknown Android version \"%version%\"
+    echo Cannot configure: Unknown Android version "%version%
     exit /b 1
   )
 
@@ -143,28 +143,28 @@ rem End of :get_api_level
   )
 
   if "%project%" == "" (
-    echo "Cannot configure: Project path not specified"
-    echo "Please specify a project path with --project"
+    echo Cannot configure: Project path not specified
+    echo Please specify a project path with --project
     exit /b 1
   )
 
   if not exist "%project%" (
-    echo "Cannot configure: Project path not found"
-    echo "Please ensure that the project path exists"
+    echo Cannot configure: Project path not found
+    echo Please ensure that the project path exists
     exit /b 1
   )
 
   if not exist "%NDK" (
-    echo "Cannot configure: NDK not found"
-    echo "Please specify a valid NDK path with"
-    echo "    export NDK=<path to NDK>"
+    echo Cannot configure: NDK not found
+    echo Please specify a valid NDK path with
+    echo     export NDK=<path to NDK>
     exit /b 1
   )
 
   cmake -DCMAKE_TOOLCHAIN_FILE=%NDK%\build\cmake\android.toolchain.cmake -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% "-DANDROID_NDK=%NDK%" %neon% "-DLDSP_PROJECT=%project%" -G Ninja .
 
   if not %ERRORLEVEL% == 0 (
-    echo "Cannot configure: CMake failed"
+    echo Cannot configure: CMake failed
     exit /b %ERRORLEVEL%
   )
 
@@ -176,7 +176,7 @@ rem End of :configure
 
   ninja
   if not %ERRORLEVEL% == 0 (
-    echo "Cannot build: Ninja failed"
+    echo Cannot build: Ninja failed
     exit /b %ERRORLEVEL%
   )
 
@@ -186,7 +186,7 @@ rem End of :build
 :push
   rem Push the user project and LDSP hardware config to the phone.
   if not exist "bin\ldsp" (
-    echo "Cannot push: No ldsp executable found. Please run \"ldsp build\" first."
+    echo Cannot push: No ldsp executable found. Please run "ldsp build\ first.
     exit /b 1
   )
 
@@ -196,7 +196,7 @@ rem End of :build
   adb shell "mkdir -p /data/ldsp"
 
   if not exists %hw_config% (
-    echo "WARNING: Hardware config file not found, skipping..."
+    echo WARNING: Hardware config file not found, skipping...
   ) else (
     adb push %hw_config% /data/ldsp/ldsp_hw_config.json
   )
@@ -208,7 +208,7 @@ rem End of :push
 :push_sdcard
   rem Push the user project and LDSP hardware config to the phone's SD card.
   if not exist "bin\ldsp" (
-    echo "Cannot push: No ldsp executable found. Please run \"ldsp build\" first."
+    echo Cannot push: No ldsp executable found. Please run "ldsp build\ first.
     exit /b 1
   )
 
@@ -218,7 +218,7 @@ rem End of :push
   adb shell "mkdir -p /sdcard/ldsp"
 
   if not exists %hw_config% (
-    echo "WARNING: Hardware config file not found, skipping..."
+    echo WARNING: Hardware config file not found, skipping...
   ) else (
     adb push %hw_config% /sdcard/ldsp/ldsp_hw_config.json
   )
@@ -237,19 +237,19 @@ rem End of :run
 
 :help
   rem Print usage information.
-  echo "usage: ldsp [options] [steps] [run args]"
-  echo "options:"
-  echo "  --vendor=VENDOR, -v VENDOR\tThe vendor of the phone to build for."
-  echo "  --model=MODEL, -m MODEL\tThe model of the phone to build for."
-  echo "  --project=PROJECT, -p PROJECT\tThe path to the user project to build."
-  echo "  --version=VERSION, -a VERSION\tThe Android version to build for."
-  echo "steps:"
-  echo "  configure\t\t\tConfigure the LDSP build system for the specified phone, version, and project."
-  echo "  build\t\t\t\tBuild the user project."
-  echo "  push\t\t\t\tPush the user project and LDSP hardware configuration to the phone."
-  echo "  push_sdcard\t\t\tPush the user project and LDSP hardware configuration to the phone's SD card."
-  echo "  run\t\t\t\tRun the user project on the phone."
-  echo "  \t\t\t\t(Any arguments passed after \"run\" are passed to the user project.)"
+  echo usage: ldsp [options] [steps] [run args]
+  echo options:
+  echo   --vendor=VENDOR, -v VENDOR\tThe vendor of the phone to build for.
+  echo   --model=MODEL, -m MODEL\tThe model of the phone to build for.
+  echo   --project=PROJECT, -p PROJECT\tThe path to the user project to build.
+  echo   --version=VERSION, -a VERSION\tThe Android version to build for.
+  echo steps:
+  echo   configure\t\t\tConfigure the LDSP build system for the specified phone, version, and project.
+  echo   build\t\t\t\tBuild the user project.
+  echo   push\t\t\t\tPush the user project and LDSP hardware configuration to the phone.
+  echo   push_sdcard\t\t\tPush the user project and LDSP hardware configuration to the phone's SD card.
+  echo   run\t\t\t\tRun the user project on the phone.
+  echo   \t\t\t\t(Any arguments passed after "run" are passed to the user project.)
   exit /b 0
 rem End of :help
 
@@ -258,65 +258,44 @@ rem End of :help
 rem Parse command line arguments.
 
 setlocal enabledelayedexpansion
-set VENDOR=
-set MODEL=
-set PROJECT=
-set VERSION=
-set STEPS=
-set arg_count=0
+
+set "steps="
+set "arg_index=0"
+set "skip_next=0"
+
 for %%a in (%*) do (
-  set /A arg_count+=1
+  shift
   set "arg=%%a"
-  if "!arg:~0,9!" == "--vendor=" (
-    set "VENDOR=!arg:~9!"
-  ) else if "!arg:~0,2!" == "-v" (
-    if "!arg_count!" == "2" (
-      set "VENDOR=%%b"
-    ) else (
-      echo Error: vendor option requires a value
-      exit /b 1
-    )
-  ) else if "!arg:~0,8!" == "--model=" (
-    set "MODEL=!arg:~8!"
-  ) else if "!arg:~0,2!" == "-m" (
-    if "!arg_count!" == "2" (
-      set "MODEL=%%b"
-    ) else (
-      echo Error: model option requires a value
-      exit /b 1
-    )
-  ) else if "!arg:~0,10!" == "--project=" (
-    set "PROJECT=!arg:~10!"
-  ) else if "!arg:~0,2!" == "-p" (
-    if "!arg_count!" == "2" (
-      set "PROJECT=%%b"
-    ) else (
-      echo Error: project option requires a value
-      exit /b 1
-    )
-  ) else if "!arg:~0,10!" == "--version=" (
-    set "VERSION=!arg:~10!"
-  ) else if "!arg:~0,2!" == "-a" (
-    if "!arg_count!" == "2" (
-      set "VERSION=%%b"
-    ) else (
-      echo Error: version option requires a value
-      exit /b 1
-    )
+  set /a "arg_index+=1"
+
+  echo !arg! %!arg_index!%
+
+  if !skip_next! == 1 (
+    set "skip_next=0"
+  ) else if "!arg!" == "--vendor" (
+    set "skip_next=1"
+    set "vendor=%!arg_index!%"
+  ) else if "!arg!" == "--model" (
+    set "skip_next=1"
+    set "model=%!arg_index!%"
+  ) else if "!arg!" == "--project" (
+    set "skip_next=1"
+    set "project=%!arg_index!%"
+  ) else if "!arg!" == "--version" (
+    set "skip_next=1"
+    set "version=%!arg_index!%"
   ) else if "!arg!" == "--help" (
-    set "STEPS=!STEPS! help"
-  ) else if "!arg:~0,2!" == "-h" (
-    set "STEPS=!STEPS! help"
+    set "steps=!steps! help"
   ) else if "!arg!" == "run" (
-    set "STEPS=!STEPS! run"
-    goto end_parsing
+    set "steps=!steps! run"
+    goto :end_parsing
   ) else (
-    set "STEPS=!STEPS! !arg!"
+    set "steps=!steps! !arg!"
   )
 )
 :end_parsing
 
-if "!STEPS!" == "" (
+if "!steps!" == "" (
   call :help
   exit /b 1
 )
