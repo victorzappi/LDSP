@@ -21,15 +21,13 @@ endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin/)
 add_executable(ldsp ${SOURCES})
 
-target_include_directories(ldsp PRIVATE ../include)
-
 target_include_directories(ldsp
-  PRIVATE ../libraries
+  PRIVATE ../include
   PRIVATE ..
-  PRIVATE ../libraries/tinyalsa/include
 )
 
 target_link_libraries(ldsp
   PRIVATE libraries
   PRIVATE android
+  PRIVATE tinyalsa
 )
