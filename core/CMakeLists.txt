@@ -30,4 +30,5 @@ target_link_libraries(ldsp
   PRIVATE libraries
   PRIVATE android
   PRIVATE tinyalsa
+  PRIVATE sndfile
 )
