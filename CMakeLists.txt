@@ -12,6 +12,10 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 # set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
 
+if (ANDROID_ARM_NEON)
+  add_compile_options(-mfpu=neon-fp16)
+endif()
+
 add_compile_options(-fdiagnostics-color=always)
 
 add_subdirectory(core)

@@ -178,7 +178,7 @@ configure () {
     then
       neon="-DANDROID_ARM_NEON=ON"
     else
-      neon="-DANDROID_ARM_NEON=OFF"
+      neon=""
     fi
   else
     neon=""
