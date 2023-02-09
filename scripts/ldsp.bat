@@ -262,96 +262,22 @@ rem End of :help
 
 :main
 
-rem Parse command line arguments.
+rem Call the appropriate function based on the first argument.
 
-setlocal enabledelayedexpansion
-set steps=
-
-:loop
-if "%~1" == "" (
-  goto :end_parsing
-) else (
-  if "%~1" == "--vendor" (
-    set vendor=%~2
-    shift
-    shift
-  ) else if "%~1" == "--model" (
-    set model=%~2
-    shift
-    shift
-  ) else if "%~1" == "--project" (
-    set project=%~2
-    shift
-    shift
-  ) else if "%~1" == "--version" (
-    set version=%~2
-    shift
-    shift
-  ) else if "%~1" == "-v" (
-    set vendor=%~2
-    shift
-    shift
-  ) else if "%~1" == "-m" (
-    set model=%~2
-    shift
-    shift
-  ) else if "%~1" == "-p" (
-    set project=%~2
-    shift
-    shift
-  ) else if "%~1" == "-a" (
-    set version=%~2
-    shift
-    shift
-  ) else if "%~1" == "--help" (
-    set "steps=!steps! help"
-    shift
-  ) else if "%~1" == "-h" (
-    set "steps=!steps! help"
-    shift
-  ) else if "%~1" == "run" (
-    set "steps=!steps! run"
-    shift
-    goto :end_parsing
-  ) else (
-    set "steps=!steps! %~1"
-    shift
-  )
-)
-goto :loop
-
-:end_parsing
-
-rem remove the leading space from the steps list
-set steps=!steps:~1!
-
-if "!steps!" == "" (
-  call :help
-  exit /b 1
-)
-
-pause
-echo Steps: "!steps!"
-for %%i in (%steps%) do (
-  echo in loop
-  echo %%i
-  set step=%%i
-  echo Running step !step!
-  pause
-  if !step!=="configure" (
-    call :configure "%vendor%" "%model%" "%version%" "%project%"
-  ) else if "!step!"=="build" (
-    call :build
-  ) else if "!step!"=="push" (
-    call :push
-  ) else if "!step!"=="push_sdcard" (
-    call :push_sdcard
-  ) else if "!step!"=="run" (
-    call :run %2 %3 %4 %5 %6 %7 %8 %9
-  ) else if "!step!"=="help" (
-    call :help
-  ) else (
-    echo Unknown step !step!
-    exit /b 1
-  )
+if "%1" == "configure" (
+  shift
+  call :configure %*
+) else if "%1" == "build" (
+  shift
+  call :build %*
+) else if "%1" == "push" (
+  shift
+  call :push %*
+) else if "%1" == "push_sdcard" (
+  shift
+  call :push_sdcard %*
+) else if "%1" == "run" (
+  shift
+  call :run %*
+  call :help %*
 )
