@@ -23,7 +23,7 @@
 #include <math.h>
 
 float max_delay = 0.5; // [s]
-// fixed delay time
+// initial delay time
 float delay = 0.3; // [s]
 
 // declare variables for circular buffer
@@ -33,36 +33,36 @@ unsigned int gReadPointer = 0;
 
 const float G=9.8;
 
-float acc_x_max = G;
-float acc_x_min = -G;
+// float acc_x_max = G;
+// float acc_x_min = -G;
 
-float acc_y_max = 0.8*G;
-float acc_y_min = 0.0;
+float acc_y_max = -3.7;
+float acc_y_min = -8;
 
-float fdbck_max = 0.95;
-float fdbck_min = 0.01;
+float fdbck_max = 0.98;
+float fdbck_min = 0.0;
 
-float cutoff_max = 20e3;
-float cutoff_min = 40;
+// float cutoff_max = 20e3;
+// float cutoff_min = 40;
 
 //------------------------------------------------
 
 float inverseSampleRate;
 
-Biquad *smoothingFilter[2]; // acc_x and acc_y
-Biquad *lowPass;
+Biquad *smoothingFilter; // acc_x
+// Biquad *lowPass;
 
 int delayInSamples;
 
-float map_max;
-float map_min;
+// float map_max;
+// float map_min;
 
 
 bool setup(LDSPcontext *context, void *userData)
 {
     inverseSampleRate = 1.0 / context->audioSampleRate;
 
-	// smoothing filter for x-axis acceleromoter
+	// smoothing filter for y-axis acceleromoter
 	// signal oversampled at audio rate 
 	BiquadCoeff::Settings filterSettings;
 	filterSettings.fs = context->audioSampleRate;
@@ -70,24 +70,15 @@ bool setup(LDSPcontext *context, void *userData)
 	filterSettings.cutoff = context->controlSampleRate/4;
 	filterSettings.q = 0.707;
 	filterSettings.peakGainDb = 0;
-	smoothingFilter[0] = new Biquad(filterSettings);
-
-	// smoothing filter for y-axis acceleromoter
-	// signal at analog rate
-	filterSettings.fs = context->controlSampleRate;
-	filterSettings.type = BiquadCoeff::lowpass;
-	filterSettings.cutoff = 10; // heuristic value
-	filterSettings.q = 0.707;
-	filterSettings.peakGainDb = 0;
-	smoothingFilter[1] = new Biquad(filterSettings);
+	smoothingFilter = new Biquad(filterSettings);
 	
 	// audio low pass filter 
-	filterSettings.fs = context->audioSampleRate;
-	filterSettings.type = BiquadCoeff::lowpass;
-	filterSettings.cutoff = 20000;
-	filterSettings.q = 4;
-	filterSettings.peakGainDb = 0;
-	lowPass = new Biquad(filterSettings);
+	// filterSettings.fs = context->audioSampleRate;
+	// filterSettings.type = BiquadCoeff::lowpass;
+	// filterSettings.cutoff = 20000;
+	// filterSettings.q = 4;
+	// filterSettings.peakGainDb = 0;
+	// lowPass = new Biquad(filterSettings);
 
 	// allocate the circular buffer to contain enough samples to cover ma delay in seconds
     gDelayBuffer.resize(max_delay * context->audioSampleRate);
@@ -99,26 +90,23 @@ bool setup(LDSPcontext *context, void *userData)
     gReadPointer = ( gWritePointer - delayInSamples + gDelayBuffer.size() ) % gDelayBuffer.size(); // modulo is good practice
 
 	// for logarithmic rescaling of acc_y to cut-off mapping
-	map_max = log(cutoff_max-cutoff_min);
-	map_min = log(cutoff_min);
+	// map_max = log(cutoff_max-cutoff_min);
+	// map_min = log(cutoff_min);
 
     return true;
 }
 
 void render(LDSPcontext *context, void *userData)
 {
-	float acc_x = sensorRead(context, chn_sens_accelX);
 	float acc_y = sensorRead(context, chn_sens_accelY);
-	//float acc_z = analogRead(context, chn_ain_accelZ);
 
-	// clip retrieved values
-	acc_x = constrain(acc_x, acc_x_min, acc_x_max);
+	// clip retrieved value
 	acc_y = constrain(acc_y, acc_y_min, acc_y_max);
 	
 	// acc_y mapping to cut-off, with logarithmic rescaling
-	float map_cutoff = map(smoothingFilter[1]->process(acc_y), acc_y_min, acc_x_max, map_max, map_min);
-	float cutoff = powf(M_E, map_cutoff);
-	lowPass->setFc(cutoff);
+	// float map_cutoff = map(smoothingFilter[1]->process(acc_y), acc_y_min, acc_x_max, map_max, map_min);
+	// float cutoff = powf(M_E, map_cutoff);
+	// lowPass->setFc(cutoff);
 	
 
 	for(int n=0; n<context->audioFrames; n++)
@@ -127,7 +115,7 @@ void render(LDSPcontext *context, void *userData)
 		float in = audioRead(context, n, 0);
 
 		// compute feedback via acc_x mapping
-		float feedback = map(smoothingFilter[0]->process(acc_x), acc_x_min, acc_x_max, fdbck_min, fdbck_max);
+		float feedback = map(smoothingFilter->process(acc_y), acc_y_max, acc_y_min, fdbck_min, fdbck_max);
 	  
     	// Read the output from the buffer, at the location expressed by the read pointer
         float out = gDelayBuffer[gReadPointer]; // delay wet
@@ -144,7 +132,7 @@ void render(LDSPcontext *context, void *userData)
         	gReadPointer = 0;
 		
 		// apply low-pass to wet
-		out = lowPass->process(out);
+		//out = lowPass->process(out);
 
 		out = (out+in)*0.5; // mix wet and dry
 
@@ -159,7 +147,6 @@ void render(LDSPcontext *context, void *userData)
 
 void cleanup(LDSPcontext *context, void *userData)
 {
-    delete smoothingFilter[0];
-	delete smoothingFilter[1];
-	delete lowPass;
+    delete smoothingFilter;
+	//delete lowPass;
 }

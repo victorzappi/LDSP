@@ -12,3 +12,5 @@ target_include_directories(libraries PUBLIC UdpServer)
 target_include_directories(libraries PUBLIC XML)
 target_include_directories(libraries PUBLIC ../include)
 target_include_directories(libraries PUBLIC ..)
+
+target_link_libraries(libraries PUBLIC sndfile)
