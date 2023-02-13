@@ -217,7 +217,7 @@ rem End of :build
   adb root
   adb shell "mkdir -p /data/ldsp"
 
-  if not exists %hw_config% (
+  if not exist %hw_config% (
     echo WARNING: Hardware config file not found, skipping...
   ) else (
     adb push %hw_config% /data/ldsp/ldsp_hw_config.json
@@ -239,7 +239,7 @@ rem End of :push
   adb root
   adb shell "mkdir -p /sdcard/ldsp"
 
-  if not exists %hw_config% (
+  if not exist %hw_config% (
     echo WARNING: Hardware config file not found, skipping...
   ) else (
     adb push %hw_config% /sdcard/ldsp/ldsp_hw_config.json
