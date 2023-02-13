@@ -270,7 +270,7 @@ rem End of :help
 
 :main
 
-rem Parse command line arguments.
+rem Call the appropriate function based on the first argument.
 
 if "%1" == "configure" (
   call :configure %2 %3 %4 %5
