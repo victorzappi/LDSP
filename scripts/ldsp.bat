@@ -88,8 +88,6 @@ rem End of :get_api_level
   set version=%~3
   set project=%~4
 
-  pause
-
   if "%vendor%" == "" (
     echo Cannot configure: Vendor not specified
     echo Please specify a vendor with --vendor
@@ -111,7 +109,12 @@ rem End of :get_api_level
   )
 
   rem target ABI
-  for /f "tokens=4 delims=^\"" %%a in ('find /i "target architecture" %hw_config%') do set "arch=%%a"
+  for /f "tokens=2 delims=:" %%i in ('type %hw_config% ^| findstr /r "target architecture"') do set arch=%%i
+
+  set arch=%arch:"=%
+  set arch=%arch:,=%
+  set arch=%arch: =%
+
   if "%arch%" == "armv7a" set "abi=armeabi-v7a"
   if "%arch%" == "aarch64" set "abi=arm64-v8a"
   if "%arch%" == "x86" set "abi=x86"
@@ -130,7 +133,12 @@ rem End of :get_api_level
   )
 
   rem support for NEON floating-point unit
-  for /f "tokens=4 delims=^\"" %%a in ('find /i "supports neon floating point unit" %hw_config%') do set "neon_setting=%%a"
+  for /f "tokens=2 delims=:" %%i in ('type %hw_config% ^| findstr /r "supports neon floating point unit"') do set neon_setting=%%i
+
+  set neon_setting=%neon_setting:"=%
+  set neon_setting=%neon_setting:,=%
+  set neon_setting=%neon_setting: =%
+
   if "%arch%" == "armv7a" (
   if "%neon_setting%" == "true" (
     set neon="-DANDROID_ARM_NEON=ON"
@@ -161,10 +169,17 @@ rem End of :get_api_level
     exit /b 1
   )
 
-  if not exist "%NDK" (
+  if "%NDK%" == "" (
+    echo Cannot configure: NDK not specified
+    echo Please specify a valid NDK path with
+    echo     set NDK=path to NDK
+    exit /b 1
+  )
+
+  if not exist %NDK% (
     echo Cannot configure: NDK not found
     echo Please specify a valid NDK path with
-    echo     export NDK=<path to NDK>
+    echo     set NDK=path to NDK
     exit /b 1
   )
 
@@ -244,19 +259,12 @@ rem End of :run
 
 :help
   rem Print usage information.
-  echo usage: ldsp [options] [steps] [run args]
-  echo options:
-  echo   --vendor=VENDOR, -v VENDOR\tThe vendor of the phone to build for.
-  echo   --model=MODEL, -m MODEL\tThe model of the phone to build for.
-  echo   --project=PROJECT, -p PROJECT\tThe path to the user project to build.
-  echo   --version=VERSION, -a VERSION\tThe Android version to build for.
-  echo steps:
-  echo   configure\t\t\tConfigure the LDSP build system for the specified phone, version, and project.
-  echo   build\t\t\t\tBuild the user project.
-  echo   push\t\t\t\tPush the user project and LDSP hardware configuration to the phone.
-  echo   push_sdcard\t\t\tPush the user project and LDSP hardware configuration to the phone's SD card.
-  echo   run\t\t\t\tRun the user project on the phone.
-  echo   \t\t\t\t(Any arguments passed after "run" are passed to the user project.)
+  echo usage:
+  echo   ldsp configure [vendor] [model] [version] [project]
+  echo   ldsp build
+  echo   ldsp push [vendor] [model]
+  echo   ldsp push_sdcard [vendor] [model]
+  echo   ldsp run [arguments]
   exit /b 0
 rem End of :help
 
@@ -264,94 +272,27 @@ rem End of :help
 
 rem Parse command line arguments.
 
-setlocal enabledelayedexpansion
-set steps=
-
-:loop
-if "%~1" == "" (
-  goto :end_parsing
-) else (
-  if "%~1" == "--vendor" (
-    set vendor=%~2
-    shift
-    shift
-  ) else if "%~1" == "--model" (
-    set model=%~2
-    shift
-    shift
-  ) else if "%~1" == "--project" (
-    set project=%~2
-    shift
-    shift
-  ) else if "%~1" == "--version" (
-    set version=%~2
-    shift
-    shift
-  ) else if "%~1" == "-v" (
-    set vendor=%~2
-    shift
-    shift
-  ) else if "%~1" == "-m" (
-    set model=%~2
-    shift
-    shift
-  ) else if "%~1" == "-p" (
-    set project=%~2
-    shift
-    shift
-  ) else if "%~1" == "-a" (
-    set version=%~2
-    shift
-    shift
-  ) else if "%~1" == "--help" (
-    set "steps=!steps! help"
-    shift
-  ) else if "%~1" == "-h" (
-    set "steps=!steps! help"
-    shift
-  ) else if "%~1" == "run" (
-    set "steps=!steps! run"
-    shift
-    goto :end_parsing
-  ) else (
-    set "steps=!steps! %~1"
-    shift
-  )
-)
-goto :loop
-
-:end_parsing
-
-rem remove the leading space from the steps list
-set steps=!steps:~1!
-
-if "!steps!" == "" (
-  call :help
-  exit /b 1
+if "%1" == "configure" (
+  call :configure %2 %3 %4 %5
+  exit /b %ERRORLEVEL%
 )
 
-pause
-echo Steps: "!steps!"
-for %%i in (%steps%) do (
-  echo in loop
-  echo %%i
-  set step=%%i
-  echo Running step !step!
-  pause
-  if !step!=="configure" (
-    call :configure "%vendor%" "%model%" "%version%" "%project%"
-  ) else if "!step!"=="build" (
-    call :build
-  ) else if "!step!"=="push" (
-    call :push
-  ) else if "!step!"=="push_sdcard" (
-    call :push_sdcard
-  ) else if "!step!"=="run" (
-    call :run %2 %3 %4 %5 %6 %7 %8 %9
-  ) else if "!step!"=="help" (
-    call :help
-  ) else (
-    echo Unknown step !step!
-    exit /b 1
-  )
+if "%1" == "build" (
+  call :build
+  exit /b %ERRORLEVEL%
+)
+
+if "%1" == "push" (
+  call :push %2 %3
+  exit /b %ERRORLEVEL%
+)
+
+if "%1" == "push_sdcard" (
+  call :push_sdcard %2 %3
+  exit /b %ERRORLEVEL%
+)
+
+if "%1" == "run" (
+  call :run %2 %3 %4 %5 %6 %7 %8 %9
+  exit /b %ERRORLEVEL%
 )
