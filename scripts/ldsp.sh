@@ -78,7 +78,7 @@ get_api_level () {
 		elif [[ $minor == 4 ]]; then
 			level=19
 		fi
-	# API_LEVEL 20 corresponds to Android 4.4W ==  which isn't relevant to us
+	# API_LEVEL 20 corresponds to Android 4.4W, which isn't relevant to us.
 	elif [[ $major == 5 ]]; then
 		if [[ $minor == 0 ]]; then
 			level=21
