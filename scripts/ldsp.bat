@@ -151,7 +151,7 @@ rem End of :get_api_level
   ) else if "%neon_setting%" == "1" (
     set neon="-DANDROID_ARM_NEON=ON"
   ) else (
-    set neon="-DANDROID_ARM_NEON=OFF"
+    set neon=""
   )
   ) else (
     set neon=""
