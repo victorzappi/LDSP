@@ -248,7 +248,7 @@ push () {
 }
 
 # Push the user project and LDSP hardware config to the phone's SD card.
-push_shell () {
+push_sdcard () {
   if [[ ! -f bin/ldsp ]]; then
     echo "Cannot push: No ldsp executable found. Please run \"ldsp build\" first."
     exit 1
@@ -274,18 +274,42 @@ install_scripts() {
   adb push ./scripts/* /data/ldsp/scripts/
 }
 
+# Stop the currently-running user project on the phone.
+stop () {
+  echo "Stopping LDSP..."
+  adb shell "sh /data/ldsp/scripts/ldsp_stop.sh"
+}
+
+handle_stop() {
+  # Gracefully stop the LDSP process
+  stop
+  # Wait for the LDSP process and ADB shell to terminate properly
+  sleep 1
+}
+
 # Run the user project on the phone.
 run () {
+  # Run adb shell in a subshell, so that it doesn't receive the SIGINT signal
+  (
+    trap "" INT
+    adb shell "cd /data/ldsp/ && ./ldsp $@"
+  ) &
+
+  # Trap the SIGINT signal in our "outer" shell so that we can gracefully
+  # stop the LDSP process
+  trap handle_stop INT
+
+  # Wait for the subshell to terminate
+  wait
+}
+
+# Run the user project on the phone in the background.
+run_persistent () {
   cat <<EOF | adb shell > /dev/null 2>&1
   cd /data/ldsp/
   nohup ./ldsp $@ > /dev/null 2>&1 &
   exit
 EOF
-}
-
-# Stop the currently-running user project on the phone.
-stop () {
-  adb shell "sh /data/ldsp/scripts/ldsp_stop.sh"
 }
 
 # Print usage information.
@@ -300,7 +324,7 @@ help () {
   echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone, version, and project."
   echo -e "  build\t\t\t\tBuild the user project."
   echo -e "  push\t\t\t\tPush the user project and LDSP hardware configuration to the phone."
-  echo -e "  push_shell\t\t\tPush the user project and LDSP hardware configuration to the phone's SD card."
+  echo -e "  push_sdcard\t\t\tPush the user project and LDSP hardware configuration to the phone's SD card."
   echo -e "  run\t\t\t\tRun the user project on the phone."
   echo -e "  \t\t\t\t(Any arguments passed after \"run\" are passed to the user project.)"
 }
@@ -384,14 +408,17 @@ for i in "${STEPS[@]}"; do
     push)
       push
       ;;
-    push_shell)
-      push_shell
+    push_sdcard)
+      push_sdcard
       ;;
     install_scripts)
       install_scripts
       ;;
     run)
       run "${@:2}"
+      ;;
+    run_persistent)
+      run_persistent "${@:2}"
       ;;
     stop)
       stop
