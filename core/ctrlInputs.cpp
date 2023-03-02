@@ -89,7 +89,7 @@ void LDSP_initCtrlInputs(LDSPinitSettings *settings)
     intContext.mtInfo = &ctrlInputsContext.mtInfo;
     //VIC user context is reference of this internal one, so no need to update it
         
-    // run thread that monitors devices for events, only if we gound at least one device that raises events we are interested into
+    // run thread that monitors devices for events, only if we found at least one device that raises events we are interested into
     if(ctrlInputsContext.inputsCount > 0)
         pthread_create(&ctrlInput_thread, NULL, ctrlInputs_loop, NULL);
 }
@@ -104,7 +104,7 @@ void LDSP_cleanupCtrlInputs()
 
     closeCtrlInputDevices();
 
-    // daallocated ctrl input buffers
+    // deallocated ctrl input buffers
     if(ctrlInputsContext.ctrlInBuffer != nullptr)
         delete[] ctrlInputsContext.ctrlInBuffer;
     if(ctrlInputsContext.ctrlInStates != nullptr)
@@ -527,6 +527,12 @@ void initCtrlInputBuffers()
     ctrlInputsContext.ctrlInBuffer = new int[len];
     ctrlInputsContext.ctrlInStates  = new ctrlInState[len];
     ctrlInputsContext.ctrlInDetails  = new string[len];
+
+    for(int i=0; i<len; i++)
+    {
+        ctrlInputsContext.ctrlInBuffer[i] = 0;
+        ctrlInputsContext.ctrlInStates[i] = ctrlInput_not_supported;
+    }
 
     //TODO details and states
 }
