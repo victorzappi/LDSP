@@ -121,7 +121,7 @@ void initSensors()
         
         sens_struct.numOfChannels = atoi(sensors_channelsInfo[i][0].c_str());
 
-        if (sensor == NULL) 
+        if(sensor == NULL) 
         {
             // skip sensor
             sens_struct.present = false;
@@ -140,17 +140,22 @@ void initSensors()
                 sens_struct.channels[chn] = (sensorChannel)channelIndex++;
 
             sensorsContext.sensorsType_index[sens_struct.type] = i; // to quickly find this sensors in array
-            
+
+            // zero means that zero means that this sensor doesn't report events at a constant rate, but rather only when a new data is available
+            int minDelay = ASensor_getMinDelay(sensor);
+
             if(sensorsVerbose)
             {
                 printf("\t%s present!\n", sensor_type._to_string());
                 printf("\t\tvendor and name: %s, %s\n", ASensor_getVendor(sensor), ASensor_getName(sensor));
                 printf("\t\tresolution: %f\n", ASensor_getResolution(sensor));
-                printf("\t\tmax rate: %f\n", 1.0/ASensor_getMinDelay(sensor));
+                printf("\t\tmax rate: %f\n", 1.0/minDelay);
             }
         
             ASensorEventQueue_enableSensor(event_queue, sensor);
-            ASensorEventQueue_setEventRate(event_queue, sensor, 1); // symbolic 1 us sampling period... to make sure we request max rate
+            // we don't set a rate for sensors that report on new event only, otherwise on some phones we may get crashes
+            if(minDelay != 0) 
+                ASensorEventQueue_setEventRate(event_queue, sensor, 1); // symbolic 1 us sampling period... to make sure we request max rate
             //VIC there is an android API function that is supposed to return the min period supported, ASensor_getMinDelay()
             // but the doc says its value is often an underestimation: https://developer.android.com/ndk/reference/group/sensor#asensoreventqueue_seteventrate
         }

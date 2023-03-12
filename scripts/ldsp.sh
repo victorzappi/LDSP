@@ -239,7 +239,7 @@ push () {
   adb shell "mkdir -p /data/ldsp"
 
   if [[ ! -f "$hw_config" ]]; then
-    echo "WARNING: Hardware config file not found, skipping..."
+    echo "WARNING: Hardware config file not found, skipping..." #TODO always getting this, needs to be fixed
   else
     adb push "$hw_config" /data/ldsp/ldsp_hw_config.json
   fi
@@ -271,7 +271,7 @@ push_sdcard () {
 # Install the LDSP scripts on the phone.
 install_scripts() {
   adb shell "mkdir -p /data/ldsp/scripts"
-  adb push ./scripts/* /data/ldsp/scripts/
+  adb push ./scripts/ldsp_* /data/ldsp/scripts/
 }
 
 # Stop the currently-running user project on the phone.

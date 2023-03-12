@@ -73,9 +73,6 @@ void LDSP_initCtrlInputs(LDSPinitSettings *settings)
         //print_flags |= PRINT_DEVICE | PRINT_DEVICE_NAME | PRINT_DEVICE_INFO | PRINT_VERSION;
     }
 
-    if(ctrlInputsVerbose)
-        printf("Control input list:\n");
-
     if(initCtrlInputs() < 0)
         return;
     initCtrlInputBuffers();
@@ -217,11 +214,11 @@ bool checkEvents(int fd, int print_flags, const char *device, const char *name, 
         //     default:
         //         label = "???";
         // }
-        for(int j = 0; j < res; j++) 
+        for(int j=0; j <res; j++) 
         {
-            for(int k = 0; k < 8; k++)
+            for(int k=0; k<8; k++)
             {
-                if(bits[j] & 1 << k) 
+                if(bits[j] & 1<<k) 
                 {   
                     if(event!=EV_KEY && event!=EV_ABS)
                         return false;
@@ -281,6 +278,7 @@ bool checkEvents(int fd, int print_flags, const char *device, const char *name, 
                                     {
                                         ctrlInputsContext.ctrlInputs[chn].supported = true;
                                         ctrlInputsContext.ctrlInputs[chn].isMultiInput = true;  // only difference is taht multi touch ctrl inputs are multi event, cos can receive data from multiple fingers
+                                        ctrlInputsContext.mtInfo.touchSlots = 1; // let's set at least 1 touch slot, because some single touch phones do not provide this info
                                         ctrlInputsContext.inputsCount++;
 
                                         //VIC unfortunately, this has to be done manually

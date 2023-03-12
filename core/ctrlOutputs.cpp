@@ -82,7 +82,7 @@ void LDSP_cleanupCtrlOutputs()
 
 
 bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, string &control_file)
-{        
+{     
     DIR* directory;
     string path;
     
@@ -107,7 +107,7 @@ bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, s
     dirent* entry;
     string content = "";
     while( (entry = readdir(directory)) != nullptr ) 
-    {
+    {   
         string d_name = string(entry->d_name);
         for(string str : keywords->subFolders_strings[out])
         {
@@ -131,6 +131,7 @@ bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, s
         }
     }
     closedir(directory);
+
     // cannot find any string in names ):
     if(content == "")
         return false;
@@ -182,7 +183,14 @@ bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, s
 
 void ctrlOutputAutoFill_scale(int out, shared_ptr<ctrlOutputKeywords> keywords, string control_file, string &scale_file)
 {
-    // this will never be called for vibration, cos vibration scale is set to 1 by default
+    // if vibration is set manually, this will never be called for vibration, cos once vibration is found in hwConfig file scale is set to 1 by default
+    // so here we are dealing with the case where vibration is all automatice... and we set default scale to 1
+    if(out == chn_cout_vibration)
+    {
+        scale_file = "1";
+        return;
+    }
+    
 
     scale_file = "255"; // default value, in case file cannot be found
 
@@ -281,7 +289,8 @@ int initCtrlOutputs(string **ctrlOutputsFiles)
 
         // if empty, autofill!
         // worst case scenario, autofill will put default "255"
-        // note that in the case of vibration hwConfig parser always puts "1", so no autofill is ever invoked
+        // note that if vibration is manually set in hwConfig file, the parser always puts "1", so no autofill is invoked
+        // the scale is a non-meaningful and dangerous param for user, that's why we sort of hide it, so that it is never set in the hwConfig file
         if(ctrlOutputsFiles[DEVICE_SCALE][out].compare("") == 0)
         {
             ctrlOutputAutoFill_scale(out, keywords, ctrlOutputsFiles[DEVICE_CTRL_FILE][out], ctrlOutputsFiles[DEVICE_SCALE][out]);

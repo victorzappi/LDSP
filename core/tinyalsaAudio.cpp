@@ -136,11 +136,14 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
         deallocateLowLevelAudioStruct(pcmContext.playback);
         return -3;
     }
-	if(initLowLevelAudioStruct(pcmContext.capture)<0)
+	if(fullDuplex)
 	{
-		// try partial deallocation
-		deallocateLowLevelAudioStruct(pcmContext.capture);
-		return -3;
+		if(initLowLevelAudioStruct(pcmContext.capture)<0)
+		{
+			// try partial deallocation
+			deallocateLowLevelAudioStruct(pcmContext.capture);
+			return -3;
+		}
 	}
 
 	// activate performance governor
