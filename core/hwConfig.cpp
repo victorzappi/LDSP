@@ -187,7 +187,7 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 
 	// these are all optional
 
-	//TODO remove "analog contorl outputs" from json structure!
+	//TODO remove "analog control outputs" from json structure!
 	// parse analog out devices
 	ordered_json analog_ctrlOutputs = devices["analog control outputs"];
 	for(auto &it : analog_ctrlOutputs.items()) 

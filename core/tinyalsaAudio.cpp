@@ -163,7 +163,7 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
     return 0;
 }
 
-int LDSP_startAudio()
+int LDSP_startAudio(void *userData)
 {	
 	if(audioVerbose)
 	{
@@ -172,7 +172,7 @@ int LDSP_startAudio()
 	}
 
 
-	setup(userContext, 0);
+	setup(userContext, userData);
 
 	pthread_t audioThread;
 	if( pthread_create(&audioThread, nullptr, audioLoop, nullptr) ) 
@@ -195,7 +195,7 @@ void LDSP_cleanupAudio()
         printf("LDSP_cleanupAudio()\n");
 
     cleanupLowLevelAudioStruct(&pcmContext);
-    cleanupPcm(&pcmContext);
+    cleanupPcm(&pcmContext);	
     cleanupAudioParams(&pcmContext); 
 
 	resetGovernorMode();
@@ -386,6 +386,12 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 			printf("Playback and Capture audio device linked!\n");
 	}
 
+
+	audio_struct_p->rawBuffer = nullptr;
+	audio_struct_p->audioBuffer = nullptr;
+	audio_struct_c->rawBuffer = nullptr;
+	audio_struct_c->audioBuffer = nullptr;
+
     return 0;
 }
 
@@ -424,10 +430,7 @@ void cleanupPcm(LDSPpcmContext *pcmContext)
 }
 
 int initLowLevelAudioStruct(audio_struct *audio_struct)
-{
-	audio_struct->rawBuffer = nullptr;
-	audio_struct->audioBuffer = nullptr;
-    
+{    
 	int channels = audio_struct->config.channels;
 	// to cover the case of capture when non full duplex engine
 	if(channels <=0)

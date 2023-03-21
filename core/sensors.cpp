@@ -76,7 +76,8 @@ void LDSP_cleanupSensors()
     {
         if(sensorsContext.sensors[i].present)
         {
-            ASensorEventQueue_enableSensor(event_queue, sensorsContext.sensors[i].asensor);
+            LDSP_sensor sensor_type = (LDSP_sensor::_enum)LDSP_sensor::_from_index(i);
+            ASensorEventQueue_disableSensor(event_queue, sensorsContext.sensors[i].asensor);
             delete[] sensorsContext.sensors[i].channels;
         }
     }
@@ -149,13 +150,16 @@ void initSensors()
                 printf("\t%s present!\n", sensor_type._to_string());
                 printf("\t\tvendor and name: %s, %s\n", ASensor_getVendor(sensor), ASensor_getName(sensor));
                 printf("\t\tresolution: %f\n", ASensor_getResolution(sensor));
-                printf("\t\tmax rate: %f\n", 1.0/minDelay);
+                if(minDelay != 0) 
+                    printf("\t\tmax rate: %f\n", 1.0/minDelay);
+                else
+                    printf("\t\trate based on data availability\n");
             }
         
             ASensorEventQueue_enableSensor(event_queue, sensor);
             // we don't set a rate for sensors that report on new event only, otherwise on some phones we may get crashes
             if(minDelay != 0) 
-                ASensorEventQueue_setEventRate(event_queue, sensor, 1); // symbolic 1 us sampling period... to make sure we request max rate
+                ASensorEventQueue_setEventRate(event_queue, sensor, 10); // symbolic 10 us sampling period... to make sure we request max rate
             //VIC there is an android API function that is supposed to return the min period supported, ASensor_getMinDelay()
             // but the doc says its value is often an underestimation: https://developer.android.com/ndk/reference/group/sensor#asensoreventqueue_seteventrate
         }

@@ -171,12 +171,14 @@ configure () {
   fi
 
   # support for NEON floating-point unit
+  explicit_neon=""
   neon_setting=$(grep 'supports neon floating point unit' "$hw_config" | cut -d \" -f 4)
   if [[ $arch == "armv7a" ]];
   then
     if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
     then
       neon="-DANDROID_ARM_NEON=ON"
+      explicit_neon="-DEXPLICIT_ARM_NEON"
     else
       neon=""
     fi
@@ -204,7 +206,7 @@ configure () {
   fi
 
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version "-DANDROID_NDK=$NDK" $neon "-DLDSP_PROJECT=$PROJECT" -G Ninja .
+  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$PROJECT" -G Ninja .
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: CMake failed"

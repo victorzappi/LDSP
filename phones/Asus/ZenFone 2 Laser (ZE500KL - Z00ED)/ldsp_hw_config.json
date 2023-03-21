@@ -1,6 +1,6 @@
 {
 	"device": "Asus ZenFone Go",
-	"target architecture": "armv7a",
+	"target architecture": "aarch64",
 	"supports neon floating point unit": "true",
 	"mixer settings":
 	{
