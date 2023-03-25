@@ -165,20 +165,23 @@ configure () {
   # target Android version
   api_version=$(get_api_level "$VERSION")
   exit_code=$?
+
+  api_define="-DAPI=$api_version"
+
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: Unknown Android version: $version_full"
     exit $exit_code
   fi
 
   # support for NEON floating-point unit
-  explicit_neon=""
+  explicit_neon="-DEXPLICIT_ARM_NEON=0"
   neon_setting=$(grep 'supports neon floating point unit' "$hw_config" | cut -d \" -f 4)
   if [[ $arch == "armv7a" ]];
   then
     if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
     then
       neon="-DANDROID_ARM_NEON=ON"
-      explicit_neon="-DEXPLICIT_ARM_NEON"
+      explicit_neon="-DEXPLICIT_ARM_NEON=1"
     else
       neon=""
     fi
@@ -206,7 +209,7 @@ configure () {
   fi
 
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$PROJECT" -G Ninja .
+  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version "-DANDROID_NDK=$NDK" $explicit_neon $neon $api_define "-DLDSP_PROJECT=$PROJECT" -G Ninja .
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: CMake failed"
@@ -241,7 +244,7 @@ push () {
   adb shell "mkdir -p /data/ldsp"
 
   if [[ ! -f "$hw_config" ]]; then
-    echo "WARNING: Hardware config file not found, skipping..." #TODO always getting this, needs to be fixed
+    echo "WARNING: Hardware config file not found, skipping..."
   else
     adb push "$hw_config" /data/ldsp/ldsp_hw_config.json
   fi
@@ -294,8 +297,9 @@ run () {
   # Run adb shell in a subshell, so that it doesn't receive the SIGINT signal
   (
     trap "" INT
-    adb shell "cd /data/ldsp/ && ./ldsp $@"
+    adb shell "su -c 'cd /data/ldsp/ && ./ldsp $@'" # we invoke su before running the bin, needed on some phones: https://stackoverflow.com/a/27274416
   ) &
+
 
   # Trap the SIGINT signal in our "outer" shell so that we can gracefully
   # stop the LDSP process

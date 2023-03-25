@@ -27,6 +27,7 @@ void interrupt_handler(int sig)
 int main(int argc, char** argv)
 {
  	cout << "Hello, LDSP here!\n" << "\n";
+	//TODO print name of project, obtained via a define from CMake
 
 	LDSPinitSettings* settings = LDSP_InitSettings_alloc();	// Standard audio settings
 	LDSP_defaultSettings(settings);

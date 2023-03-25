@@ -4,3 +4,5 @@ Torch and lcd backlight seem unresponsive, probably Android is not using the usu
 
 The phone has 2 LEDs, red and green, but they cannot be controlled truly independently, i.e., when both are on, each new brightness value is applied to both; but if only one is on, then the led controls as expected.
 This behavior is equivalent to have 3 LEDS, red, green and orange, that cannot be combined
+
+Multiple mixer_paths file found on phone

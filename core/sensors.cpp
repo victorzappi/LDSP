@@ -101,7 +101,12 @@ void LDSP_cleanupSensors()
 
 void initSensors()
 {
+#if ANDROID_API > 25
+    // on Android 8 and above [api 26 and above] ASensorManager_getInstance() is deprecated and throws warning
+	sensor_manager = ASensorManager_getInstanceForPackage(nullptr);
+#else
     sensor_manager = ASensorManager_getInstance();
+#endif
     ALooper *looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
     event_queue = ASensorManager_createEventQueue(sensor_manager, looper, 1, NULL, NULL);
 

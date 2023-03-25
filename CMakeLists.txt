@@ -18,6 +18,9 @@ endif()
 
 add_compile_options(-fdiagnostics-color=always)
 
+# set preprocessor directive: #define ANDORID_API API 
+add_compile_definitions(ANDROID_API=${API})
+
 add_subdirectory(core)
 add_subdirectory(libraries)
 add_subdirectory(dependencies)
