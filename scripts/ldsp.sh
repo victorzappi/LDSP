@@ -204,6 +204,9 @@ configure () {
   fi
 
 
+  # Copy any pure-data patches that needed to be pushed to phone
+  cp "$PROJECT/"*.pd bin/
+
   cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version "-DANDROID_NDK=$NDK" $neon "-DLDSP_PROJECT=$PROJECT" -G Ninja .
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
@@ -244,7 +247,12 @@ push () {
     adb push "$hw_config" /data/ldsp/ldsp_hw_config.json
   fi
 
+  # Push all pure-data files to pd folder
+  adb shell "mkdir /data/ldsp/pd"
+  adb push bin/*.pd /data/ldsp/pd/
+
 	adb push bin/ldsp /data/ldsp/ldsp
+
 }
 
 # Push the user project and LDSP hardware config to the phone's SD card.
@@ -264,6 +272,10 @@ push_sdcard () {
   else
     adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
   fi
+
+  # Push all pure-data files to pd folder
+  adb shell "mkdir /sdcard/ldsp/pd"
+  adb push bin/*.pd /sdcard/ldsp/pd/
 
 	adb push bin/ldsp /sdcard/ldsp/ldsp
 }
