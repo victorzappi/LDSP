@@ -173,7 +173,7 @@ void LDSP_initCtrlInputs(LDSPinitSettings *settings);
 
 int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig);
 
-int LDSP_startAudio();
+int LDSP_startAudio(void *userData);
 
 void LDSP_cleanupSensors();
 

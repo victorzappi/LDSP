@@ -32,6 +32,8 @@
 // hopefully this will happen in a far future...
 
 #include <unordered_map> // unordered_map
+#include <thread> // number of cpus
+#include <dirent.h> // browse dirs
 
 #include "LDSP.h"
 #include "tinyalsaAudio.h"
@@ -43,6 +45,11 @@
 #include "ctrlOutputs.h"
 
 using std::string;
+using std::ifstream;
+using std::ofstream;
+
+#define GOVERNOR_BASE_DIR "/sys/devices/system/cpu/"
+
 
 bool volatile gShouldStop = false; // flag that tells the audio process to stop, extern in ctrlInputs.cpp
 
@@ -52,6 +59,8 @@ bool fullDuplex;
 extern unordered_map<string, int> gFormats;
 
 bool audioVerbose = false;
+
+vector<string> governors;
 
 LDSPpcmContext pcmContext;
 LDSPinternalContext intContext;
@@ -87,6 +96,8 @@ void cleanupPcm(LDSPpcmContext *pcmContext);
 int initLowLevelAudioStruct(audio_struct *audio_struct);
 void deallocateLowLevelAudioStruct(audio_struct *audio_struct);
 void cleanupLowLevelAudioStruct(LDSPpcmContext *pcmContext);
+void setGovernorMode();
+void resetGovernorMode();
 void *audioLoop(void*); 
 
 
@@ -125,12 +136,18 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
         deallocateLowLevelAudioStruct(pcmContext.playback);
         return -3;
     }
-	if(initLowLevelAudioStruct(pcmContext.capture)<0)
+	if(fullDuplex)
 	{
-		// try partial deallocation
-		deallocateLowLevelAudioStruct(pcmContext.capture);
-		return -3;
+		if(initLowLevelAudioStruct(pcmContext.capture)<0)
+		{
+			// try partial deallocation
+			deallocateLowLevelAudioStruct(pcmContext.capture);
+			return -3;
+		}
 	}
+
+	// activate performance governor
+	setGovernorMode();
 	
 	gFormats.clear();
 
@@ -146,7 +163,7 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
     return 0;
 }
 
-int LDSP_startAudio()
+int LDSP_startAudio(void *userData)
 {	
 	if(audioVerbose)
 	{
@@ -155,7 +172,7 @@ int LDSP_startAudio()
 	}
 
 
-	setup(userContext, 0);
+	setup(userContext, userData);
 
 	pthread_t audioThread;
 	if( pthread_create(&audioThread, nullptr, audioLoop, nullptr) ) 
@@ -178,9 +195,11 @@ void LDSP_cleanupAudio()
         printf("LDSP_cleanupAudio()\n");
 
     cleanupLowLevelAudioStruct(&pcmContext);
-    cleanupPcm(&pcmContext);
+    cleanupPcm(&pcmContext);	
     cleanupAudioParams(&pcmContext); 
 
+	resetGovernorMode();
+	
 	//TODO reactivate audio server
 }
 
@@ -218,9 +237,9 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
     (*audioStruct)->config.period_count =settings->periodCount;
     (*audioStruct)->config.rate = settings->samplerate;
     (*audioStruct)->config.format = (pcm_format) gFormats[settings->pcmFormatString];
-    (*audioStruct)->config.silence_threshold = settings->periodSize * settings->periodCount; 
+    (*audioStruct)->config.silence_threshold = 1; //settings->periodSize * settings->periodCount; 
     (*audioStruct)->config.silence_size = 0;
-    (*audioStruct)->config.start_threshold = settings->periodSize;
+    (*audioStruct)->config.start_threshold = 1; //settings->periodSize;
 	(*audioStruct)->config.stop_threshold = 0;
 
     (*audioStruct)->pcm = nullptr;
@@ -367,6 +386,12 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 			printf("Playback and Capture audio device linked!\n");
 	}
 
+
+	audio_struct_p->rawBuffer = nullptr;
+	audio_struct_p->audioBuffer = nullptr;
+	audio_struct_c->rawBuffer = nullptr;
+	audio_struct_c->audioBuffer = nullptr;
+
     return 0;
 }
 
@@ -405,10 +430,7 @@ void cleanupPcm(LDSPpcmContext *pcmContext)
 }
 
 int initLowLevelAudioStruct(audio_struct *audio_struct)
-{
-	audio_struct->rawBuffer = nullptr;
-	audio_struct->audioBuffer = nullptr;
-    
+{    
 	int channels = audio_struct->config.channels;
 	// to cover the case of capture when non full duplex engine
 	if(channels <=0)
@@ -684,6 +706,81 @@ int checkAllCardParams(audio_struct *audioStruct)
 
 	return err;
 }
+
+
+
+
+
+//TODO add cmd line arg to disable performance mode
+void setGovernorMode() 
+{
+
+	unsigned int num_cpus = std::thread::hardware_concurrency();
+	governors.resize(num_cpus);
+
+    DIR *dir = opendir(GOVERNOR_BASE_DIR);
+    if (dir == nullptr) 
+	{
+		if(audioVerbose)
+        	printf("Could not open directory %s to set performance governor\n", GOVERNOR_BASE_DIR);
+        return;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != nullptr)
+	{
+		if (entry->d_type != DT_DIR)
+			continue;
+
+		string dir_name = entry->d_name;
+
+        // Check if directory is named cpuN, where N is an integer between 0 and 9
+		if (dir_name.substr(0, 3) == "cpu" && dir_name.length() == 4)		
+		{
+			int N = stoi(dir_name.substr(3)); // number of current cpu
+	
+            string cpuDir = string(GOVERNOR_BASE_DIR) + entry->d_name;
+            DIR *cpuFreqDir = opendir((cpuDir + "/cpufreq").c_str());
+            if (cpuFreqDir != nullptr) 
+			{
+                // Set scaling_governor to performance if it exists
+                string governorPath = cpuDir + "/cpufreq/scaling_governor";
+                ifstream governorFile(governorPath);
+                if (governorFile.good()) 
+				{
+					governorFile >> governors[N]; // save current governor
+                    governorFile.close();
+                    ofstream outGovernorFile(governorPath);
+                    outGovernorFile << "performance"; // enable performance governor
+                    outGovernorFile.close();
+                }
+                closedir(cpuFreqDir);
+            }
+        }
+    }
+
+    closedir(dir);
+}
+
+void resetGovernorMode()
+{
+	for (int i = 0; i < governors.size(); i++) 
+	{
+		// this cpu's geovernor was not modified
+		if(governors[i]=="")
+			continue;
+
+		string cpuPath = string(GOVERNOR_BASE_DIR) + "/cpu" + std::to_string(i);
+		string freqPath = cpuPath + "/cpufreq/scaling_governor";
+
+		// Write to scaling governor file if it exists
+		ofstream freqFile(freqPath);
+		if (freqFile.good()) 
+			freqFile << governors[i];
+		freqFile.close();
+	}
+}
+
 
 
 

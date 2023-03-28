@@ -16,11 +16,24 @@
  * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef COMMAND_LINE_ARGS_H_
-#define COMMAND_LINE_ARGS_H_
 
 #include "LDSP.h"
 
-int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings);
+bool setup(LDSPcontext *context, void *userData)
+{
+    return true;
+}
 
-#endif /* COMMAND_LINE_ARGS_H_ */
+void render(LDSPcontext *context, void *userData)
+{
+	for(int n=0; n<context->audioFrames; n++)
+	{
+		for(int chn=0; chn<context->audioOutChannels; chn++)
+            audioWrite(context, n, chn, audioRead(context, n, 0));
+	}
+}
+
+void cleanup(LDSPcontext *context, void *userData)
+{
+
+}

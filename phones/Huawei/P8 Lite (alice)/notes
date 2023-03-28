@@ -12,3 +12,5 @@ Reported Flashlight (Torch) max brightness is 9, but stops working after 7
 
 RGB LEDs are on/off, despite having a reported range of 255 values
 They also have a fade-in/out time that cannot be removed, even when detting 'delay-on/off' to 0
+
+Multiple mixer_paths file found on phone 

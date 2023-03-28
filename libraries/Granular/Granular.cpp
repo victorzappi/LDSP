@@ -52,7 +52,7 @@ bool Granular::setup(int numGrains, float sampleRate, const std::string & filena
 		return false;
 	}
 	
-	printf("Loaded sample with %d frames \n", _sampleBuffer.size());
+	printf("Loaded sample with %d frames \n", (int)_sampleBuffer.size());
 
 	//VIC
 	this->_lastSample = _sampleBuffer.size()-1;

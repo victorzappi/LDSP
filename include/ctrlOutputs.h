@@ -61,7 +61,7 @@ struct ctrlOutputKeywords {
     };
     array<array<const string, 3>, chn_cout_count> subFolders_strings = {
         {
-            {"torch", "light", "flash"},
+            {"torch", "flash", ""},
             {"lcd", "", ""},
             {"white", "rgb", ""}, //VIC not sure! still to see one
             {"red", "", ""},

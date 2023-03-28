@@ -26,7 +26,8 @@ void interrupt_handler(int sig)
 
 int main(int argc, char** argv)
 {
- 	cout << "Hello!\n" << "\n";
+ 	cout << "Hello, LDSP here!\n" << "\n";
+	//TODO print name of project, obtained via a define from CMake
 
 	LDSPinitSettings* settings = LDSP_InitSettings_alloc();	// Standard audio settings
 	LDSP_defaultSettings(settings);
@@ -86,8 +87,10 @@ int main(int argc, char** argv)
 	signal(SIGINT, interrupt_handler);
 	signal(SIGTERM, interrupt_handler);
 
+	void *userData = 0; // this can be used to pass user data to setup function in reander.cpp
+
 	// Start the audio device running
-	if(LDSP_startAudio()) 
+	if(LDSP_startAudio(userData)) 
 	{
 		// Clean up any resources allocated
 	 	LDSP_cleanupAudio();

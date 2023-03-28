@@ -22,7 +22,6 @@
 #include <cstring> // strcpy
 #include <unordered_map> // unordered_map
 
-
 #include "commandLineArgs.h"
 #include "tinyalsaAudio.h"
 #define OPTPARSE_IMPLEMENTATION
@@ -38,7 +37,7 @@ unordered_map<string, int> gFormats; // extern in tinyalsaAudio.cpp
 void LDSP_usage(const char *argv)
 {
 	// fprintf(stderr, "Passthrough from buil-in mic to headphones, via the selected devices\n");
-    // fprintf(stderr, "usage: %s [options]\n", argv0);
+    fprintf(stderr, "usage: %s [options]\n", argv);
     // fprintf(stderr, "options:\n");
 	// fprintf(stderr, "-c | --playback-card <card number>	[0]  	The playback card\n");
     // fprintf(stderr, "-d | --playback-device <device number>	[15]	Playback card's device\n");
@@ -62,6 +61,14 @@ void LDSP_usage(const char *argv)
 
 int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 {
+ 	// Create a map that associates each argument with its original position
+    std::unordered_map<char*, int> orig_pos;
+    for (int i = 0; i < argc; i++) {
+        orig_pos[argv[i]] = i;
+    }
+
+
+
     // first populate format map 
     for(int i=0; i<=(int)LDSP_pcm_format::MAX; i++)
     {
@@ -94,8 +101,11 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 		{ 0, 0, OPTPARSE_NONE }
 	};
 
+	int retVal = 0;
+
 	optparse_init(&opts, argv);
 	while ((c = optparse_long(&opts, long_options, NULL)) != -1) {
+		//TODO remove arguments that are parsed
 		switch (c) 
         {
 			case 'c':
@@ -122,7 +132,7 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 			case 'r':
 				settings->samplerate = atoi(opts.optarg);
 				break;
-			 case 'f':
+			case 'f':
 				settings->pcmFormatString = opts.optarg;
 			 	break;
 			case 'o':
@@ -137,13 +147,20 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 			case 'v':
 				settings->verbose = 1;
 			 	break;
-			case 'h':
-			case '?':
-			default:
+			case 'h': 
+			//case '?': // we want extra arguments to be accepted and possibly managed by user
 				LDSP_usage(argv[0]);
-				return -1;
+				retVal = -1;
+			default:
+				break;
 		}
 	}
 
-	return 0;
+	
+	// revert arguments back to original order, so that user can apply further parsing
+    std::sort(argv, argv + argc, [&](char* a, char* b) {
+        return orig_pos[a] < orig_pos[b];
+    });
+
+	return retVal;
 }

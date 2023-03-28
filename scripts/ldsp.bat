@@ -142,19 +142,26 @@ rem End of :get_api_level
   if "%arch%" == "armv7a" (
   if "%neon_setting%" == "true" (
     set neon="-DANDROID_ARM_NEON=ON"
+    set explicit_neon="-DEXPLICIT_ARM_NEON"
   ) else if "%neon_setting%" == "True" (
     set neon="-DANDROID_ARM_NEON=ON"
+    set explicit_neon="-DEXPLICIT_ARM_NEON"
   ) else if "%neon_setting%" == "yes" (
     set neon="-DANDROID_ARM_NEON=ON"
+    set explicit_neon="-DEXPLICIT_ARM_NEON"
   ) else if "%neon_setting%" == "Yes" (
     set neon="-DANDROID_ARM_NEON=ON"
+    set explicit_neon="-DEXPLICIT_ARM_NEON"
   ) else if "%neon_setting%" == "1" (
     set neon="-DANDROID_ARM_NEON=ON"
+    set explicit_neon="-DEXPLICIT_ARM_NEON"
   ) else (
     set neon=""
+    set explicit_neon=""
   )
   ) else (
     set neon=""
+    set explicit_neon=""
   )
 
   if "%project%" == "" (

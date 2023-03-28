@@ -76,7 +76,8 @@ void LDSP_cleanupSensors()
     {
         if(sensorsContext.sensors[i].present)
         {
-            ASensorEventQueue_enableSensor(event_queue, sensorsContext.sensors[i].asensor);
+            LDSP_sensor sensor_type = (LDSP_sensor::_enum)LDSP_sensor::_from_index(i);
+            ASensorEventQueue_disableSensor(event_queue, sensorsContext.sensors[i].asensor);
             delete[] sensorsContext.sensors[i].channels;
         }
     }
@@ -100,7 +101,12 @@ void LDSP_cleanupSensors()
 
 void initSensors()
 {
+#if ANDROID_API > 25
+    // on Android 8 and above [api 26 and above] ASensorManager_getInstance() is deprecated and throws warning
+	sensor_manager = ASensorManager_getInstanceForPackage(nullptr);
+#else
     sensor_manager = ASensorManager_getInstance();
+#endif
     ALooper *looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
     event_queue = ASensorManager_createEventQueue(sensor_manager, looper, 1, NULL, NULL);
 
@@ -121,7 +127,7 @@ void initSensors()
         
         sens_struct.numOfChannels = atoi(sensors_channelsInfo[i][0].c_str());
 
-        if (sensor == NULL) 
+        if(sensor == NULL) 
         {
             // skip sensor
             sens_struct.present = false;
@@ -140,17 +146,25 @@ void initSensors()
                 sens_struct.channels[chn] = (sensorChannel)channelIndex++;
 
             sensorsContext.sensorsType_index[sens_struct.type] = i; // to quickly find this sensors in array
-            
+
+            // zero means that zero means that this sensor doesn't report events at a constant rate, but rather only when a new data is available
+            int minDelay = ASensor_getMinDelay(sensor);
+
             if(sensorsVerbose)
             {
                 printf("\t%s present!\n", sensor_type._to_string());
                 printf("\t\tvendor and name: %s, %s\n", ASensor_getVendor(sensor), ASensor_getName(sensor));
                 printf("\t\tresolution: %f\n", ASensor_getResolution(sensor));
-                printf("\t\tmax rate: %f\n", 1.0/ASensor_getMinDelay(sensor));
+                if(minDelay != 0) 
+                    printf("\t\tmax rate: %f\n", 1.0/minDelay);
+                else
+                    printf("\t\trate based on data availability\n");
             }
         
             ASensorEventQueue_enableSensor(event_queue, sensor);
-            ASensorEventQueue_setEventRate(event_queue, sensor, 1); // symbolic 1 us sampling period... to make sure we request max rate
+            // we don't set a rate for sensors that report on new event only, otherwise on some phones we may get crashes
+            if(minDelay != 0) 
+                ASensorEventQueue_setEventRate(event_queue, sensor, 10); // symbolic 10 us sampling period... to make sure we request max rate
             //VIC there is an android API function that is supposed to return the min period supported, ASensor_getMinDelay()
             // but the doc says its value is often an underestimation: https://developer.android.com/ndk/reference/group/sensor#asensoreventqueue_seteventrate
         }

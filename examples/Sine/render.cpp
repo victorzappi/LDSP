@@ -21,11 +21,9 @@
 #include <math.h> // sin
 
 float frequency = 440.0;
-float amplitude = 0.4;
+float amplitude = 0.3;
 
 //------------------------------------------------
-
-int periodsToPlay;
 float phase;
 float inverseSampleRate;
 

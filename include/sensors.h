@@ -99,6 +99,7 @@ void readSensors();
 
 //TODO add user function that can spawn a low prio thread that unlocks screen and keeps it unlocked
 // otherwise on some phones sensors do not work [idle] ---> should be called in projects only if needed!
+// can do via shell with: keyinput event 26
 
 #endif /* SENSORS_H_ */
 

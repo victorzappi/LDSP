@@ -73,9 +73,6 @@ void LDSP_initCtrlInputs(LDSPinitSettings *settings)
         //print_flags |= PRINT_DEVICE | PRINT_DEVICE_NAME | PRINT_DEVICE_INFO | PRINT_VERSION;
     }
 
-    if(ctrlInputsVerbose)
-        printf("Control input list:\n");
-
     if(initCtrlInputs() < 0)
         return;
     initCtrlInputBuffers();
@@ -89,7 +86,7 @@ void LDSP_initCtrlInputs(LDSPinitSettings *settings)
     intContext.mtInfo = &ctrlInputsContext.mtInfo;
     //VIC user context is reference of this internal one, so no need to update it
         
-    // run thread that monitors devices for events, only if we gound at least one device that raises events we are interested into
+    // run thread that monitors devices for events, only if we found at least one device that raises events we are interested into
     if(ctrlInputsContext.inputsCount > 0)
         pthread_create(&ctrlInput_thread, NULL, ctrlInputs_loop, NULL);
 }
@@ -104,7 +101,7 @@ void LDSP_cleanupCtrlInputs()
 
     closeCtrlInputDevices();
 
-    // daallocated ctrl input buffers
+    // deallocated ctrl input buffers
     if(ctrlInputsContext.ctrlInBuffer != nullptr)
         delete[] ctrlInputsContext.ctrlInBuffer;
     if(ctrlInputsContext.ctrlInStates != nullptr)
@@ -167,7 +164,7 @@ void* ctrlInputs_loop(void* arg)
                                 if(ctrlIn.isMultiInput)
                                      idx = slot;
                                 //printf("____event %d, code %d, value %d, chn %d, idx %d, vec %d\n", event.type, event.code, event.value, chn, idx, ctrlIn.value.size());
-                                ctrlIn.value[idx]->store(event.value); // atomic store, thread-safe!
+                                ctrlIn.value[idx]->store(event.value/* , std::memory_order_release */); // atomic store, thread-safe! //TODO check this in atomics
                             }
                         }
                     }
@@ -217,11 +214,11 @@ bool checkEvents(int fd, int print_flags, const char *device, const char *name, 
         //     default:
         //         label = "???";
         // }
-        for(int j = 0; j < res; j++) 
+        for(int j=0; j <res; j++) 
         {
-            for(int k = 0; k < 8; k++)
+            for(int k=0; k<8; k++)
             {
-                if(bits[j] & 1 << k) 
+                if(bits[j] & 1<<k) 
                 {   
                     if(event!=EV_KEY && event!=EV_ABS)
                         return false;
@@ -281,6 +278,7 @@ bool checkEvents(int fd, int print_flags, const char *device, const char *name, 
                                     {
                                         ctrlInputsContext.ctrlInputs[chn].supported = true;
                                         ctrlInputsContext.ctrlInputs[chn].isMultiInput = true;  // only difference is taht multi touch ctrl inputs are multi event, cos can receive data from multiple fingers
+                                        ctrlInputsContext.mtInfo.touchSlots = 1; // let's set at least 1 touch slot, because some single touch phones do not provide this info
                                         ctrlInputsContext.inputsCount++;
 
                                         //VIC unfortunately, this has to be done manually
@@ -528,6 +526,12 @@ void initCtrlInputBuffers()
     ctrlInputsContext.ctrlInStates  = new ctrlInState[len];
     ctrlInputsContext.ctrlInDetails  = new string[len];
 
+    for(int i=0; i<len; i++)
+    {
+        ctrlInputsContext.ctrlInBuffer[i] = 0;
+        ctrlInputsContext.ctrlInStates[i] = ctrlInput_not_supported;
+    }
+
     //TODO details and states
 }
 
@@ -556,7 +560,7 @@ void readCtrlInputs()
     for(int chn=0; chn<offset; chn++) // includes chn_mt_anyTouch
     {
         if(ctrlInputsContext.ctrlInputs[chn].supported)
-            ctrlInputsContext.ctrlInBuffer[chn] = ctrlInputsContext.ctrlInputs[chn].value[0]->load();   
+            ctrlInputsContext.ctrlInBuffer[chn] = ctrlInputsContext.ctrlInputs[chn].value[0]->load(/* std::memory_order_acquire */); //TODO check this in atomics
     }
 
     int touchSlots = ctrlInputsContext.mtInfo.touchSlots;
@@ -566,7 +570,7 @@ void readCtrlInputs()
             continue;
 
         for(int slot=0; slot<touchSlots; slot++)
-            ctrlInputsContext.ctrlInBuffer[offset+chn*touchSlots+slot] = ctrlInputsContext.ctrlInputs[offset+chn].value[slot]->load();
+            ctrlInputsContext.ctrlInBuffer[offset+chn*touchSlots+slot] = ctrlInputsContext.ctrlInputs[offset+chn].value[slot]->load(/* std::memory_order_acquire */); //TODO check this in atomics
         
     }    
 }

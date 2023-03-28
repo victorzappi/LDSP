@@ -1,0 +1,32 @@
+{
+	"device": "Asus ZenFone Go",
+	"target architecture": "armv7a",
+	"supports neon floating point unit": "true",
+	"mixer settings":
+	{
+		"mixer paths xml file": "/system/etc/mixer_paths.xml",
+		"mixer volumes xml file": "",
+		"playback path names":
+		{ 
+			"line-out": "headphones",
+			"speaker": "speaker-skuab",
+			"handset": "handset"
+		},
+		"capture path names":
+		{
+			"line-in": "headset-mic",
+		   	"mic": "speaker-mic",
+		   	"handset": "handset-mic"
+		},
+		"default playback device number": 12,
+		"default capture device number": 0,
+		"mixer playback device activation": "SEC_MI2S_RX Audio Mixer DEVICE_ID",
+		"mixer capture device activation": "DEVICE_ID Mixer PRI_MI2S_TX"
+	},
+	"control outputs":
+	{
+		"analog control outputs":
+		{
+		}
+	}
+}
