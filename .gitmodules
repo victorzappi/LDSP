@@ -4,3 +4,6 @@
 [submodule "dependencies/libpd"]
 	path = dependencies/libpd
 	url = https://github.com/libpd/libpd.git
+[submodule "libpd"]
+	path = libpd
+	url = https://github.com/victorzappi/libpd.git
