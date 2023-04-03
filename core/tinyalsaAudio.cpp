@@ -66,6 +66,11 @@ LDSPpcmContext pcmContext;
 LDSPinternalContext intContext;
 LDSPcontext* userContext = nullptr;
 
+bool perfModeOff = false;
+bool sensorsOff_ = false;
+bool ctrlInputsOff_ = false;
+bool ctrlOutputsOff_ = false;
+
 
 // function pointers set up in initFormatFunctions()
 // capture
@@ -108,6 +113,10 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
     
 	fullDuplex = !settings->outputOnly;
     audioVerbose = settings->verbose;
+	perfModeOff = settings->perfModeOff;
+	sensorsOff_ = settings->sensorsOff;
+	ctrlInputsOff_ = settings->ctrlInputsOff;
+	ctrlOutputsOff_ = settings->ctrlOutputsOff;
 	
 
     if(audioVerbose)
@@ -147,7 +156,8 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 	}
 
 	// activate performance governor
-	setGovernorMode();
+	if(!perfModeOff)
+		setGovernorMode();
 	
 	gFormats.clear();
 
@@ -198,7 +208,8 @@ void LDSP_cleanupAudio()
     cleanupPcm(&pcmContext);	
     cleanupAudioParams(&pcmContext); 
 
-	resetGovernorMode();
+	if(!perfModeOff)
+		resetGovernorMode();
 	
 	//TODO reactivate audio server
 }
@@ -237,10 +248,12 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
     (*audioStruct)->config.period_count =settings->periodCount;
     (*audioStruct)->config.rate = settings->samplerate;
     (*audioStruct)->config.format = (pcm_format) gFormats[settings->pcmFormatString];
+	(*audioStruct)->config.avail_min = 1;
+	(*audioStruct)->config.start_threshold = 1; //VIC 60 //settings->periodSize;
+	(*audioStruct)->config.stop_threshold = 0;
     (*audioStruct)->config.silence_threshold = 1; //settings->periodSize * settings->periodCount; 
     (*audioStruct)->config.silence_size = 0;
-    (*audioStruct)->config.start_threshold = 1; //settings->periodSize;
-	(*audioStruct)->config.stop_threshold = 0;
+
 
     (*audioStruct)->pcm = nullptr;
     (*audioStruct)->fd = (int)NULL; // needs C's NULL
@@ -513,8 +526,10 @@ void *audioLoop(void*)
 			fromRawToFloat(pcmContext.capture);
 		}
 
-		readSensors();
-		readCtrlInputs();
+		if(!sensorsOff_)
+			readSensors();
+		if(!ctrlInputsOff_)
+			readCtrlInputs();
 
 		render(userContext, 0);
 
@@ -525,7 +540,8 @@ void *audioLoop(void*)
 			fprintf(stderr, "Playback error, aborting...\n");
 		}
 
-		writeCtrlOutputs();
+		if(!ctrlOutputsOff_)
+			writeCtrlOutputs();
 	}
 
 	if(audioVerbose)
@@ -743,13 +759,47 @@ void setGovernorMode()
             DIR *cpuFreqDir = opendir((cpuDir + "/cpufreq").c_str());
             if (cpuFreqDir != nullptr) 
 			{
-                // Set scaling_governor to performance if it exists
+                // get current scaling_governor if it exists
                 string governorPath = cpuDir + "/cpufreq/scaling_governor";
                 ifstream governorFile(governorPath);
                 if (governorFile.good()) 
 				{
 					governorFile >> governors[N]; // save current governor
                     governorFile.close();
+                }
+                closedir(cpuFreqDir);
+            }
+        }
+    }
+
+	closedir(dir);
+
+
+	// repeat to set scaling governors to performances
+	// we need two loops, otherwise the modification of a governor of a cpu
+	// may change the governor of other cpus
+	dir = opendir(GOVERNOR_BASE_DIR);
+    while ((entry = readdir(dir)) != nullptr)
+	{
+		if (entry->d_type != DT_DIR)
+			continue;
+
+		string dir_name = entry->d_name;
+
+        // Check if directory is named cpuN, where N is an integer between 0 and 9
+		if (dir_name.substr(0, 3) == "cpu" && dir_name.length() == 4)		
+		{
+			int N = stoi(dir_name.substr(3)); // number of current cpu
+	
+            string cpuDir = string(GOVERNOR_BASE_DIR) + entry->d_name;
+            DIR *cpuFreqDir = opendir((cpuDir + "/cpufreq").c_str());
+            if (cpuFreqDir != nullptr) 
+			{
+                // Set scaling_governor to performance if it exists
+                string governorPath = cpuDir + "/cpufreq/scaling_governor";
+                ifstream governorFile(governorPath);
+                if (governorFile.good()) 
+				{
                     ofstream outGovernorFile(governorPath);
                     outGovernorFile << "performance"; // enable performance governor
                     outGovernorFile.close();
@@ -764,19 +814,21 @@ void setGovernorMode()
 
 void resetGovernorMode()
 {
-	for (int i = 0; i < governors.size(); i++) 
+	// inreverse order, cos changing geovernor of first cpu may affect other cpus' governors
+	for (int i=governors.size()-1; i>=0; i--) 
 	{
 		// this cpu's geovernor was not modified
 		if(governors[i]=="")
 			continue;
 
-		string cpuPath = string(GOVERNOR_BASE_DIR) + "/cpu" + std::to_string(i);
+		string cpuPath = string(GOVERNOR_BASE_DIR) + "cpu" + std::to_string(i);
 		string freqPath = cpuPath + "/cpufreq/scaling_governor";
 
 		// Write to scaling governor file if it exists
 		ofstream freqFile(freqPath);
 		if (freqFile.good()) 
-			freqFile << governors[i];
+			freqFile << governors[i]; // always use governor of first cpu, because in most cases cpu0 controls all cpus
+	
 		freqFile.close();
 	}
 }

@@ -35,6 +35,8 @@ using std::regex_replace;
 #define CTRL_BASE_PATH "/sys/class"
 
 bool ctrlOutputsVerbose = false;
+bool ctrlOutputsOff = false;
+
 
 LDSPctrlOutputsContext ctrlOutputsContext;
 extern LDSPinternalContext intContext;
@@ -49,13 +51,19 @@ int initCtrlOutputs(string **ctrlOutputsFiles);
 int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 {
     ctrlOutputsVerbose = settings->verbose;
+    ctrlOutputsOff = settings->ctrlOutputsOff;
 
-    if(ctrlOutputsVerbose)
+
+    if(ctrlOutputsVerbose && !ctrlOutputsOff)
         printf("\nLDSP_initCtrlOutputs()\n");
 
-    int retVal = initCtrlOutputs(hwconfig->ctrlOutputs);
-    if(retVal!=0)
-        return retVal;
+    // if control outputs are off, we don't init them!
+    if(!ctrlOutputsOff)
+    {
+        int retVal = initCtrlOutputs(hwconfig->ctrlOutputs);
+        if(retVal!=0)
+            return retVal;
+    }
 
     // update context
     // --analog outputs
@@ -71,6 +79,10 @@ void cleanupCtrlOutputs(ctrlout_struct *ctrlOutputs, int numOfOutputs);
 
 void LDSP_cleanupCtrlOutputs()
 {
+    // if control outputs were off, nothing to do here
+    if(ctrlOutputsOff)
+        return;
+
     if(ctrlOutputsVerbose)
         printf("LDSP_cleanupCtrlOutputs()\n");
 

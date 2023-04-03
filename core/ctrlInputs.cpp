@@ -24,6 +24,7 @@ LDSPctrlInputsContext ctrlInputsContext;
 extern LDSPinternalContext intContext;
 
 bool ctrlInputsVerbose = false;
+bool ctrlInputsOff = false;
 
 extern bool gShouldStop; // extern from tinyalsaAudio.cpp
 
@@ -64,17 +65,23 @@ void closeCtrlInputDevices();
 //VIC not important if unseuccessful, we will still run LDSP if no inputs can be read
 void LDSP_initCtrlInputs(LDSPinitSettings *settings)
 {
-    ctrlInputsVerbose = settings->verbose;;
+    ctrlInputsVerbose = settings->verbose;
+    ctrlInputsOff = settings->ctrlInputsOff;
 
-    if(ctrlInputsVerbose)
+    if(ctrlInputsOff)
+        return;
+
+    if(ctrlInputsVerbose && !ctrlInputsOff)
     {
         printf("\nLDSP_initCtrlInputs()\n");
         //print_flags |= PRINT_DEVICE_ERRORS | PRINT_DEVICE | PRINT_DEVICE_NAME;
         //print_flags |= PRINT_DEVICE | PRINT_DEVICE_NAME | PRINT_DEVICE_INFO | PRINT_VERSION;
     }
 
-    if(initCtrlInputs() < 0)
-        return;
+    // if control inputs are off, we don't init them!
+    bool inited = false;
+    if(!ctrlInputsOff)
+        inited = (initCtrlInputs()==0);
     initCtrlInputBuffers();
 
 
@@ -87,19 +94,23 @@ void LDSP_initCtrlInputs(LDSPinitSettings *settings)
     //VIC user context is reference of this internal one, so no need to update it
         
     // run thread that monitors devices for events, only if we found at least one device that raises events we are interested into
-    if(ctrlInputsContext.inputsCount > 0)
-        pthread_create(&ctrlInput_thread, NULL, ctrlInputs_loop, NULL);
+    if(inited && ctrlInputsContext.inputsCount > 0)
+         pthread_create(&ctrlInput_thread, NULL, ctrlInputs_loop, NULL);
 }
 
 void LDSP_cleanupCtrlInputs()
 {
-    if(ctrlInputsVerbose)
+    if(ctrlInputsVerbose && !ctrlInputsOff)
         printf("LDSP_cleanupCtrlInputs()\n");
 
-    if(ctrlInput_thread != 0)
-		pthread_join(ctrlInput_thread, NULL);
+    // if control inputs were off, not much to do here
+    if(!ctrlInputsOff)
+    {
+        if(ctrlInput_thread != 0)
+            pthread_join(ctrlInput_thread, NULL);
 
-    closeCtrlInputDevices();
+        closeCtrlInputDevices();
+    }
 
     // deallocated ctrl input buffers
     if(ctrlInputsContext.ctrlInBuffer != nullptr)

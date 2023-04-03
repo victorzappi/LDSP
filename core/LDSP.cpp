@@ -48,6 +48,9 @@ void LDSP_defaultSettings(LDSPinitSettings *settings)
     settings->pathOut = ""; // default is first output path in hw config json file, typically headphones
     settings->pathIn = ""; // default is first input path in hw config json file, typically built-in mic
     settings->outputOnly = 0; // full duplex engine by default
+    settings->sensorsOff = 0; // sensors are on by default
+    settings->ctrlInputsOff = 0; // control inputs are on by default
+    settings->ctrlOutputsOff = 0; // control outputs are on by default
     settings->verbose = 1; //0; // shut up by default
     settings->deviceOutId = ""; // if not specified, extracted at run-time //VIC! remove 
     settings->deviceInId = ""; // if not specified, extracted at run-time 

@@ -19,10 +19,10 @@ latency-tester-audio: Measures the latency from audio output to audio input
 
 
 // Constants that define the program behaviour
-const float kTestsPerSecond = 0.25;				// How many tests to run per second
+const float kTestsPerSecond = 1.0;				// How many tests to run per second
 const float kPulseLength = .02;					// Length of the output pulse
 const float kInputLoThreshold = 0.05;			// Input thresholds: look for an edge
-const float kInputHiThreshold = 0.15;			// from below the "lo" to above the "hi"
+const float kInputHiThreshold = 0.1;			// from below the "lo" to above the "hi"
 
 // Global variables
 float gLastInput = 0;							// Previous value of the audio input
