@@ -96,6 +96,10 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 		{ "output-path",       	'o', OPTPARSE_REQUIRED },
 		{ "input-path",       	'i', OPTPARSE_REQUIRED },
 		{ "output-only",       	'O', OPTPARSE_NONE },
+		{ "sensors-off",       	'P', OPTPARSE_NONE },
+		{ "ctrl-inputs-off",    'Q', OPTPARSE_NONE },
+		{ "ctrl-outputs-off",   'R', OPTPARSE_NONE },
+		{ "perf-mode-off",      'A', OPTPARSE_NONE },
 		{ "verbose",         	'v', OPTPARSE_NONE     },
 		{ "help",         		'h', OPTPARSE_NONE     },
 		{ 0, 0, OPTPARSE_NONE }
@@ -143,6 +147,17 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 			 	break;
 			case 'O':
 				settings->outputOnly = 1;
+			 	break;
+			case 'P':
+				settings->sensorsOff = 1;
+			 	break;
+			case 'Q':
+				settings->ctrlInputsOff = 1;
+			 	break;
+			case 'R':
+				settings->ctrlOutputsOff = 1;
+			case 'A':
+				settings->perfModeOff = 1;
 			 	break;
 			case 'v':
 				settings->verbose = 1;

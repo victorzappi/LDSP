@@ -4,7 +4,13 @@
 # usage:
 # sh ldsp_stop.sh
 
+# for older phones
 PID=$(ps | grep ldsp | grep -Eo '[0-9]{2,5}' | grep -Eo '[0-9]{2,5}' -m 1)
+kill $PID
+
+# for android >= 9 we need to add -A
+# unfortunately this extra argument breaks ps on older phones, so we run both versions
+PID=$(ps -A | grep ldsp | grep -Eo '[0-9]{2,5}' | grep -Eo '[0-9]{2,5}' -m 1)
 kill $PID
 
 # ps -> prints all running processes

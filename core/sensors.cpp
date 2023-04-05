@@ -24,6 +24,7 @@
 #include "LDSP.h"
 
 bool sensorsVerbose = false;
+bool sensorsOff = false;
 
 LDSPsensorsContext sensorsContext;
 extern LDSPinternalContext intContext;
@@ -37,12 +38,14 @@ void initSensorBuffers();
 void LDSP_initSensors(LDSPinitSettings *settings)
 {
     sensorsVerbose = settings->verbose;
+    sensorsOff = settings->sensorsOff;
 
-    if(sensorsVerbose)
+    if(sensorsVerbose && !sensorsOff)
         printf("\nLDSP_initSensors()\n");
     
-
-    initSensors();
+    // if sensors are off, we don't init them!
+    if(!sensorsOff)
+        initSensors();
     initSensorBuffers();
     
     // update context
@@ -51,24 +54,27 @@ void LDSP_initSensors(LDSPinitSettings *settings)
     intContext.sensorChannels = chn_sens_count;
     intContext.sensorsState = sensorsContext.sensorsStates;
     intContext.sensorsDetails = sensorsContext.sensorsDetails;
-    //intContext.analogInNormalFactor = sensorsContext.sensorsNormalFactors;
     //VIC user context is reference of this internal one, so no need to update it
 
-    // read a couple of times, to make sure we have some sensor data once our audio application starts
-    readSensors();
-    usleep(200000); // 200 ms
-    readSensors();
-    // if non full duplex engine, we need to read an extra time, becuase initAudio() will take less time
-    if(settings->outputOnly)
+    // if sensors are off, nothing else to do
+    if(!sensorsOff)
     {
+        // read a couple of times, to make sure we have some sensor data once our audio application starts
+        readSensors();
         usleep(200000); // 200 ms
         readSensors();
+        // if non full duplex engine, we need to read an extra time, becuase initAudio() will take less time
+        if(settings->outputOnly)
+        {
+            usleep(200000); // 200 ms
+            readSensors();
+        }
     }
 }
 
 void LDSP_cleanupSensors()
 {
-    if(sensorsVerbose)
+    if(sensorsVerbose && !sensorsOff)
         printf("LDSP_cleanupSensors()\n");
 
     // disable present sensors and deallocate channels
@@ -76,14 +82,14 @@ void LDSP_cleanupSensors()
     {
         if(sensorsContext.sensors[i].present)
         {
-            LDSP_sensor sensor_type = (LDSP_sensor::_enum)LDSP_sensor::_from_index(i);
             ASensorEventQueue_disableSensor(event_queue, sensorsContext.sensors[i].asensor);
             delete[] sensorsContext.sensors[i].channels;
         }
     }
 
-    // deallocate queue
-    ASensorManager_destroyEventQueue(sensor_manager, event_queue);
+    // deallocate queue, only if sensors were on
+    if(!sensorsOff)
+        ASensorManager_destroyEventQueue(sensor_manager, event_queue);
 
     // daallocated sensor buffers
     if(sensorsContext.sensorBuffer != nullptr)
@@ -92,8 +98,6 @@ void LDSP_cleanupSensors()
         delete[] sensorsContext.sensorsStates;
     if(sensorsContext.sensorsDetails != nullptr)
         delete[] sensorsContext.sensorsDetails;
-    //delete[] sensorsContext.sensorsNormalFactors;
-
 }
 
 
@@ -110,8 +114,7 @@ void initSensors()
     ALooper *looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
     event_queue = ASensorManager_createEventQueue(sensor_manager, looper, 1, NULL, NULL);
 
-    sensorsContext.sensorsCount = 0;
-    //sensorsContext.channelCount = 0;
+    //sensorsContext.sensorsCount = 0;
     int channelIndex = 0;
 
     if(sensorsVerbose)
@@ -163,13 +166,11 @@ void initSensors()
         
             ASensorEventQueue_enableSensor(event_queue, sensor);
             // we don't set a rate for sensors that report on new event only, otherwise on some phones we may get crashes
-            if(minDelay != 0) 
-                ASensorEventQueue_setEventRate(event_queue, sensor, 10); // symbolic 10 us sampling period... to make sure we request max rate
+             if(minDelay != 0) 
+                 ASensorEventQueue_setEventRate(event_queue, sensor, 100); // symbolic 100 us sampling period... to make sure we request max rate
             //VIC there is an android API function that is supposed to return the min period supported, ASensor_getMinDelay()
             // but the doc says its value is often an underestimation: https://developer.android.com/ndk/reference/group/sensor#asensoreventqueue_seteventrate
-        }
-        
-        //sensorsContext.channelCount += sens_struct.numOfChannels;
+        }        
     }
 }
 
@@ -179,7 +180,6 @@ void initSensorBuffers()
     sensorsContext.sensorBuffer  = new float[chn_sens_count]; // we allocate elements also for supported but non present sensors
     sensorsContext.sensorsStates = new sensorState[chn_sens_count]; 
     sensorsContext.sensorsDetails  = new string[chn_sens_count];
-    //sensorsContext.sensorsNormalFactors  = new float[chn_sens_count];
 
     // initialize 
     int chnCnt = 0;
@@ -214,22 +214,16 @@ void initSensorBuffers()
     
             sensorsContext.sensorsDetails[chnCnt] = name + ", sensing " + chnDescr;
 
-            // init normalization factor
-            // float normFact = sensors_max[sens];
-            // if(normFact == -1)
-            //     normFact = 1;
-            // sensorsContext.sensorsNormalFactors[chnCnt] = normFact;
-
             chnCnt++;
         }
     }
+    
     // unsupported sensors/channels
     for(; chnCnt<chn_sens_count; chnCnt++)
     {
-        sensorsContext.sensorBuffer[chnCnt] = 0; // this value will never be update
+        sensorsContext.sensorBuffer[chnCnt] = 0; // this value will never be updated
         sensorsContext.sensorsStates[chnCnt] = sensor_not_supported;
         sensorsContext.sensorsDetails[chnCnt] = "Not supported";
-        //sensorsContext.sensorsNormalFactors[chnCnt] = 1;
     }
 }
 

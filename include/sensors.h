@@ -84,14 +84,12 @@ struct sensor_struct {
 };
 
 struct LDSPsensorsContext {
-    unsigned int sensorsCount;
+    unsigned int sensorsCount = 0;
     sensor_struct sensors[LDSP_sensor::count];
     unordered_map<int, int> sensorsType_index; // automatically populated
-    //unsigned int channelCount;
     float *sensorBuffer;
     sensorState *sensorsStates;
     string *sensorsDetails;
-    //float *sensorsNormalFactors;
 };
 
 void readSensors();

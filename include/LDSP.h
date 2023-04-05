@@ -41,6 +41,10 @@ struct LDSPinitSettings {
     string pathOut;
     string pathIn;
     int outputOnly;
+    int sensorsOff;
+    int ctrlInputsOff;
+    int ctrlOutputsOff;
+    int perfModeOff;
     int verbose;
     // these have priority over deviceOut/InNum and if not specificied are automatically populated according to device numbers
     string deviceOutId;
