@@ -11,5 +11,6 @@ set(INSTALL_PKGCONFIG_MODULE OFF CACHE BOOL "Generate and install pkg-config mod
 
 add_subdirectory(libsndfile)
 add_subdirectory(glob)
+link_libraries(glob)
 add_subdirectory(libpd)
 
