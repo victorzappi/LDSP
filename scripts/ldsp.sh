@@ -209,9 +209,6 @@ configure () {
   fi
 
 
-  # Copy any pure-data patches that needed to be pushed to phone
-  cp "$PROJECT/"*.pd bin/
-
   cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_version "-DANDROID_NDK=$NDK" $explicit_neon $neon $api_define "-DLDSP_PROJECT=$PROJECT" -G Ninja .
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
@@ -253,13 +250,9 @@ push () {
   fi
 
 
-  # Only Try to push PD files if this is a Pd project
+  # Push Pd files to device if this is a Pd project
   if test -n "$(find $prj -name '*.pd')"; then
-    # If PD files aren't in bin yet, copy them to bin first, then push them to device
-    if test -z "$(find bin -name '*.pd')"; then
-      cp $prj/*.pd bin/
-    fi
-    adb push bin/*.pd /data/ldsp/
+    adb push $prj/*.pd /data/ldsp/
   fi
 
 
@@ -285,13 +278,9 @@ push_sdcard () {
     adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
   fi
 
-  # Only push PD files if they exist in project folder
+  # Push PD files to device if this is a Pd project
   if test -n "$(find $prj -name '*.pd')"; then
-    # If PD files aren't in bin yet, copy them to bin first, then push them to device
-    if test -z "$(find bin -name '*.pd')"; then
-      cp $prj/*.pd bin/
-    fi
-    adb push bin/*.pd /sdcard/ldsp/
+    adb push $prj/*.pd /sdcard/ldsp/
   fi
 
 	adb push bin/ldsp /sdcard/ldsp/ldsp
