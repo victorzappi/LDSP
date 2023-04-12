@@ -10,3 +10,7 @@ set(ENABLE_PACKAGE_CONFIG OFF CACHE BOOL "Generate and install package config fi
 set(INSTALL_PKGCONFIG_MODULE OFF CACHE BOOL "Generate and install pkg-config module" FORCE)
 
 add_subdirectory(libsndfile)
+add_subdirectory(glob)
+link_libraries(glob)
+add_subdirectory(libpd)
+

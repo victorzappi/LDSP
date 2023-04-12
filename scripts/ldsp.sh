@@ -249,7 +249,15 @@ push () {
     adb push "$hw_config" /data/ldsp/ldsp_hw_config.json
   fi
 
+
+  # Push Pd files to device if this is a Pd project
+  if test -n "$(find $prj -name '*.pd')"; then
+    adb push $prj/*.pd /data/ldsp/
+  fi
+
+
 	adb push bin/ldsp /data/ldsp/ldsp
+
 }
 
 # Push the user project and LDSP hardware config to the phone's SD card.
@@ -268,6 +276,11 @@ push_sdcard () {
     echo "WARNING: Hardware config file not found, skipping..."
   else
     adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
+  fi
+
+  # Push PD files to device if this is a Pd project
+  if test -n "$(find $prj -name '*.pd')"; then
+    adb push $prj/*.pd /sdcard/ldsp/
   fi
 
 	adb push bin/ldsp /sdcard/ldsp/ldsp

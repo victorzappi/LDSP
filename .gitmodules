@@ -1,3 +1,6 @@
 [submodule "dependencies/libsndfile"]
 	path = dependencies/libsndfile
 	url = https://github.com/libsndfile/libsndfile/
+[submodule "dependencies/libpd"]
+	path = dependencies/libpd
+	url = https://github.com/libpd/libpd.git
