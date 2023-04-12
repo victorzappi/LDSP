@@ -1,10 +1,9 @@
 #include "LDSP.h"
 #include "PdBase.hpp"
 
-pd::PdBase lpd;
+#define PD_MINIMUM_BLOCK_SIZE 64
 
-float* pdInputBuffer;
-float* pdOutputBuffer;
+pd::PdBase lpd;
 
 class LDSP_EventHandler : public pd::PdReceiver 
 {
@@ -87,6 +86,11 @@ bool setup(LDSPcontext *context, void *userData)
     lpd.setReceiver(&eventHandler);
     lpd.setMidiReceiver(&midiHandler);
 
+    if (context->audioFrames < PD_MINIMUM_BLOCK_SIZE) {
+        std::cout << "Setup Failed: The minimum pure-data block size is " << PD_MINIMUM_BLOCK_SIZE  << ", " << context->audioFrames << " was given." << std::endl;
+        return false;
+    }
+
     if (!lpd.init(context->audioInChannels, context->audioOutChannels, context->audioSampleRate, true)) {
         std::cout << "Failed to initialize libpd instance" << std::endl;
     }
@@ -102,13 +106,18 @@ bool setup(LDSPcontext *context, void *userData)
     char patchName[] = "_main.pd";
     char patchPath[] = ".";
     pd::Patch patch = lpd.openPatch(patchName, patchPath);
-    std::cout << patch << std::endl;
+    if (!patch.isValid()) {
+        std::cout << "Failed to Load PD Path " << patch.filename() << std::endl;
+    }
+    else {
+        std::cout << "Loaded PD Patch " << patch.filename() << std::endl;
+    }
+
+    std::cout << "Using a Custom PD Render File!" << std::endl;
 
 
     pdBlockSize = libpd_blocksize();
 
-    std::cout << "Using Custom Render File\n";
-    
     return true;
 }
 
@@ -117,10 +126,11 @@ void render(LDSPcontext *context, void *userData)
 
     int pdBlocks = context->audioFrames / pdBlockSize;
 
-    lpd.processFloat(pdBlocks,
-        context->audioIn,
-        context->audioOut 
-    );
+    lpd.processFloat(pdBlocks, context->audioIn, context->audioOut);
+
+    lpd.receiveMessages();
+    lpd.receiveMidi();
+
 }
 
 void cleanup(LDSPcontext *context, void *userData)
