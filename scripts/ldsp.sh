@@ -252,9 +252,11 @@ push () {
     adb push "$hw_config" /data/ldsp/ldsp_hw_config.json
   fi
 
-  # Push all pure-data files to pd folder
-  adb shell "mkdir /data/ldsp/pd"
-  adb push bin/*.pd /data/ldsp/pd/
+  # Push all pure-data files to pd folder if they exist
+  if test -n "$(find bin/ -name '*.pd')"; then
+    adb push bin/*.pd /data/ldsp/
+  fi
+
 
 	adb push bin/ldsp /data/ldsp/ldsp
 
@@ -279,8 +281,9 @@ push_sdcard () {
   fi
 
   # Push all pure-data files to pd folder
-  adb shell "mkdir /sdcard/ldsp/pd"
-  adb push bin/*.pd /sdcard/ldsp/pd/
+  if test -n "$(find bin/ -name '*.pd')"; then
+    adb push bin/*.pd /sdcard/ldsp/
+  fi
 
 	adb push bin/ldsp /sdcard/ldsp/ldsp
 }

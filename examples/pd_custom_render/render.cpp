@@ -100,7 +100,7 @@ bool setup(LDSPcontext *context, void *userData)
 
     // Open and Load Patch
     char patchName[] = "_main.pd";
-    char patchPath[] = "./pd";
+    char patchPath[] = ".";
     pd::Patch patch = lpd.openPatch(patchName, patchPath);
     std::cout << patch << std::endl;
 
