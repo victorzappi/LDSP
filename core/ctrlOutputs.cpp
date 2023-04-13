@@ -66,7 +66,7 @@ int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
     }
 
     // update context
-    // --analog outputs
+
     intContext.ctrlOutputs = ctrlOutputsContext.ctrlOutBuffer;
     intContext.ctrlOutChannels = chn_cout_count;
     intContext.ctrlOutputsState = ctrlOutputsContext.ctrlOutStates;
@@ -86,7 +86,6 @@ void LDSP_cleanupCtrlOutputs()
     if(ctrlOutputsVerbose)
         printf("LDSP_cleanupCtrlOutputs()\n");
 
-    // analog control outputs
     cleanupCtrlOutputs(ctrlOutputsContext.ctrlOutputs, chn_cout_count);
 }
 
@@ -154,7 +153,7 @@ bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, s
     if (directory == nullptr)
     {
         closedir(directory); 
-        fprintf(stderr, "Control output \"%s\", cannot open file \"%s\" during autofill!\n", LDSP_analog_ctrlOutput[out].c_str(), path.c_str());
+        fprintf(stderr, "Control output \"%s\", cannot open file \"%s\" during autofill!\n", LDSP_ctrlOutput[out].c_str(), path.c_str());
         return false;
     }
 
@@ -170,7 +169,7 @@ bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, s
             content = "/" + d_name;
             break;
         }
-        // onyl exception is vibraiton, that has two possibilities
+        // only exception is vibraiton, that has two possibilities
         else if(out==chn_cout_vibration && d_name == keywords->files[out][1])
         {
             content = "/" + d_name;
@@ -214,7 +213,7 @@ void ctrlOutputAutoFill_scale(int out, shared_ptr<ctrlOutputKeywords> keywords, 
     if (directory == nullptr)
     {
         closedir(directory); 
-        fprintf(stderr, "Control output \"%s\", cannot open file \"%s\" during autofill!\n", LDSP_analog_ctrlOutput[out].c_str(), path.c_str());
+        fprintf(stderr, "Control output \"%s\", cannot open file \"%s\" during autofill!\n", LDSP_ctrlOutput[out].c_str(), path.c_str());
         return;
     }
 
@@ -259,7 +258,7 @@ int initCtrlOutputs(string **ctrlOutputsFiles)
                 ctrlOutput.configured = false;
                 
                 if(ctrlOutputsVerbose)
-                    printf("\t%s not configured\n", LDSP_analog_ctrlOutput[out].c_str());
+                    printf("\t%s not configured\n", LDSP_ctrlOutput[out].c_str());
 
                 //-------------------------------------------------------------------
                 // context update
@@ -279,7 +278,7 @@ int initCtrlOutputs(string **ctrlOutputsFiles)
         readFile.open(fileName);
         if(!readFile.is_open())
         {
-            fprintf(stderr, "Control output \"%s\", cannot open associated control file \"%s\"\n", LDSP_analog_ctrlOutput[out].c_str(), fileName.c_str());
+            fprintf(stderr, "Control output \"%s\", cannot open associated control file \"%s\"\n", LDSP_ctrlOutput[out].c_str(), fileName.c_str());
             
             LDSP_cleanupCtrlOutputs();
             return -1;
@@ -321,7 +320,7 @@ int initCtrlOutputs(string **ctrlOutputsFiles)
             readFile.open(content);
             if(!readFile.is_open())
             {
-                fprintf(stderr, "Control output \"%s\", cannot open associated max file \"%s\"\n", LDSP_analog_ctrlOutput[out].c_str(), ctrlOutputsFiles[DEVICE_SCALE][out].c_str());
+                fprintf(stderr, "Control output \"%s\", cannot open associated max file \"%s\"\n", LDSP_ctrlOutput[out].c_str(), ctrlOutputsFiles[DEVICE_SCALE][out].c_str());
                 
                 LDSP_cleanupCtrlOutputs();
                 return -1;
@@ -336,7 +335,7 @@ int initCtrlOutputs(string **ctrlOutputsFiles)
 
         if(ctrlOutputsVerbose)
         {
-            printf("\t%s configured!\n", LDSP_analog_ctrlOutput[out].c_str());
+            printf("\t%s configured!\n", LDSP_ctrlOutput[out].c_str());
             
             string automatic = "";
             if(autoConfig_ctrl)
@@ -369,7 +368,7 @@ int initCtrlOutputs(string **ctrlOutputsFiles)
         // context update
         ctrlOutputsContext.ctrlOutStates[out] = ctrlOutput_configured;
         ostringstream stream;
-        stream << LDSP_analog_ctrlOutput[out] << ", with max value: " << ctrlOutput.scaleVal;
+        stream << LDSP_ctrlOutput[out] << ", with max value: " << ctrlOutput.scaleVal;
         ctrlOutputsContext.ctrlOutDetails[out] =  stream.str();
     }
 

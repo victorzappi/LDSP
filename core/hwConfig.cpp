@@ -177,25 +177,22 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 
 
 	// temporary map for quick retrieval of ctrlOutput index from name
-	unordered_map<string, int> analog_ctrlOut_indices;
+	unordered_map<string, int> ctrlOut_indices;
 	for (unsigned int i=0; i<chn_cout_count; i++)
-		analog_ctrlOut_indices[LDSP_analog_ctrlOutput[i]] = i;
+		ctrlOut_indices[LDSP_ctrlOutput[i]] = i;
 
-    // parse output devices container
+    // parse control outputs container
     ordered_json config_ = *(config);
-	ordered_json devices = config_["control outputs"];
 
 	// these are all optional
-
-	//TODO remove "analog control outputs" from json structure!
-	// parse analog out devices
-	ordered_json analog_ctrlOutputs = devices["analog control outputs"];
-	for(auto &it : analog_ctrlOutputs.items()) 
+	// parse control outputs
+	ordered_json ctrlOutputs = config_["control outputs"];
+	for(auto &it : ctrlOutputs.items()) 
 	{
 		int ctrlOut;
 		string key = it.key();
 		// check if ctrlOutput name is in list
-		if(analog_ctrlOut_indices.find(key)!=analog_ctrlOut_indices.end())
+		if(ctrlOut_indices.find(key)!=ctrlOut_indices.end())
 		{
 			ordered_json ctrlOutput = it.value();
 			
@@ -209,7 +206,7 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 			// remains empty otherwise and auto fill will be tried later on
 				
 			// assign control file 
-			ctrlOut = analog_ctrlOut_indices[key];
+			ctrlOut = ctrlOut_indices[key];
 			hwconfig->ctrlOutputs[DEVICE_CTRL_FILE][ctrlOut] = ctrl;
 
 
@@ -218,7 +215,7 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 			if(ctrlOut==chn_cout_vibration)
 			{
 				// alway assigne default max value!
-				hwconfig->ctrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = "1"; // default is no scale!
+				hwconfig->ctrlOutputs[DEVICE_SCALE][ctrlOut_indices[key]] = "1"; // default is no scale!
 				continue;
 			}
 			// other control outputs
@@ -226,11 +223,11 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 			json max = ctrlOutput["max value"];
 			// assign max file
 			if(max.is_string())
-				hwconfig->ctrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = max;
+				hwconfig->ctrlOutputs[DEVICE_SCALE][ctrlOut_indices[key]] = max;
 			else if(max.is_number_integer())
-				hwconfig->ctrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = to_string(max); // can be a number, but still needs to be stringified
+				hwconfig->ctrlOutputs[DEVICE_SCALE][ctrlOut_indices[key]] = to_string(max); // can be a number, but still needs to be stringified
 			else 
-				hwconfig->ctrlOutputs[DEVICE_SCALE][analog_ctrlOut_indices[key]] = ""; // default! will be tenatively auto filled
+				hwconfig->ctrlOutputs[DEVICE_SCALE][ctrlOut_indices[key]] = ""; // default! will be tenatively auto filled
 		}
 	}
 }

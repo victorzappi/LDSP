@@ -53,4 +53,4 @@ build.ninja
 rules.ninja
 
 # Temporary local projects
-./_projects
+_projects/

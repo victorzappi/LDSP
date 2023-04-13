@@ -726,8 +726,6 @@ int checkAllCardParams(audio_struct *audioStruct)
 
 
 
-
-//TODO add cmd line arg to disable performance mode
 void setGovernorMode() 
 {
 

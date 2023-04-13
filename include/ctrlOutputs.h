@@ -34,7 +34,7 @@ using std::array;
 // ctrlOutputChannel enum in LDSP.h [order]
 // and
 // the keys in the hw_config.json file [names]
-static const string LDSP_analog_ctrlOutput[chn_cout_count] = {
+static const string LDSP_ctrlOutput[chn_cout_count] = {
     "flashlight",
     "lcd-backlight",
     "led",

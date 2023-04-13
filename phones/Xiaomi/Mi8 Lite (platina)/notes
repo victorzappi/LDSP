@@ -1,0 +1,12 @@
+all path names are placeholders:
+line-out/in should be USB
+mic should be asr-mic
+speaker should change nothing! indeed current path was chosen because empty ['speaker' path in xml file is WRONG]
+rest not sure
+
+Problems with sensors!
+on API >= 26 
+ASensorManager_getInstance() should be replaced by
+ASensorManager_getInstanceForPackage(const char *packageName), which may be a problem!
+
+Multiple mixer_paths file found on phone 

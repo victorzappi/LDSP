@@ -82,7 +82,7 @@ void LDSP_cleanupSensors()
     {
         if(sensorsContext.sensors[i].present)
         {
-            ASensorEventQueue_disableSensor(event_queue, sensorsContext.sensors[i].asensor);
+            //ASensorEventQueue_disableSensor(event_queue, sensorsContext.sensors[i].asensor); //VIC on some phones this causes a crash, but its absence does not have any effect
             delete[] sensorsContext.sensors[i].channels;
         }
     }

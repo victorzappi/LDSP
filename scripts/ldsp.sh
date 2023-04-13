@@ -251,8 +251,8 @@ push () {
 
 
   # Push Pd files to device if this is a Pd project
-  if test -n "$(find $prj -name '*.pd')"; then
-    adb push $prj/*.pd /data/ldsp/
+  if test -n "$(find "$PROJECT" -name '*.pd')"; then #VIC double quotes around PROJECT to handle spaces
+    adb push "$PROJECT"/*.pd /data/ldsp/
   fi
 
 
@@ -268,6 +268,8 @@ push_sdcard () {
   fi
 
   hw_config="./phones/$VENDOR/$MODEL/ldsp_hw_config.json"
+  proj="$PROJECT"
+
 
   adb root
   adb shell "mkdir -p /sdcard/ldsp"
@@ -278,9 +280,9 @@ push_sdcard () {
     adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
   fi
 
-  # Push PD files to device if this is a Pd project
-  if test -n "$(find $prj -name '*.pd')"; then
-    adb push $prj/*.pd /sdcard/ldsp/
+  # Push Pd files to device if this is a Pd project
+  if test -n "$(find "$PROJECT" -name '*.pd')"; then #VIC double quotes around PROJECT to handle spaces
+    adb push "$PROJECT"/*.pd /sdcard/ldsp/
   fi
 
 	adb push bin/ldsp /sdcard/ldsp/ldsp

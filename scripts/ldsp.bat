@@ -230,6 +230,11 @@ rem End of :build
     adb push %hw_config% /data/ldsp/ldsp_hw_config.json
   )
 
+  rem Push Pd files to device if this is a Pd project
+  if exist "%project%\*.pd" (
+    adb push "%project%\*.pd" /sdcard/ldsp/
+  )
+
   adb push bin\ldsp /data/ldsp/ldsp
   exit /b 0
 rem End of :push
@@ -251,6 +256,12 @@ rem End of :push
   ) else (
     adb push %hw_config% /sdcard/ldsp/ldsp_hw_config.json
   )
+
+  rem Push Pd files to device if this is a Pd project
+  if exist "%project%\*.pd" (
+    adb push "%project%\*.pd" /sdcard/ldsp/
+  )
+
 
   adb push bin\ldsp /sdcard/ldsp/ldsp
   exit /b 0
