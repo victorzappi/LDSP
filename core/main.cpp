@@ -7,6 +7,13 @@
 #include "mixer.h"
 #include "ctrlOutputs.h"
 
+// defined in root's CMakeLists.txt
+#ifdef PROJECT_NAME
+	#define PRJ_NAME PROJECT_NAME
+#else
+	#define PRJ_NAME ""
+#endif
+
 
 using std::string;
 using std::cout;
@@ -31,6 +38,9 @@ int main(int argc, char** argv)
 
 	LDSPinitSettings* settings = LDSP_InitSettings_alloc();	// Standard audio settings
 	LDSP_defaultSettings(settings);
+
+	settings->projectName = PRJ_NAME;
+	cout << "Project: " << settings->projectName << "\n" << "\n";
 
 	if(LDSP_parseArguments(argc, argv, settings) < 0)
 	{

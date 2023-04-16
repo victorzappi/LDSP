@@ -49,6 +49,7 @@ struct LDSPinitSettings {
     // these have priority over deviceOut/InNum and if not specificied are automatically populated according to device numbers
     string deviceOutId;
     string deviceInId;
+    string projectName;
 };
 
 enum sensorState {

@@ -14,3 +14,9 @@ add_subdirectory(glob)
 link_libraries(glob)
 add_subdirectory(libpd)
 
+#VIC we get some warnings from lubpd and we cannot do anything about them
+# this line hides some of the them [not sure why not all of them]
+target_compile_options(libpd PRIVATE "-Wno-everything")
+
+
+
