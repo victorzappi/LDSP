@@ -95,7 +95,6 @@ struct LDSPctrlInputsContext {
                     {ABS_MT_WIDTH_MAJOR, chn_btn_count+chn_mt_majWidth},
                     {ABS_MT_WIDTH_MINOR, chn_btn_count+chn_mt_minWidth},
                     {ABS_MT_PRESSURE, chn_btn_count+chn_mt_pressure},
-                    {ABS_MT_PRESSURE, chn_btn_count+chn_mt_pressure},
                     {ABS_MT_TRACKING_ID, chn_btn_count+chn_mt_id} }
         }
     }) {}

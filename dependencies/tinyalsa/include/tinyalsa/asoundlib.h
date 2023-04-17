@@ -32,7 +32,6 @@
 // and maybe our code works also on phones that do not come with tinyalsa lib installed [Android 4.0 ICE_CREAM_SANDWICH (API level 14)]?
 // still have to try!
 
-//TODO move to new folder 'depdendencies'
 //TODO update source to latest version?
 
 #ifndef ASOUNDLIB_H

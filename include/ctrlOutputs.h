@@ -85,6 +85,19 @@ struct ctrlOutputKeywords {
     };
 };
 
+// to find property that discloses state of screen
+// if everything goes well, a single combination of service and prop will be chosen in probeScreenCommands()
+// equivalent to command line:
+// dumpsys service[idx] | grep prop[idx]
+struct screenCtrlsCommands {
+    static const unsigned int idx_cnt = 4;
+    string service[idx_cnt] = {"dumpsys power", "dumpsys power", "dumpsys window",              "dumpsys display"};
+    string prop[idx_cnt]    = {"mScreenOn=",    "mWakefulness=", "mWindowManagerDrawComplete=", "mBlanked="};
+    string on[idx_cnt]      = {"true",          "true",          "true",                        "false"};
+    string off[idx_cnt]     = {"false",         "false",         "false",                       "true"};
+    int idx = -1;
+};
+
 
 struct ctrlout_struct {
     bool configured;

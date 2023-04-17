@@ -19,11 +19,16 @@
 #include "ctrlOutputs.h"
 #include "LDSP.h"
 #include "tinyalsaAudio.h" // for LDSPinternalContext
+#include "priority_utils.h"
 
 #include <sstream> // for ostream
 #include <dirent.h> // to search for files
 #include <memory> // smart pointers
 #include <regex> // replace substring
+#include <cstdlib> // for system()
+#include <unistd.h> // for usleep()
+
+
 
 using std::ifstream;
 using std::ostringstream;
@@ -42,8 +47,25 @@ LDSPctrlOutputsContext ctrlOutputsContext;
 extern LDSPinternalContext intContext;
 
 
+// screen control
+screenCtrlsCommands screenCmds;
+const char *pwrBtn_input_cmd = "input keyevent 26";
+const char *tap_input_cmd = "input tap 1 1";
+extern bool gShouldStop; // extern from tinyalsaAudio.cpp
+pthread_t screenCtl_thread;
+constexpr unsigned int ScreenCtrlLoopPrioOrder = 50;
+bool initialScreenState;
+int nextScreenState = -1;
+float nextBrightness = 0;
+bool nextKeepOn = false;
+
 
 int initCtrlOutputs(string **ctrlOutputsFiles);
+void cleanupCtrlOutputs(ctrlout_struct *ctrlOutputs, int numOfOutputs);
+void probeScreenCommands();
+bool isScreenOn();
+void setScreen(float brightness);
+void* screenCtrl_loop(void* arg);
 
 
 
@@ -66,16 +88,18 @@ int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
     }
 
     // update context
-
     intContext.ctrlOutputs = ctrlOutputsContext.ctrlOutBuffer;
     intContext.ctrlOutChannels = chn_cout_count;
     intContext.ctrlOutputsState = ctrlOutputsContext.ctrlOutStates;
     intContext.ctrlOutputsDetails = ctrlOutputsContext.ctrlOutDetails;
+
+    probeScreenCommands();
+    initialScreenState = isScreenOn();
+    pthread_create(&screenCtl_thread, NULL, screenCtrl_loop, NULL);
+
     return 0;
 }
 
-
-void cleanupCtrlOutputs(ctrlout_struct *ctrlOutputs, int numOfOutputs);
 
 void LDSP_cleanupCtrlOutputs()
 {
@@ -86,10 +110,35 @@ void LDSP_cleanupCtrlOutputs()
     if(ctrlOutputsVerbose)
         printf("LDSP_cleanupCtrlOutputs()\n");
 
+    
+    // wait for screen thread to finish...
+    pthread_join(screenCtl_thread, NULL);
+
+    // ...then reset screen to inital state
+    if(isScreenOn() != initialScreenState)
+        setScreen(initialScreenState); // brightness is not important as it reset in the next line 
+
     cleanupCtrlOutputs(ctrlOutputsContext.ctrlOutputs, chn_cout_count);
 }
 
 
+void screenSetState(bool stateOn, float brightness, bool keepOn)
+{
+    // copy values that will be set in thread
+    nextBrightness = brightness;
+    if(stateOn)
+        nextKeepOn = keepOn;
+    else
+        nextKeepOn = false;
+    nextScreenState = stateOn;
+}
+
+bool screenGetState()
+{
+    return isScreenOn();
+}
+
+//----------------------------------------------------------------------------------------------------------
 
 
 bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, string &control_file)
@@ -434,4 +483,122 @@ void cleanupCtrlOutputs(ctrlout_struct *ctrlOutputs, int numOfOutputs)
             continue;
         ctrlOutput->file.close();
     }
+}
+
+
+void probeScreenCommands()
+{
+    for(int i=0; i<screenCmds.idx_cnt; i++)
+    {
+        FILE* pipe = popen(screenCmds.service[i].c_str(), "r");
+        if (!pipe) 
+        {
+            fprintf(stderr,"Error: unable to run \"%s\"\n", screenCmds.service[i].c_str());
+            return;
+        }
+        char buffer[128];
+        
+        while (!feof(pipe)) 
+        {
+            if (fgets(buffer, 128, pipe) != NULL) 
+            {
+                if (strstr(buffer, screenCmds.prop[i].c_str()) != NULL) 
+                {
+                    screenCmds.idx = i;
+                    break;
+                }
+            }
+        }
+        pclose(pipe);
+    }
+}
+
+bool isScreenOn()
+{
+    int idx = screenCmds.idx;
+    bool screenIsOn = false;
+    FILE* pipe = popen(screenCmds.service[idx].c_str(), "r");
+    if (!pipe) 
+    {
+        fprintf(stderr,"Error: unable to run \"%s\"\n", screenCmds.service[idx].c_str());
+        return false;
+    }
+    char buffer[128];
+    
+    while (!feof(pipe)) 
+    {
+        if (fgets(buffer, 128, pipe) != NULL) 
+        {
+            if (strstr(buffer, screenCmds.prop[idx].c_str()) != NULL) 
+            {
+                if (strstr(buffer, screenCmds.on[idx].c_str()) != NULL) 
+                    screenIsOn = true;
+                else if (strstr(buffer, screenCmds.off[idx].c_str()) != NULL) 
+                    screenIsOn = false;
+            }
+        }
+    }
+    pclose(pipe);
+
+    return screenIsOn;
+}
+
+
+void setScreen(float brightness)
+{
+    ctrlOutputWrite((LDSPcontext *)&intContext, chn_cout_lcdBacklight, brightness);
+    system(pwrBtn_input_cmd);
+}
+
+void* screenCtrl_loop(void* arg)
+{
+    static const useconds_t sleepTime_us = 100000;
+    static const unsigned int tapInterval = 20; // as a multiple of sleep time [sleep cycles]!
+    // low prio
+    set_priority(ScreenCtrlLoopPrioOrder, false);
+    bool tapActive = false;
+    unsigned int tapCounter = 0;
+
+    while(!gShouldStop) 
+    {
+        // -1 means values set already, nothing to do
+        if(nextScreenState != -1)
+        {
+            // if change is requested, first check current state of screen
+            bool screenIsOn = isScreenOn();
+
+            // if requested state is different than current state OR keep-screen-on setting has been changed
+            if(screenIsOn!=nextScreenState || tapActive!=nextKeepOn)
+            {
+                if(!nextScreenState)
+                {
+                    setScreen(0); // turn off
+                    tapActive = false;
+                }
+                else
+                {
+                    setScreen(nextBrightness); // turn on
+                    tapActive = nextKeepOn; // and if keep-screen-on setting is active, set auto tapping mechanism
+                }
+            }
+            nextScreenState = -1; // then we flag that the change was made
+        }
+        else if(tapActive) // if auto tapping mechanism
+        {
+            // count sleep cycles
+            if(tapCounter >= tapInterval)
+            {
+                // time to tap to keep screen on
+                system("input tap 1 1"); // top left area of screen... this tap is not detected as multitouch event!
+                tapCounter = 0;
+            }
+            else
+                tapCounter++; 
+        }
+
+        //Zzz... for quite a while
+        usleep(sleepTime_us);
+    }
+
+    return (void *)0;
 }

@@ -81,6 +81,11 @@ struct multiTouchInfo {
     int touchWidthMax;
 };
 
+enum screenState {
+    screenOn = 1,
+    screenOff = 0
+};
+
 struct LDSPcontext {
 	const float * const audioIn;
 	float * const audioOut;
@@ -211,6 +216,8 @@ static inline string sensorsDetails(LDSPcontext *context, sensorChannel channel)
 //TODO ctrlOutputs/InputsState(...)
 //TODO ctrlOutputs/InputsDetails(...)
 
+void screenSetState(bool stateOn, float brightness=1, bool keepOn=false);
+bool screenGetState(); // this is a heavy function, use with caution
 
 //-----------------------------------------------------------------------------------------------
 // inline

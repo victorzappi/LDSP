@@ -13,7 +13,7 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <sstream>
-#include <string>
+#include <string>	
 
 using std::string;
 using std::pair;
@@ -26,12 +26,10 @@ extern LDSPinternalContext intContext;
 bool ctrlInputsVerbose = false;
 bool ctrlInputsOff = false;
 
-extern bool gShouldStop; // extern from tinyalsaAudio.cpp
-
 const char *ctrlInput_devPath = "/dev/input";
 
+extern bool gShouldStop; // extern from tinyalsaAudio.cpp
 pthread_t ctrlInput_thread;
-
 constexpr unsigned int CtrlInputsLoopPrioOrder = 1;
 
 
@@ -275,9 +273,9 @@ bool checkEvents(int fd, int print_flags, const char *device, const char *name, 
                             struct input_absinfo abs;
                             if(ioctl(fd, EVIOCGABS(j * 8 + k), &abs) == 0) 
                             {
-                                // printf(" : value %d, min %d, max %d, fuzz %d, flat %d, resolution %d",
-                                //     abs.value, abs.minimum, abs.maximum, abs.fuzz, abs.flat,
-                                //     abs.resolution);
+                                //  printf("code %d : value %d, min %d, max %d, fuzz %d, flat %d, resolution %d\n",
+                                //      code, abs.value, abs.minimum, abs.maximum, abs.fuzz, abs.flat,
+                                //      abs.resolution);
 
                                 // all multitouch events 
                                 if(code_map.find(code) != code_map.end())
@@ -289,11 +287,10 @@ bool checkEvents(int fd, int print_flags, const char *device, const char *name, 
                                     {
                                         ctrlInputsContext.ctrlInputs[chn].supported = true;
                                         ctrlInputsContext.ctrlInputs[chn].isMultiInput = true;  // only difference is taht multi touch ctrl inputs are multi event, cos can receive data from multiple fingers
-                                        ctrlInputsContext.mtInfo.touchSlots = 1; // let's set at least 1 touch slot, because some single touch phones do not provide this info
                                         ctrlInputsContext.inputsCount++;
 
                                         //VIC unfortunately, this has to be done manually
-                                        switch (code)
+                                        switch(code)
                                         {
                                         case ABS_MT_POSITION_X:
                                                 ctrlInputsContext.mtInfo.screenResolution[0] = abs.maximum+1;
@@ -475,6 +472,8 @@ int initCtrlInputs()
 
     DevInfo devinfo[chn_cin_count];
 
+    ctrlInputsContext.mtInfo.touchSlots = 1; // let's set at least 1 touch slot, because some single touch phones do not provide this info
+
     int res = openCtrlInputDevices(ctrlInput_devPath, print_flags, devinfo);
     if(res < 0) 
     {
@@ -494,7 +493,10 @@ int initCtrlInputs()
             len = ctrlInputsContext.mtInfo.touchSlots; // only multievent ctrl inputs have more slots to store parallel events
         ctrlIn.value.resize(len);
         for(auto &v : ctrlIn.value)
+        {
             v = std::make_shared< atomic<signed int> >(); // we allocate the atomic container
+            v->store(-1); // init all values to -1
+        }
 
         if(ctrlInputsVerbose)
         {

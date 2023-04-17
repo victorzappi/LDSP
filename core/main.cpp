@@ -34,7 +34,6 @@ void interrupt_handler(int sig)
 int main(int argc, char** argv)
 {
  	cout << "Hello, LDSP here!\n" << "\n";
-	//TODO print name of project, obtained via a define from CMake
 
 	LDSPinitSettings* settings = LDSP_InitSettings_alloc();	// Standard audio settings
 	LDSP_defaultSettings(settings);
@@ -45,7 +44,7 @@ int main(int argc, char** argv)
 	if(LDSP_parseArguments(argc, argv, settings) < 0)
 	{
 		LDSP_InitSettings_free(settings);
-		fprintf(stderr,"Error: unable to parse command line arguments\n");
+		fprintf(stderr, "Error: unable to parse command line arguments\n");
 		return 1;
 	}
 
@@ -54,14 +53,14 @@ int main(int argc, char** argv)
 	{
 		LDSP_HwConfig_free(hwconfig);
 		LDSP_InitSettings_free(settings);
-		fprintf(stderr,"Error: unable to parse hardwar configuration file\n");
+		fprintf(stderr, "Error: unable to parse hardwar configuration file\n");
 	}
 
 	if(LDSP_setMixerPaths(settings, hwconfig) < 0)
 	{
 		LDSP_HwConfig_free(hwconfig);
 		LDSP_InitSettings_free(settings);
-		fprintf(stderr,"Error: unable to set mixer paths\n");
+		fprintf(stderr, "Error: unable to set mixer paths\n");
 		return 1;
 	}
 
@@ -76,7 +75,7 @@ int main(int argc, char** argv)
 		LDSP_cleanupSensors();
 		LDSP_cleanupCtrlInputs();
 		LDSP_InitSettings_free(settings);
-		fprintf(stderr,"Error: unable to intialize control outputs\n");
+		fprintf(stderr, "Error: unable to intialize control outputs\n");
 		return 1;
 	}
 
@@ -87,7 +86,7 @@ int main(int argc, char** argv)
 		LDSP_cleanupSensors();
 		LDSP_resetMixerPaths(hwconfig);
 		LDSP_HwConfig_free(hwconfig);
-		fprintf(stderr,"Error: unable to initialize audio\n");
+		fprintf(stderr, "Error: unable to initialize audio\n");
 		return 1;
 	}
 

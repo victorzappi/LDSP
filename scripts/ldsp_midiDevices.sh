@@ -2,7 +2,7 @@
 #
 # This checks if any MIDI devices are detected and, in case, prints the relative ports
 # usage:
-# sh ldsp_midiDetect.sh
+# sh ldsp_midiDevices.sh
 
 
 
