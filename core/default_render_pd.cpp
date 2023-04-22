@@ -2,6 +2,7 @@
 #include "PdBase.hpp"
 
 #define PD_MINIMUM_BLOCK_SIZE 64
+#define PD_AUDIO_IN_CHANNELS 2
 
 pd::PdBase lpd;
 
@@ -78,6 +79,12 @@ LDSP_EventHandler eventHandler;
 LDSP_MidiHandler midiHandler;
 
 int pdBlockSize;
+int pdInChannels;
+
+float * inBuffer;
+int inBufferSize;
+
+bool sensorsEnabled;
 
 bool setup(LDSPcontext *context, void *userData)
 {
@@ -91,7 +98,33 @@ bool setup(LDSPcontext *context, void *userData)
         return false;
     }
 
-    if (!lpd.init(context->audioInChannels, context->audioOutChannels, context->audioSampleRate, true)) {
+    // Check if sensors are enabled
+    sensorsEnabled = false;
+    for (int i = 0; i < context->sensorChannels; i++) {
+        if (context->sensorsState[i] != -1) {
+            sensorsEnabled = true;
+        }
+    }
+
+    if (sensorsEnabled) {
+        // Force 2 audio channels, even if R channel isn't used, 
+        // so that users won't have to refactor adc channel routing if switching between the two
+        pdInChannels = PD_AUDIO_IN_CHANNELS+context->sensorChannels;
+        // Try to allocate memory to hold our input and output buffers that will be used to pass sensor+audio data to pure-data
+        inBufferSize = context->audioFrames*pdInChannels;
+        printf("Pure data input buffer size is: %d\n" , inBufferSize);
+        inBuffer = (float *) malloc(inBufferSize * sizeof(float));
+        if (inBuffer == NULL) {
+            std::cout << "Failed to allocate memory for input channels" << std::endl;
+            return false;
+        }
+    }
+    else {
+        // Process audio as normal if not using sensors
+        pdInChannels = context->audioInChannels;
+    }
+
+    if (!lpd.init(pdInChannels, context->audioOutChannels, context->audioSampleRate, true)) {
         std::cout << "Failed to initialize libpd instance" << std::endl;
     }
 
@@ -124,7 +157,30 @@ void render(LDSPcontext *context, void *userData)
 
     int pdBlocks = context->audioFrames / pdBlockSize;
 
-    lpd.processFloat(pdBlocks, context->audioIn, context->audioOut);
+    if (sensorsEnabled) {
+        int audioChunkStart, sensorChunkStart;
+        for (int i = 0; i < context->audioFrames; i++) {
+
+            // Fill the first N channels with audio data (force 2 even if unused)
+            audioChunkStart = i*pdInChannels;
+            for (int audioChannel = 0; audioChannel < context->audioInChannels; audioChannel++) {
+                inBuffer[audioChunkStart+audioChannel] = audioRead(context, i, audioChannel);
+            }
+
+            // Fill the rest of the channels with the sensor data
+            sensorChunkStart = audioChunkStart+PD_AUDIO_IN_CHANNELS;
+            for (int sensorIdx = 0; sensorIdx < context->sensorChannels; sensorIdx++) {
+                inBuffer[sensorChunkStart+sensorIdx] = sensorRead(context, (sensorChannel) sensorIdx); 
+            }
+
+        }
+
+        lpd.processFloat(pdBlocks, inBuffer, context->audioOut);
+    }
+    else {
+        // Process audio as normal if not using sens
+        lpd.processFloat(pdBlocks, context->audioIn, context->audioOut);
+    }
 
     lpd.receiveMessages();
     lpd.receiveMidi();
