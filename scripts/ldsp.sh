@@ -251,9 +251,12 @@ push () {
 
 
   # Push Pd files to device if this is a Pd project
-  if test -n "$(find "$PROJECT" -name '*.pd')"; then #VIC double quotes around PROJECT to handle spaces
-    adb push "$PROJECT"/*.pd /data/ldsp/
-  fi
+  # if test -n "$(find "$PROJECT" -name '*.pd')"; then #VIC double quotes around PROJECT to handle spaces
+  #   adb push "$PROJECT"/*.pd /data/ldsp/
+  # fi
+
+  # Push all project resources, including Pd files in Pd projects
+  adb push "$PROJECT"/* /data/ldsp/
 
 
 	adb push bin/ldsp /data/ldsp/ldsp
@@ -281,9 +284,12 @@ push_sdcard () {
   fi
 
   # Push Pd files to device if this is a Pd project
-  if test -n "$(find "$PROJECT" -name '*.pd')"; then #VIC double quotes around PROJECT to handle spaces
-    adb push "$PROJECT"/*.pd /sdcard/ldsp/
-  fi
+  # if test -n "$(find "$PROJECT" -name '*.pd')"; then #VIC double quotes around PROJECT to handle spaces
+  #   adb push "$PROJECT"/*.pd /sdcard/ldsp/
+  # fi
+
+  # Push all project resources, including Pd files in Pd projects
+  adb push "$PROJECT"/* /data/ldsp/
 
 	adb push bin/ldsp /sdcard/ldsp/ldsp
 }

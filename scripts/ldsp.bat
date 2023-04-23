@@ -231,9 +231,12 @@ rem End of :build
   )
 
   rem Push Pd files to device if this is a Pd project
-  if exist "%project%\*.pd" (
-    adb push "%project%\*.pd" /sdcard/ldsp/
-  )
+  rem if exist "%project%\*.pd" (
+  rem  adb push "%project%\*.pd" /sdcard/ldsp/
+  rem )
+
+  rem Push all project resources, including Pd files in Pd projects
+  adb push "%project%\*.pd" /sdcard/ldsp/
 
   adb push bin\ldsp /data/ldsp/ldsp
   exit /b 0
@@ -258,10 +261,12 @@ rem End of :push
   )
 
   rem Push Pd files to device if this is a Pd project
-  if exist "%project%\*.pd" (
-    adb push "%project%\*.pd" /sdcard/ldsp/
-  )
+  rem if exist "%project%\*.pd" (
+  rem  adb push "%project%\*.pd" /sdcard/ldsp/
+  rem )
 
+  rem Push all project resources, including Pd files in Pd projects
+  adb push "%project%\*.pd" /sdcard/ldsp/
 
   adb push bin\ldsp /sdcard/ldsp/ldsp
   exit /b 0

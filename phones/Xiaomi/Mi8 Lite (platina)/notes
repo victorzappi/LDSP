@@ -4,9 +4,6 @@ mic should be asr-mic
 speaker should change nothing! indeed current path was chosen because empty ['speaker' path in xml file is WRONG]
 rest not sure
 
-Problems with sensors!
-on API >= 26 
-ASensorManager_getInstance() should be replaced by
-ASensorManager_getInstanceForPackage(const char *packageName), which may be a problem!
+phone\s codec as an annoying compander [compressor+expander] that cannot seem to be turned off
 
 Multiple mixer_paths file found on phone 
