@@ -230,13 +230,21 @@ rem End of :build
     adb push %hw_config% /data/ldsp/ldsp_hw_config.json
   )
 
-  rem Push Pd files to device if this is a Pd project
-  rem if exist "%project%\*.pd" (
-  rem  adb push "%project%\*.pd" /sdcard/ldsp/
-  rem )
-
   rem Push all project resources, including Pd files in Pd projects
-  adb push "%project%\*.pd" /sdcard/ldsp/
+  rem adb push "%project%\*" /data/ldsp/
+
+  rem Push all project resources
+  rem this includes Pd files in Pd projects, but excludes C/C++ and assembly files
+  @echo off
+  for /F "delims=" %%i in ('dir /B /A:D "%project%"') do (
+      adb push "%project%\%%i" /data/ldsp/
+  )
+  for %%i in ("%project%\*") do (
+      if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" (
+          adb push "%%i" /data/ldsp/
+      )
+  )
+
 
   adb push bin\ldsp /data/ldsp/ldsp
   exit /b 0
@@ -260,13 +268,20 @@ rem End of :push
     adb push %hw_config% /sdcard/ldsp/ldsp_hw_config.json
   )
 
-  rem Push Pd files to device if this is a Pd project
-  rem if exist "%project%\*.pd" (
-  rem  adb push "%project%\*.pd" /sdcard/ldsp/
-  rem )
-
   rem Push all project resources, including Pd files in Pd projects
-  adb push "%project%\*.pd" /sdcard/ldsp/
+  rem adb push "%project%\*" /sdcard/ldsp/
+
+  rem Push all project resources
+  rem this includes Pd files in Pd projects, but excludes C/C++ and assembly files
+  @echo off
+  for /F "delims=" %%i in ('dir /B /A:D "%project%"') do (
+      adb push "%project%\%%i" /sdcard/ldsp/
+  )
+  for %%i in ("%project%\*") do (
+      if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" (
+          adb push "%%i" /sdcard/ldsp/
+      )
+  )
 
   adb push bin\ldsp /sdcard/ldsp/ldsp
   exit /b 0

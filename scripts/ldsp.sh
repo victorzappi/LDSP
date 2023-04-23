@@ -249,15 +249,16 @@ push () {
     adb push "$hw_config" /data/ldsp/ldsp_hw_config.json
   fi
 
-
-  # Push Pd files to device if this is a Pd project
-  # if test -n "$(find "$PROJECT" -name '*.pd')"; then #VIC double quotes around PROJECT to handle spaces
-  #   adb push "$PROJECT"/*.pd /data/ldsp/
-  # fi
-
   # Push all project resources, including Pd files in Pd projects
-  adb push "$PROJECT"/* /data/ldsp/
+  # adb push "$PROJECT"/* /data/ldsp/
+  
+  #TODO switch to project folders on phone
+  # then change name of bin to project name
+  # add remove function to delete project folder from phone
 
+  # Push all project resources
+  # this includes Pd files in Pd projects, but excludes C/C++ and assembly files
+  find "$PROJECT" -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -print0 | xargs -0 -I{} adb push {} /data/ldsp/
 
 	adb push bin/ldsp /data/ldsp/ldsp
 
@@ -283,13 +284,14 @@ push_sdcard () {
     adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
   fi
 
-  # Push Pd files to device if this is a Pd project
-  # if test -n "$(find "$PROJECT" -name '*.pd')"; then #VIC double quotes around PROJECT to handle spaces
-  #   adb push "$PROJECT"/*.pd /sdcard/ldsp/
-  # fi
+  # Push all project resources
+  # adb push "$PROJECT"/* /sdcard/ldsp/
 
-  # Push all project resources, including Pd files in Pd projects
-  adb push "$PROJECT"/* /data/ldsp/
+  # Push all project resources
+  # this includes Pd files in Pd projects, but excludes C/C++ and assembly files
+  find "$PROJECT" -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -print0 | xargs -0 -I{} adb push {} /sdcard/ldsp/
+
+
 
 	adb push bin/ldsp /sdcard/ldsp/ldsp
 }
