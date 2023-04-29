@@ -232,8 +232,8 @@ clean () {
   ninja clean
 }
 
-# Push the user project and LDSP hardware config to the phone.
-push () {
+# Install the user project, LDSP hardware config and resources to the phone.
+install () {
   if [[ ! -f bin/ldsp ]]; then
     echo "Cannot push: No ldsp executable found. Please run \"ldsp build\" first."
     exit 1
@@ -264,7 +264,7 @@ push () {
 
 }
 
-# Push the user project and LDSP hardware config to the phone's SD card.
+# Push the user project, LDSP hardware config and resources to phone's SD card, for manual installation.
 push_sdcard () {
   if [[ ! -f bin/ldsp ]]; then
     echo "Cannot push: No ldsp executable found. Please run \"ldsp build\" first."
@@ -300,6 +300,12 @@ push_sdcard () {
 install_scripts() {
   adb shell "mkdir -p /data/ldsp/scripts"
   adb push ./scripts/ldsp_* /data/ldsp/scripts/
+}
+
+# Push the LDSP scripts to the phone's SD card, for manual installation.
+push_scripts_sdcard() {
+  adb shell "mkdir -p /sdcard/ldsp/scripts"
+  adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/
 }
 
 # Stop the currently-running user project on the phone.
@@ -352,10 +358,13 @@ help () {
   echo -e "steps:"
   echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone, version, and project."
   echo -e "  build\t\t\t\tBuild the user project."
-  echo -e "  push\t\t\t\tPush the user project and LDSP hardware configuration to the phone."
-  echo -e "  push_sdcard\t\t\tPush the user project and LDSP hardware configuration to the phone's SD card."
+  echo -e "  install\t\t\t\tInstall the user project, LDSP hardware config and resources to the phone."
+  echo -e "  push_sdcard\t\t\tPush the user project, LDSP hardware config and resources to the phone's SD card, for manual installation."
   echo -e "  run\t\t\t\tRun the user project on the phone."
   echo -e "  \t\t\t\t(Any arguments passed after \"run\" are passed to the user project.)"
+  echo -e "  stop\t\t\t\tStop the currently-running user project on the phone."
+  echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone."
+  echo -e "  push_scripts_sdcard\t\tPush the LDSP scripts to the phone's SD card, for manual installation."
 }
 
 STEPS=()
@@ -434,14 +443,17 @@ for i in "${STEPS[@]}"; do
     clean)
       clean
       ;;
-    push)
-      push
+    install)
+      install
       ;;
     push_sdcard)
       push_sdcard
       ;;
     install_scripts)
       install_scripts
+      ;;
+    push_scripts_sdcard)
+      push_scripts_sdcard
       ;;
     run)
       run "${@:2}"

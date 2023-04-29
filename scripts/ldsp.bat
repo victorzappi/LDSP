@@ -212,8 +212,8 @@ rem End of :configure
   exit /b 0
 rem End of :build
 
-:push
-  rem Push the user project and LDSP hardware config to the phone.
+:install
+  rem Install the user project, LDSP hardware config and resources to the phone.
   if not exist "bin\ldsp" (
     echo Cannot push: No ldsp executable found. Please run "ldsp build\ first.
     exit /b 1
@@ -248,10 +248,10 @@ rem End of :build
 
   adb push bin\ldsp /data/ldsp/ldsp
   exit /b 0
-rem End of :push
+rem End of :install
 
 :push_sdcard
-  rem Push the user project and LDSP hardware config to the phone's SD card.
+  rem Push the user project, LDSP hardware config and resources to the phone's SD card, for manual installation
   if not exist "bin\ldsp" (
     echo Cannot push: No ldsp executable found. Please run "ldsp build\ first.
     exit /b 1
@@ -320,8 +320,8 @@ if "%1" == "build" (
   exit /b %ERRORLEVEL%
 )
 
-if "%1" == "push" (
-  call :push %2 %3
+if "%1" == "install" (
+  call :install %2 %3
   exit /b %ERRORLEVEL%
 )
 
@@ -334,3 +334,5 @@ if "%1" == "run" (
   call :run %2 %3 %4 %5 %6 %7 %8 %9
   exit /b %ERRORLEVEL%
 )
+
+rem TODO add stop, install_scripts, push_scripts_sdcard and possibly run_persistent
