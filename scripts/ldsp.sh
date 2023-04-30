@@ -276,7 +276,7 @@ push_sdcard () {
 
 
   adb root
-  adb shell "mkdir -p /sdcard/ldsp"
+  adb shell "su -c 'mkdir -p /sdcard/ldsp'"
 
   if [[ ! -f "$hw_config" ]]; then
     echo "WARNING: Hardware config file not found, skipping..."
@@ -298,20 +298,20 @@ push_sdcard () {
 
 # Install the LDSP scripts on the phone.
 install_scripts() {
-  adb shell "mkdir -p /data/ldsp/scripts"
+  adb shell "su -c 'mkdir -p /data/ldsp/scripts'"
   adb push ./scripts/ldsp_* /data/ldsp/scripts/
 }
 
 # Push the LDSP scripts to the phone's SD card, for manual installation.
 push_scripts_sdcard() {
-  adb shell "mkdir -p /sdcard/ldsp/scripts"
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
   adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/
 }
 
 # Stop the currently-running user project on the phone.
 stop () {
   echo "Stopping LDSP..."
-  adb shell "sh /data/ldsp/scripts/ldsp_stop.sh"
+  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
 }
 
 handle_stop() {

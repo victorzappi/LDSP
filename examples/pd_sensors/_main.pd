@@ -1,4 +1,4 @@
-#N canvas 48 87 1872 993 12;
+#N canvas 1920 159 1920 993 12;
 #X obj 270 365 osc~ 220;
 #X text 618 66 ADC channel overview ----------------- *** Audio Channels
 *** \; ADC 1: Analog in L / Mono \; ADC 2: Analog in R \; *** Sensor
@@ -28,9 +28,9 @@ ADC 10: gyro_y \; ADC 11: gyro_z \; ADC 12: light \; ADC 13: proximity
 #X text 18 297 map to [220 \, 880] Hz;
 #X text 312 419 y accel controls osc amplitude;
 #X text 14 361 x accel controls osc frequency;
-#X obj 400 318 +~ 0.2;
-#X obj 401 280 *~ 0.5;
-#X text 453 298 map to [0.2 \, 0.7];
+#X text 453 298 map to [0.1 \, 0.7];
+#X obj 400 318 +~ 0.1;
+#X obj 401 280 *~ 0.6;
 #X connect 0 0 13 0;
 #X connect 2 0 7 0;
 #X connect 3 0 2 0;
@@ -38,7 +38,7 @@ ADC 10: gyro_y \; ADC 11: gyro_z \; ADC 12: light \; ADC 13: proximity
 #X connect 6 0 8 0;
 #X connect 7 0 9 0;
 #X connect 8 0 10 0;
-#X connect 9 0 25 0;
+#X connect 9 0 26 0;
 #X connect 10 0 14 0;
 #X connect 11 0 3 0;
 #X connect 12 0 4 0;
@@ -46,5 +46,5 @@ ADC 10: gyro_y \; ADC 11: gyro_z \; ADC 12: light \; ADC 13: proximity
 #X connect 13 0 5 1;
 #X connect 14 0 15 0;
 #X connect 15 0 0 0;
-#X connect 24 0 13 1;
-#X connect 25 0 24 0;
+#X connect 25 0 13 1;
+#X connect 26 0 25 0;

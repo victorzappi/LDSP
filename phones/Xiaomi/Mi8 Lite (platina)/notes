@@ -1,9 +1,10 @@
-all path names are placeholders:
-line-out/in should be USB
-mic should be asr-mic
-speaker should change nothing! indeed current path was chosen because empty ['speaker' path in xml file is WRONG]
-rest not sure
+all mixer paths are placeholders:
+line-out/in are not needed, as line-out/in is accessible via USB as card 1 [when adapter is connected]
+mic should likely be asr-mic [more testing needed]
+speaker path should change nothing, for the default settings activate the speaker path already! indeed current speaker path was chosen because empty ['speaker' path in xml file is WRONG]
 
-phone\s codec as an annoying compander [compressor+expander] that cannot seem to be turned off
+phone's codec has an annoying compander [compressor+expander] that cannot seem to be turned off
+
+cannot control flashlight
 
 Multiple mixer_paths file found on phone 

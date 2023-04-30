@@ -222,7 +222,7 @@ rem End of :build
   set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
 
   adb root
-  adb shell "mkdir -p /data/ldsp"
+  adb shell "su -c 'mkdir -p /data/ldsp'"
 
   if not exist %hw_config% (
     echo WARNING: Hardware config file not found, skipping...
@@ -260,7 +260,7 @@ rem End of :install
   set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
 
   adb root
-  adb shell "mkdir -p /sdcard/ldsp"
+  adb shell "su -c 'mkdir -p /sdcard/ldsp'"
 
   if not exist %hw_config% (
     echo WARNING: Hardware config file not found, skipping...
@@ -290,8 +290,8 @@ rem End of :push_sdcard
 :run
   rem Run the user project on the phone.
 
-  adb shell "chmod +x /data/ldsp/ldsp"
-  adb shell "/data/ldsp/ldsp"
+  adb shell "su -c 'chmod +x /data/ldsp/ldsp'" rem is this needed?
+  adb shell "su -c '/data/ldsp/ldsp'"
   exit /b 0
 rem End of :run
 

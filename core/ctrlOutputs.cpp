@@ -490,21 +490,27 @@ void probeScreenCommands()
 {
     for(int i=0; i<screenCmds.idx_cnt; i++)
     {
+        // try all dumpsys commands stored in service
         FILE* pipe = popen(screenCmds.service[i].c_str(), "r");
-        if (!pipe) 
+        if(!pipe) 
         {
             fprintf(stderr,"Error: unable to run \"%s\"\n", screenCmds.service[i].c_str());
             return;
         }
         char buffer[128];
         
-        while (!feof(pipe)) 
+        // cycle all lines
+        while(!feof(pipe)) 
         {
-            if (fgets(buffer, 128, pipe) != NULL) 
+            if(fgets(buffer, 128, pipe) != NULL) 
             {
-                if (strstr(buffer, screenCmds.prop[i].c_str()) != NULL) 
+                // if line containes one of tehe properties saved in prop
+                if(strstr(buffer, screenCmds.prop[i].c_str()) != NULL) 
                 {
-                    screenCmds.idx = i;
+                    // and result is string stored in either on or off
+                    if(strstr(buffer, screenCmds.on[i].c_str()) != NULL ||
+                       strstr(buffer, screenCmds.off[i].c_str()) != NULL ) 
+                        screenCmds.idx = i; // then this is where we can get and set the state of the screen
                     break;
                 }
             }
@@ -517,6 +523,7 @@ bool isScreenOn()
 {
     int idx = screenCmds.idx;
     bool screenIsOn = false;
+    // check the dumpsys command
     FILE* pipe = popen(screenCmds.service[idx].c_str(), "r");
     if (!pipe) 
     {
@@ -525,13 +532,16 @@ bool isScreenOn()
     }
     char buffer[128];
     
+    // cycle all lines
     while (!feof(pipe)) 
     {
         if (fgets(buffer, 128, pipe) != NULL) 
         {
+            // check the line that includes the property
             if (strstr(buffer, screenCmds.prop[idx].c_str()) != NULL) 
             {
-                if (strstr(buffer, screenCmds.on[idx].c_str()) != NULL) 
+                // check the value of the property
+                if (strstr(buffer, screenCmds.on[idx].c_str()) != NULL)
                     screenIsOn = true;
                 else if (strstr(buffer, screenCmds.off[idx].c_str()) != NULL) 
                     screenIsOn = false;
@@ -567,21 +577,36 @@ void* screenCtrl_loop(void* arg)
             // if change is requested, first check current state of screen
             bool screenIsOn = isScreenOn();
 
-            // if requested state is different than current state OR keep-screen-on setting has been changed
-            if(screenIsOn!=nextScreenState || tapActive!=nextKeepOn)
+            // if requested state is different than current state 
+            if(screenIsOn!=nextScreenState)
             {
                 if(!nextScreenState)
                 {
                     setScreen(0); // turn off
+                    // and disable tap, just in case
                     tapActive = false;
+                    nextKeepOn = false;
+                }
+                else
+                    setScreen(nextBrightness); // turn on
+            }
+            // if keep-screen-on setting has been changed
+            if(tapActive!=nextKeepOn)
+            {
+                if(tapActive)
+                {
+                    tapActive = false;
+                    nextKeepOn = false;
                 }
                 else
                 {
-                    setScreen(nextBrightness); // turn on
-                    tapActive = nextKeepOn; // and if keep-screen-on setting is active, set auto tapping mechanism
+                    tapActive = true;
+                    nextKeepOn = true;
                 }
             }
-            nextScreenState = -1; // then we flag that the change was made
+
+            // then we flag that the change was made
+            nextScreenState = -1; 
         }
         else if(tapActive) // if auto tapping mechanism
         {

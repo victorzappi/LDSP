@@ -90,11 +90,11 @@ struct ctrlOutputKeywords {
 // equivalent to command line:
 // dumpsys service[idx] | grep prop[idx]
 struct screenCtrlsCommands {
-    static const unsigned int idx_cnt = 4;
-    string service[idx_cnt] = {"dumpsys power", "dumpsys power", "dumpsys window",              "dumpsys display"};
-    string prop[idx_cnt]    = {"mScreenOn=",    "mWakefulness=", "mWindowManagerDrawComplete=", "mBlanked="};
-    string on[idx_cnt]      = {"true",          "true",          "true",                        "false"};
-    string off[idx_cnt]     = {"false",         "false",         "false",                       "true"};
+    static const unsigned int idx_cnt = 6;
+    string service[idx_cnt] = {"dumpsys power", "dumpsys power", "dumpsys power",           "dumpsys window",              "dumpsys display",  "dumpsys display"};
+    string prop[idx_cnt]    = {"mScreenOn=",    "mWakefulness=", "Display Power: state=",   "mWindowManagerDrawComplete=", "mBlanked=",        "mScreenState="};
+    string on[idx_cnt]      = {"true",          "true",          "ON",                      "true",                        "false",            "ON"};
+    string off[idx_cnt]     = {"false",         "false",         "OFF",                     "false",                       "true",             "OFF"};
     int idx = -1;
 };
 

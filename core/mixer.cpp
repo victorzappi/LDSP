@@ -45,6 +45,8 @@ using namespace pugi;
 
 bool mixerVerbose = false;
 
+bool skipMixerPaths = false;
+
 mixer *mix = nullptr;
 
 
@@ -63,15 +65,23 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	if(!settings)
 		return -1;
     
+	// if not using embedded card, we can skip mixer paths
+	skipMixerPaths = (settings->card != 0);
+	
     mixerVerbose = settings->verbose;
 
-	if(mixerVerbose)
+	
+	if(mixerVerbose && !skipMixerPaths)
 		printf("\nLDSP_setMixerPaths()\n");
 
 
 	// populate device's numbers and ids
 	if(setupDevicesNumAndId(settings, hwconfig)!=0)
 		return -2;
+
+
+	if(skipMixerPaths)
+		return 0;
 
 
 
@@ -165,6 +175,9 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 
 void LDSP_resetMixerPaths(LDSPhwConfig *hwconfig)
 {
+	if(skipMixerPaths)
+		return;
+
 	if(mixerVerbose)
 		printf("LDSP_resetMixerPaths()\n");
 

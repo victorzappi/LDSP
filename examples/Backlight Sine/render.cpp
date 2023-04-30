@@ -69,6 +69,9 @@ void on_receive(oscpkt::Message* msg, const char* addr, void* arg)
 
 bool setup(LDSPcontext *context, void *userData)
 {
+	screenSetState(true, 1, true);
+	
+
     inverseSampleRate = 1.0 / context->audioSampleRate;
 	phase = 0.0;
 
