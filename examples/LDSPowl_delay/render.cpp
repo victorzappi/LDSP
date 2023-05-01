@@ -28,8 +28,8 @@ float delay = 0.3; // [s]
 
 // declare variables for circular buffer
 std::vector<float> gDelayBuffer;
-unsigned int gWritePointer = 0;
-unsigned int gReadPointer = 0;
+int gWritePointer = 0;
+int gReadPointer = 0;
 
 const float G=9.8;
 

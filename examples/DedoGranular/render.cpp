@@ -68,8 +68,10 @@ bool setup(LDSPcontext *context, void *userData)
 
 void render(LDSPcontext *context, void *userData)
 {
-    
-    int anytouch = multitouchRead(context, chn_mt_anyTouch);
+    // not all phones support the 'any touch' input
+    //int anytouch = multitouchRead(context, chn_mt_anyTouch); 
+    // so we approximate it, by checking the id assigned to the first slot
+    int anytouch = (multitouchRead(context, chn_mt_id, 0) > -1);
     
     if(anytouch!=0)
     {
