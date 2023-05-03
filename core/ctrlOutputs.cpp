@@ -522,6 +522,12 @@ void probeScreenCommands()
 bool isScreenOn()
 {
     int idx = screenCmds.idx;
+    if(idx == -1)
+    {
+        printf("\nWarning! Cannot read state of screen ):\n\n");
+        return true;
+    }
+
     bool screenIsOn = false;
     // check the dumpsys command
     FILE* pipe = popen(screenCmds.service[idx].c_str(), "r");

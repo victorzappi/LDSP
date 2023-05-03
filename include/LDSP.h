@@ -23,8 +23,6 @@
 #include "BelaUtilities.h"
 #include "hwConfig.h"
 
-#define MAX_TOUCHES 20
-
 using std::string;
 
 struct LDSPinitSettings {

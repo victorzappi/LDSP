@@ -24,7 +24,7 @@ std::string pd_vibrationObj = "ldsp_vibration";
 std::string pd_touchObjPrefix = "ldsp_touch_";
 std::string pd_enableBtnObj = "ldsp_enable_buttons";
 std::string pd_btnInputObjPrefix = "ldsp_btn_";
-
+std::string pd_screenObj = "ldsp_screen";
 
 
 class LDSP_EventHandler : public pd::PdReceiver 
@@ -48,13 +48,13 @@ class LDSP_EventHandler : public pd::PdReceiver
                 mtInfoList.addFloat(g_ctx->mtInfo->screenResolution[0]);
                 mtInfoList.addFloat(g_ctx->mtInfo->screenResolution[1]);
                 mtInfoList.addFloat(g_ctx->mtInfo->touchSlots);
-                mtInfoList.addFloat(g_ctx->mtInfo->touchAxisMax);
-                mtInfoList.addFloat(g_ctx->mtInfo->touchWidthMax);
+                //mtInfoList.addFloat(g_ctx->mtInfo->touchAxisMax); // for now this are not needed, for only a subset of mt data is passed to the patch
+                //mtInfoList.addFloat(g_ctx->mtInfo->touchWidthMax);
                 lpd.sendList(pd_mtInfoObj, mtInfoList);
             }
         }
         else {
-            printf("Recieved Bang from %s\n", dest.c_str());
+            printf("Received Bang from %s\n", dest.c_str());
         }
     }
 
@@ -74,6 +74,14 @@ class LDSP_EventHandler : public pd::PdReceiver
             if (g_ctx->ctrlOutputsState[chn_cout_lcdBacklight] == ctrlOutput_configured) {
                 ctrlOutputWrite(g_ctx, chn_cout_lcdBacklight, num);
             }
+        }
+        else if (dest == pd_screenObj) {
+            if(num <= 0)
+                screenSetState(false); // set screen off
+            else if(num == 1)
+                screenSetState(true, 1, false); // set screen on 
+            else if(num >= 2)
+                screenSetState(true, 1, true); // set screen on and keep it on
         }
         else {
             std::cout << dest << ": " << std::to_string(num) << std::endl;
@@ -220,12 +228,15 @@ bool setup(LDSPcontext *context, void *userData)
     lpd.subscribe(pd_flashlightObj);
     lpd.subscribe(pd_backlightObj);
     lpd.subscribe(pd_vibrationObj);
+    // Listen to screen controls
+    lpd.subscribe(pd_screenObj);
     // List to bangs sent to query mt info object
     lpd.subscribe(pd_getMtInfoObj);
     // Listen to bangs sent to the enable multitouch object
     lpd.subscribe(pd_enableMtObj);
     // Listen to bangs sent to the enable buttons object
     lpd.subscribe(pd_enableBtnObj);
+    
 
 
 
@@ -328,7 +339,7 @@ void render(LDSPcontext *context, void *userData)
                 for (int i = 0; i < PD_MULTITOUCH_INPUTS; i++) {
                     float newVal = multitouchRead(context, pdMTChannelMappings[i], slot); 
                     touchList.addFloat(newVal);
-                    if (newVal != multiTouchState[chunkStart+i] && newVal != -1) {
+                    if (newVal != multiTouchState[chunkStart+i] /* && newVal != -1 */) { // -1 is a good way to signal that there is no touch in that slot
                         numElements++;             
                         multiTouchState[chunkStart+i] = newVal;
                     }

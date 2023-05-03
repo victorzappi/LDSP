@@ -1,3 +1,5 @@
+// This code is based on the code credited below, but it has been modified
+// further by Victor Zappi
 /*
  ____  _____ _        _    
 | __ )| ____| |      / \   

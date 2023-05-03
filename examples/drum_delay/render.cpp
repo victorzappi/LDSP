@@ -17,15 +17,17 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+// This code example uses this sounds from freesound:
+// "323623__shpira__tech-drums.wav" by shpira ( https://freesound.org/s/323623/ ) licensed under CCBYNC 4.0
+
 #include "LDSP.h"
-#include <vector>
 #include "MonoFilePlayer.h"
 
 #define SCREEN_REGIONS 4
 
 
-// drum loop has to have same samp_drylerate as project!
-string filename = "323623__shpira__tech-drums.wav"; // https://freesound.org/s/323623/
+// drum loop has to have same samplerate as project!
+string filename = "323623__shpira__tech-drums.wav";
 float bpm = 102; // bpm of drum loop
 int screenRegions = SCREEN_REGIONS; // number of vertical regions we split the screen into
 // each region is associated to a delay time factor and a feedback value
@@ -56,13 +58,14 @@ bool setup(LDSPcontext *context, void *userData)
 	screenSetState(true, 1, true);
 
  	// Load the audio file
-	if(!player.setup(filename)) {
+	if(!player.setup(filename)) 
+	{
     	printf("Error loading audio file '%s'\n", filename.c_str());
     	return false;
 	}
 
 
-	// allocate the circular buffer to contain enough samp_dryles to cover 2 seconds
+	// allocate the circular buffer to contain enough samples to cover 2 seconds
     delayBuffer.resize(2 * context->audioSampleRate);
     
 
