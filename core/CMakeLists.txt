@@ -38,12 +38,15 @@ set (LIBPD_INCLUDE_DIRS
   ${LIBPD_DIR}/pure-data/src 
   ${LIBPD_DIR}/cpp
 )
-
 target_include_directories(ldsp
   PRIVATE ../include
   PRIVATE ..
   PRIVATE ${LIBPD_INCLUDE_DIRS}
 )
+
+# All necessary headers for fftw
+target_include_directories(ldsp PRIVATE ../dependencies/fftw3/api)
+
 
 target_link_libraries(ldsp
   PRIVATE libraries
@@ -52,5 +55,6 @@ target_link_libraries(ldsp
   PRIVATE sndfile 
   PRIVATE glob
   PRIVATE libpd_static
+  PRIVATE fftw3
 )
 
