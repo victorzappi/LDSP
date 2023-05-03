@@ -1,0 +1,16 @@
+#N canvas 1038 25 1522 560 12;
+#X obj 74 118 r ldsp_btn_power;
+#X obj 75 171 r ldsp_btn_volDown;
+#X obj 76 226 r ldsp_btn_volUp;
+#X obj 76 250 print volume_up;
+#X obj 75 195 print volume_down;
+#X obj 74 142 print power;
+#X obj 78 18 loadbang;
+#X obj 78 60 s ldsp_enable_buttons;
+#X text 240 21 First \, tell LDSP to send button inputs to pure data \; By sending a bang to ldsp_enable_buttons;
+#X text 220 116 Then read the button states! \; 1 = pressed \, 0 = not pressed \;;
+#X connect 0 0 5 0;
+#X connect 1 0 4 0;
+#X connect 2 0 3 0;
+#X connect 6 0 7 0;
+#X coords 0 560 1 559 85 60 0;

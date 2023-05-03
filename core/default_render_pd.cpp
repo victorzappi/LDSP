@@ -12,7 +12,9 @@ pd::PdBase lpd;
 LDSPcontext * g_ctx;
 
 bool gSensorsEnabled;
-bool gMultiTouchEnabled;
+bool gControlInEnabled; 
+bool gSendMultiTouch;
+bool gSendBtnInputs;
 std::string pd_enableMtObj = "ldsp_enable_multitouch";
 std::string pd_getMtInfoObj = "ldsp_get_mt_info";
 std::string pd_mtInfoObj = "ldsp_mt_info";
@@ -20,6 +22,8 @@ std::string pd_flashlightObj = "ldsp_flashlight";
 std::string pd_backlightObj = "ldsp_backlight";
 std::string pd_vibrationObj = "ldsp_vibration";
 std::string pd_touchObjPrefix = "ldsp_touch_";
+std::string pd_enableBtnObj = "ldsp_enable_buttons";
+std::string pd_btnInputObjPrefix = "ldsp_btn_";
 
 
 
@@ -32,18 +36,22 @@ class LDSP_EventHandler : public pd::PdReceiver
 
     // Redirect bangs to console
     void receiveBang(const std::string &dest) {
-
         if (dest == pd_enableMtObj) {
-            gMultiTouchEnabled = true;
+            gSendMultiTouch = true;
+        }
+        else if (dest == pd_enableBtnObj) {
+            gSendBtnInputs = true;
         }
         else if (dest == pd_getMtInfoObj) {
-            pd::List mtInfoList;
-            mtInfoList.addFloat(g_ctx->mtInfo->screenResolution[0]);
-            mtInfoList.addFloat(g_ctx->mtInfo->screenResolution[1]);
-            mtInfoList.addFloat(g_ctx->mtInfo->touchSlots);
-            mtInfoList.addFloat(g_ctx->mtInfo->touchAxisMax);
-            mtInfoList.addFloat(g_ctx->mtInfo->touchWidthMax);
-            lpd.sendList(pd_mtInfoObj, mtInfoList);
+            if (gControlInEnabled) {
+                pd::List mtInfoList;
+                mtInfoList.addFloat(g_ctx->mtInfo->screenResolution[0]);
+                mtInfoList.addFloat(g_ctx->mtInfo->screenResolution[1]);
+                mtInfoList.addFloat(g_ctx->mtInfo->touchSlots);
+                mtInfoList.addFloat(g_ctx->mtInfo->touchAxisMax);
+                mtInfoList.addFloat(g_ctx->mtInfo->touchWidthMax);
+                lpd.sendList(pd_mtInfoObj, mtInfoList);
+            }
         }
         else {
             printf("Recieved Bang from %s\n", dest.c_str());
@@ -134,6 +142,9 @@ int pdInChannels;
 float * inBuffer;
 int inBufferSize;
 
+// Button Input
+std::vector<float> buttonInputStates;
+std::vector<std::string> pdButtonNames;
 
 
 // MultiTouch 
@@ -169,15 +180,20 @@ bool setup(LDSPcontext *context, void *userData)
         return false;
     }
 
+
     // Check if sensors are enabled
     gSensorsEnabled = false;
     for (int i = 0; i < context->sensorChannels; i++) {
-        if (context->sensorsState[i] != -1) {
+        if (context->sensorsState[i] != sensor_not_supported) {
             gSensorsEnabled = true;
         }
     }
 
+    // Check if control inputs are on globaly (buttons + multitouch)
+    gControlInEnabled = context->ctrlInChannels > 0;
+
     if (gSensorsEnabled) {
+        std::cout << "Sensor inputs are on" << std::endl;
         // Force 2 audio channels, even if R channel isn't used, 
         // so that users won't have to refactor adc channel routing if switching between the two
         pdInChannels = PD_AUDIO_IN_CHANNELS+context->sensorChannels;
@@ -191,6 +207,7 @@ bool setup(LDSPcontext *context, void *userData)
         }
     }
     else {
+        std::cout << "Sensor inputs are off" << std::endl;
         // Process audio as normal if not using sensors
         pdInChannels = context->audioInChannels;
     }
@@ -207,9 +224,9 @@ bool setup(LDSPcontext *context, void *userData)
     lpd.subscribe(pd_getMtInfoObj);
     // Listen to bangs sent to the enable multitouch object
     lpd.subscribe(pd_enableMtObj);
+    // Listen to bangs sent to the enable buttons object
+    lpd.subscribe(pd_enableBtnObj);
 
-    // Turn on audio
-    lpd.computeAudio(true);
 
 
     // Open and Load Patch
@@ -223,26 +240,48 @@ bool setup(LDSPcontext *context, void *userData)
         std::cout << "Loaded PD Patch " << patch.filename() << std::endl;
     }
 
-    pdBlockSize = libpd_blocksize();
 
 
-    gNumTouchSlots = context->mtInfo->touchSlots;
-    // Set initial multitouch states
-    mtStateBufferSize = PD_MULTITOUCH_INPUTS*gNumTouchSlots;
-    multiTouchState.resize(mtStateBufferSize);
-    anyTouchState = 0.0;
+    if (gControlInEnabled) {    
+        std::cout << "Control Inputs are on" << std::endl;
+        // Initialize button input resource
+        buttonInputStates.resize(chn_btn_count);
+        pdButtonNames.resize(chn_btn_count);
+        // Be careful, these need to be manually updated!
+        // There might be a better way to do these mappings
+        pdButtonNames[chn_btn_power] = "power";
+        pdButtonNames[chn_btn_volDown] = "volDown";
+        pdButtonNames[chn_btn_volUp] = "volUp";
 
-    // Map the position of each value in the pd list
-    // to its respective ldsp mt channel number
-    pdMTChannelMappings[pd_mt_x] = chn_mt_x;
-    pdMTChannelMappings[pd_mt_y] = chn_mt_y;
-    pdMTChannelMappings[pd_mt_id] = chn_mt_id;
-    pdMTChannelMappings[pd_mt_pressure] = chn_mt_pressure;
+
+        // Initliaze multitouch resources
+        gNumTouchSlots = context->mtInfo->touchSlots;
+        printf("%d\n", gNumTouchSlots);
+        // Set initial multitouch states
+        mtStateBufferSize = PD_MULTITOUCH_INPUTS*gNumTouchSlots;
+        multiTouchState.resize(mtStateBufferSize);
+        anyTouchState = 0.0;
+
+        // Map the position of each value in the pd list
+        // to its respective ldsp mt channel number
+        pdMTChannelMappings[pd_mt_x] = chn_mt_x;
+        pdMTChannelMappings[pd_mt_y] = chn_mt_y;
+        pdMTChannelMappings[pd_mt_id] = chn_mt_id;
+        pdMTChannelMappings[pd_mt_pressure] = chn_mt_pressure;
+    }
+    else {
+        std::cout << "Control Inputs are off" << std::endl;
+    }
 
     // MultiTouch is not passed into pure-data by default,
     // The user has to enable it by sending a bang to the `pd_enableMtObj` object
-    gMultiTouchEnabled = false;
-    
+    gSendMultiTouch = false;
+    gSendBtnInputs = false;
+
+
+    // Turn on audio
+    lpd.computeAudio(true);
+    pdBlockSize = libpd_blocksize(); 
 
     return true;
 }
@@ -253,36 +292,53 @@ void render(LDSPcontext *context, void *userData)
 
     int pdBlocks = context->audioFrames / pdBlockSize;
 
-    float crtlButton = buttonRead(context, chn_btn_volUp);
-    printf("%f\n", crtlButton );
+    // If control inputs are off globally (via command line), ignore them completely
+    // even if user tries to enable them from inside pure-data 
+    // trying to access them will kill the loop
+    if (gControlInEnabled) {
 
-    if (gMultiTouchEnabled) {
-        // Send anyTouch through to PD if it changed since last render call
-        float anyTouch = multitouchRead(context, chn_mt_anyTouch, 0);
-        if (anyTouch != anyTouchState && anyTouch != -1) {
-            lpd.sendFloat("ldsp_mt_anyTouch", anyTouch);
-            anyTouchState = anyTouch;
-        }
-
-        int numElements;
-        // Send each touch slot to its respective pd recieve element
-        for (int slot = 0; slot < gNumTouchSlots; slot++) {
-            int chunkStart = slot*PD_MULTITOUCH_INPUTS;
-            pd::List touchList;
-            numElements = 0;
-            for (int i = 0; i < PD_MULTITOUCH_INPUTS; i++) {
-                float newVal = multitouchRead(context, pdMTChannelMappings[i], slot); 
-                touchList.addFloat(newVal);
-                if (newVal != multiTouchState[chunkStart+i] && newVal != -1) {
-                    numElements++;             
-                    multiTouchState[chunkStart+i] = newVal;
+        // send button inputs to pure data if user has enabled them
+        if (gSendBtnInputs) {
+            for (int i = 0; i < chn_btn_count; i++) {
+                int newButtonVal = buttonRead(context, (btnInputChannel) i);
+                if (newButtonVal != buttonInputStates[i] && newButtonVal != -1) {
+                    lpd.sendFloat(pd_btnInputObjPrefix + pdButtonNames[i], newButtonVal);
+                    buttonInputStates[i] = newButtonVal;
                 }
             }
-            // Don't send the list if nothing has changed, 
-            // but send the whole list if at least one element has changed
-            if (numElements > 0) {
-                std::string destObj = pd_touchObjPrefix + std::to_string(slot);
-                lpd.sendList(destObj, touchList);
+        }
+
+
+        // send multitouch inputs to pure data if user has enabled them
+        if (gSendMultiTouch) {
+
+            // Send anyTouch through to PD if it changed since last render call
+            float anyTouch = multitouchRead(context, chn_mt_anyTouch, 0);
+            if (anyTouch != anyTouchState && anyTouch != -1) {
+                lpd.sendFloat("ldsp_mt_anyTouch", anyTouch);
+                anyTouchState = anyTouch;
+            }
+
+            int numElements;
+            // Send each touch slot to its respective pd recieve element
+            for (int slot = 0; slot < gNumTouchSlots; slot++) {
+                int chunkStart = slot*PD_MULTITOUCH_INPUTS;
+                pd::List touchList;
+                numElements = 0;
+                for (int i = 0; i < PD_MULTITOUCH_INPUTS; i++) {
+                    float newVal = multitouchRead(context, pdMTChannelMappings[i], slot); 
+                    touchList.addFloat(newVal);
+                    if (newVal != multiTouchState[chunkStart+i] && newVal != -1) {
+                        numElements++;             
+                        multiTouchState[chunkStart+i] = newVal;
+                    }
+                }
+                // Don't send the list if nothing has changed, 
+                // but send the whole list if at least one element has changed
+                if (numElements > 0) {
+                    std::string destObj = pd_touchObjPrefix + std::to_string(slot);
+                    lpd.sendList(destObj, touchList);
+                }
             }
         }
     }
