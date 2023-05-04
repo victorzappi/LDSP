@@ -46,6 +46,7 @@ target_include_directories(ldsp
 
 # All necessary headers for fftw
 target_include_directories(ldsp PRIVATE ../dependencies/fftw3/api)
+target_link_directories(ldsp PRIVATE ../dependencies/fftw3)
 
 
 target_link_libraries(ldsp

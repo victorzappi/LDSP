@@ -14,6 +14,7 @@ add_subdirectory(libsndfile)
 # FFTW3
 # BUILD_SHARED_LIBS option will propogate to fftw3 as well
 set(BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
+set(ENABLE_FLOAT ON CACHE BOOL "single-precision" FORCE)
 add_subdirectory(fftw3)
 
 add_subdirectory(glob)
