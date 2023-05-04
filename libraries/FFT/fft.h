@@ -38,11 +38,13 @@ public:
 private:
     /* Length of the FFT*/
     unsigned int length;
-    /* Holds the Time Domain data */
-    fftw_complex * time;
+    /* Holds the input to the forward transform */
+    fftw_complex * timeIn;
     /* Holds the Frequency Domain data*/
     fftw_complex * freq;
+    /* Holds the result of the inverse transform*/
+    fftw_complex * timeOut;
 
-    fftw_plan forward_plan;
-    fftw_plan inverse_plan;
+    fftw_plan forwardPlan;
+    fftw_plan inversePlan;
 };
