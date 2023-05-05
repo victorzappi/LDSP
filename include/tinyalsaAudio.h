@@ -90,13 +90,11 @@ struct LDSPinternalContext {
     uint32_t sensorChannels;
     uint32_t ctrlInChannels;
     uint32_t ctrlOutChannels;
-    sensorState *sensorsState;
-    ctrlInState *ctrlInputsState;
-    ctrlOutState *ctrlOutputsState;
+    bool *sensorsSupported;
+    bool *buttonsSupported;
+    bool *ctrlOutputsSupported;
+    bool screenGetStateSupported;
     string *sensorsDetails;
-    string *ctrlInputsDetails;
-    string *ctrlOutputsDetails;
-    //float *analogInNormalFactor;
     float controlSampleRate; // sensors and output devices
     multiTouchInfo *mtInfo;
 	//uint64_t audioFramesElapsed;

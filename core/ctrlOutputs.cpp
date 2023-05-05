@@ -57,7 +57,7 @@ constexpr unsigned int ScreenCtrlLoopPrioOrder = 50;
 bool initialScreenState;
 int nextScreenState = -1;
 float nextBrightness = 0;
-bool nextKeepOn = false;
+bool nextStayOn = false;
 
 
 int initCtrlOutputs(string **ctrlOutputsFiles);
@@ -87,15 +87,16 @@ int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
             return retVal;
     }
 
-    // update context
-    intContext.ctrlOutputs = ctrlOutputsContext.ctrlOutBuffer;
-    intContext.ctrlOutChannels = chn_cout_count;
-    intContext.ctrlOutputsState = ctrlOutputsContext.ctrlOutStates;
-    intContext.ctrlOutputsDetails = ctrlOutputsContext.ctrlOutDetails;
-
+    // screen
     probeScreenCommands();
     initialScreenState = isScreenOn();
     pthread_create(&screenCtl_thread, NULL, screenCtrl_loop, NULL);
+
+    // update context
+    intContext.ctrlOutputs = ctrlOutputsContext.ctrlOutBuffer;
+    intContext.ctrlOutChannels = chn_cout_count;
+    intContext.ctrlOutputsSupported = ctrlOutputsContext.ctrlOutSupported;
+    intContext.screenGetStateSupported = (screenCmds.idx != -1);
 
     return 0;
 }
@@ -122,14 +123,14 @@ void LDSP_cleanupCtrlOutputs()
 }
 
 
-void screenSetState(bool stateOn, float brightness, bool keepOn)
+void screenSetState(bool stateOn, float brightness, bool stayOn)
 {
     // copy values that will be set in thread
     nextBrightness = brightness;
     if(stateOn)
-        nextKeepOn = keepOn;
+        nextStayOn = stayOn;
     else
-        nextKeepOn = false;
+        nextStayOn = false;
     nextScreenState = stateOn;
 }
 
@@ -311,8 +312,7 @@ int initCtrlOutputs(string **ctrlOutputsFiles)
 
                 //-------------------------------------------------------------------
                 // context update
-                ctrlOutputsContext.ctrlOutStates[out] = ctrlOutput_not_configured;
-                ctrlOutputsContext.ctrlOutDetails[out] =  "Not configured";
+                ctrlOutputsContext.ctrlOutSupported[out] = false;
                 continue;
             }
             autoConfig_ctrl = true;
@@ -415,10 +415,9 @@ int initCtrlOutputs(string **ctrlOutputsFiles)
 
         //-------------------------------------------------------------------
         // context update
-        ctrlOutputsContext.ctrlOutStates[out] = ctrlOutput_configured;
+        ctrlOutputsContext.ctrlOutSupported[out] = true;
         ostringstream stream;
         stream << LDSP_ctrlOutput[out] << ", with max value: " << ctrlOutput.scaleVal;
-        ctrlOutputsContext.ctrlOutDetails[out] =  stream.str();
     }
 
     return 0;
@@ -498,7 +497,7 @@ void probeScreenCommands()
             return;
         }
         char buffer[128];
-        
+
         // cycle all lines
         while(!feof(pipe)) 
         {
@@ -510,12 +509,16 @@ void probeScreenCommands()
                     // and result is string stored in either on or off
                     if(strstr(buffer, screenCmds.on[i].c_str()) != NULL ||
                        strstr(buffer, screenCmds.off[i].c_str()) != NULL ) 
+                    {
                         screenCmds.idx = i; // then this is where we can get and set the state of the screen
-                    break;
+                        break;
+                    }
                 }
             }
         }
         pclose(pipe);
+        if(screenCmds.idx != -1)
+            break;
     }
 }
 
@@ -523,10 +526,7 @@ bool isScreenOn()
 {
     int idx = screenCmds.idx;
     if(idx == -1)
-    {
-        printf("\nWarning! Cannot read state of screen ):\n\n");
         return true;
-    }
 
     bool screenIsOn = false;
     // check the dumpsys command
@@ -591,23 +591,23 @@ void* screenCtrl_loop(void* arg)
                     setScreen(0); // turn off
                     // and disable tap, just in case
                     tapActive = false;
-                    nextKeepOn = false;
+                    nextStayOn = false;
                 }
                 else
                     setScreen(nextBrightness); // turn on
             }
             // if keep-screen-on setting has been changed
-            if(tapActive!=nextKeepOn)
+            if(tapActive!=nextStayOn)
             {
                 if(tapActive)
                 {
                     tapActive = false;
-                    nextKeepOn = false;
+                    nextStayOn = false;
                 }
                 else
                 {
                     tapActive = true;
-                    nextKeepOn = true;
+                    nextStayOn = true;
                 }
             }
 

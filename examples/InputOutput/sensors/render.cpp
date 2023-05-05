@@ -18,7 +18,8 @@
  */
 
 #include "LDSP.h"
-#include <math.h> // sin
+#include "libraries/Biquad/Biquad.h"
+#include <math.h> // sin, fabs
 
 float frequency = 440.0;
 float amplitude = 0.3;
@@ -27,20 +28,58 @@ float amplitude = 0.3;
 float phase;
 float inverseSampleRate;
 
+Biquad smoothingFilter;
 
 
 bool setup(LDSPcontext *context, void *userData)
 {
+
+	if( !context->sensorsSupported[chn_sens_accelX] ||
+		!context->sensorsSupported[chn_sens_accelY] )
+	{
+		printf("Accelerometer not present on this phone, the example cannot be run ):\n");
+		return false;	
+	}
+
     inverseSampleRate = 1.0 / context->audioSampleRate;
 	phase = 0.0;
+
+	Biquad::Settings settings{
+		.fs = context->audioSampleRate,
+		.type = Biquad::lowpass,
+		.cutoff = 500,
+		.q = 0.707,
+		.peakGainDb = 0,
+		};
+	smoothingFilter.setup(settings);
+
 
     return true;
 }
 
 void render(LDSPcontext *context, void *userData)
 {
+	// read accelerometer x and y channels
+	float acc_x = sensorRead(context, chn_sens_accelX);
+	float acc_y = sensorRead(context, chn_sens_accelY);
+
+	// ignore direction
+	acc_x = fabs(acc_x);
+	acc_y = fabs(acc_y);
+
+	// clip to 1 g
+	acc_x = constrain(acc_x, 0, 9.8);
+	acc_y = constrain(acc_y, 0, 9.8);
+
+	// mapping
+	frequency = map(acc_x, 0, 9.8, 220, 880); // map x acceleration to osc frquency
+	amplitude = map(acc_y, 0, 9.8, 0.01, 0.7); // map y acceleration to osc amplitude
+
 	for(int n=0; n<context->audioFrames; n++)
 	{
+		// smooth amplitude to avoid sudden jumps/crakles
+		amplitude = smoothingFilter.process(amplitude);
+
 		float out = amplitude * sinf(phase);
 		phase += 2.0f * (float)M_PI * frequency * inverseSampleRate;
 		while(phase > 2.0f *M_PI)

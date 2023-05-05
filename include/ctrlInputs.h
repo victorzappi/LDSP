@@ -99,8 +99,7 @@ struct LDSPctrlInputsContext {
         }
     }) {}
     int *ctrlInBuffer;
-    ctrlInState *ctrlInStates;
-    string *ctrlInDetails;
+    bool *buttonSupported;
 };
 // Linux multi-touch protocol explained here: https://www.kernel.org/doc/html/latest/input/multi-touch-protocol.html
 

@@ -192,7 +192,7 @@ bool setup(LDSPcontext *context, void *userData)
     // Check if sensors are enabled
     gSensorsEnabled = false;
     for (int i = 0; i < context->sensorChannels; i++) {
-        if (context->sensorsState[i] != sensor_not_supported) {
+        if (context->sensorsSupported[i]) {
             gSensorsEnabled = true;
         }
     }

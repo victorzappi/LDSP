@@ -50,38 +50,28 @@ struct LDSPinitSettings {
     string projectName;
 };
 
-enum sensorState {
-    sensor_present = 1,
-    sensor_not_present = 0,
-    sensor_not_supported = -1,
+/* enum digitalOuput {
+    off = 0,
+    on = 1
 };
 
-enum ctrlInState {
-    ctrlInput_supported = 1,
-    ctrlInput_not_supported = 0
+enum buttonState {
+    not_pressed = 0,
+    pressed = 1
 };
 
+enum screenState {
+    screenOn = 1,
+    screenOff = 0
+}; */
 
-enum ctrlOutState {
-    ctrlOutput_configured = 1,
-    ctrlOutput_not_configured = 0
-};
-
-enum digitalOuput {
-    on = 1,
-    off = 0
-};
 
 struct multiTouchInfo {
     float screenResolution[2];
     int touchSlots;
     int touchAxisMax;
     int touchWidthMax;
-};
-
-enum screenState {
-    screenOn = 1,
-    screenOff = 0
+    bool anyTouchSupported;
 };
 
 struct LDSPcontext {
@@ -97,13 +87,11 @@ struct LDSPcontext {
     const uint32_t sensorChannels;
     const uint32_t ctrlInChannels;
     const uint32_t ctrlOutChannels;
-    const sensorState * const sensorsState;
-    const ctrlInState * const ctrlInputsState;
-    const ctrlOutState * const ctrlOutputsState;
+    const bool * const sensorsSupported;
+    const bool * const buttonsSupported;
+    const bool * const ctrlOutputsSupported;
+    const bool screenGetStateSupported;
     const string * const sensorsDetails;
-    const string * const ctrlInputsDetails;
-    const string * const ctrlOutputsDetails;
-    //const float *analogInNormalFactor;
     const float controlSampleRate;
     const multiTouchInfo * const mtInfo;
 	//uint64_t audioFramesElapsed;
@@ -207,14 +195,12 @@ static inline int buttonRead(LDSPcontext *context, btnInputChannel channel);
 static inline int multitouchRead(LDSPcontext *context, multiTouchInputChannel channel, int touchSlot=0);
 static inline void ctrlOutputWrite(LDSPcontext *context, ctrlOutputChannel channel, float value);
 
-static inline sensorState sensorsState(LDSPcontext *context, sensorChannel channel);
-static inline string sensorsDetails(LDSPcontext *context, sensorChannel channel);
 //static inline float analogInNormFactor(LDSPcontext *context, sensorChannel channel);
 
 //TODO ctrlOutputs/InputsState(...)
 //TODO ctrlOutputs/InputsDetails(...)
 
-void screenSetState(bool stateOn, float brightness=1, bool keepOn=false);
+void screenSetState(bool stateOn, float brightness=1, bool stayOn=false);
 bool screenGetState(); // this is a heavy function, use with caution
 
 //-----------------------------------------------------------------------------------------------
@@ -242,23 +228,6 @@ static inline void audioWrite(LDSPcontext *context, int frame, int channel, floa
 static inline float sensorRead(LDSPcontext *context, sensorChannel channel) 
 {
 	    return context->sensors[channel]; // some of these sensors may not be present or unsupported, they return 0
-}
-
-// sensorsState()
-//
-// returns sate of the sensor accessed on the given channel
-static inline sensorState sensorsState(LDSPcontext *context, sensorChannel channel)
-{
- 
-    return context->sensorsState[channel]; // sensor present or not present on phone, or unsupported by API
-}
-
-// sensorsDetails()
-//
-// returns sate of the sensor accessed on the given channel
-static inline string sensorsDetails(LDSPcontext *context, sensorChannel channel)
-{
-    return context->sensorsDetails[channel]; // returns type of sensor even if not present on phone; returns "Not supported" if not supported by API
 }
 
 // analogInNormFactor()

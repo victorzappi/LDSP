@@ -86,8 +86,7 @@ void LDSP_initCtrlInputs(LDSPinitSettings *settings)
      // update context
     intContext.ctrlInputs = ctrlInputsContext.ctrlInBuffer;
     intContext.ctrlInChannels = chn_cin_count;
-    intContext.ctrlInputsState = ctrlInputsContext.ctrlInStates;
-    intContext.ctrlInputsDetails = ctrlInputsContext.ctrlInDetails;
+    intContext.buttonsSupported = ctrlInputsContext.buttonSupported;
     intContext.mtInfo = &ctrlInputsContext.mtInfo;
     //VIC user context is reference of this internal one, so no need to update it
         
@@ -113,10 +112,8 @@ void LDSP_cleanupCtrlInputs()
     // deallocated ctrl input buffers
     if(ctrlInputsContext.ctrlInBuffer != nullptr)
         delete[] ctrlInputsContext.ctrlInBuffer;
-    if(ctrlInputsContext.ctrlInStates != nullptr)
-        delete[] ctrlInputsContext.ctrlInStates;
-    if(ctrlInputsContext.ctrlInDetails != nullptr)
-        delete[] ctrlInputsContext.ctrlInDetails;
+    if(ctrlInputsContext.buttonSupported != nullptr)
+        delete[] ctrlInputsContext.buttonSupported;
 }
 
 
@@ -257,7 +254,7 @@ bool checkEvents(int fd, int print_flags, const char *device, const char *name, 
                                 if(!ctrlInputsContext.ctrlInputs[chn].supported)
                                 {
                                     // if this is the first time we find a device that raises the event associated to this ctrl input, we update our records
-                                    ctrlInputsContext.ctrlInputs[chn].supported = true;
+                                    ctrlInputsContext.ctrlInputs[chn].supported = true; // for our internal records
                                     ctrlInputsContext.ctrlInputs[chn].isMultiInput = false; // only multi touch ctrl inputs are multi event, cos can receive data from multiple fingers
                                     ctrlInputsContext.inputsCount++;
                                 }
@@ -289,6 +286,7 @@ bool checkEvents(int fd, int print_flags, const char *device, const char *name, 
                                         ctrlInputsContext.ctrlInputs[chn].isMultiInput = true;  // only difference is taht multi touch ctrl inputs are multi event, cos can receive data from multiple fingers
                                         ctrlInputsContext.inputsCount++;
 
+                                        // update user exposed info for multi ctrl/multitouch
                                         //VIC unfortunately, this has to be done manually
                                         switch(code)
                                         {
@@ -473,6 +471,9 @@ int initCtrlInputs()
     DevInfo devinfo[chn_cin_count];
 
     ctrlInputsContext.mtInfo.touchSlots = 1; // let's set at least 1 touch slot, because some single touch phones do not provide this info
+    ctrlInputsContext.mtInfo.touchAxisMax = -1;
+    ctrlInputsContext.mtInfo.touchWidthMax = -1;
+    ctrlInputsContext.mtInfo.anyTouchSupported = false;
 
     int res = openCtrlInputDevices(ctrlInput_devPath, print_flags, devinfo);
     if(res < 0) 
@@ -536,19 +537,26 @@ int initCtrlInputs()
 void initCtrlInputBuffers()
 {
     // allocate buffers for ctrl input values
+    // starting from single ctrl/buttons
     int len = chn_btn_count+1; // all single events, includes chn_mt_anyTouch
+    ctrlInputsContext.buttonSupported  = new bool[len];
+    // update user exposed states
+    for(int chn=0; chn<len-1; chn++)
+    {
+        if(ctrlInputsContext.ctrlInputs[chn].supported)
+            ctrlInputsContext.buttonSupported[chn] = true;
+
+    }
+    if(ctrlInputsContext.ctrlInputs[len-1].supported)
+        ctrlInputsContext.mtInfo.anyTouchSupported = true;
+
+    // then multi ctrl/multitouch
     len +=  (chn_mt_count-1)*ctrlInputsContext.mtInfo.touchSlots; // plus all multi events, excludes chn_mt_anyTouch
     ctrlInputsContext.ctrlInBuffer = new int[len];
-    ctrlInputsContext.ctrlInStates  = new ctrlInState[len];
-    ctrlInputsContext.ctrlInDetails  = new string[len];
-
+    
     for(int i=0; i<len; i++)
-    {
         ctrlInputsContext.ctrlInBuffer[i] = 0;
-        ctrlInputsContext.ctrlInStates[i] = ctrlInput_not_supported;
-    }
-
-    //TODO details and states
+    // user exposed info is set in initCtrlInputs() already
 }
 
 void closeCtrlInputDevice(int dev)

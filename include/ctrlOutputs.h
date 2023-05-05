@@ -110,8 +110,7 @@ struct ctrlout_struct {
 struct LDSPctrlOutputsContext {
     ctrlout_struct ctrlOutputs[chn_cout_count];
     float ctrlOutBuffer[chn_cout_count];
-    ctrlOutState ctrlOutStates[chn_cout_count];
-    string ctrlOutDetails[chn_cout_count];
+    bool ctrlOutSupported[chn_cout_count];
 };
 
 void writeCtrlOutputs();

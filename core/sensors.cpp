@@ -52,7 +52,7 @@ void LDSP_initSensors(LDSPinitSettings *settings)
     intContext.sensors = sensorsContext.sensorBuffer;
     intContext.controlSampleRate = (int)(settings->samplerate / settings->periodSize);
     intContext.sensorChannels = chn_sens_count;
-    intContext.sensorsState = sensorsContext.sensorsStates;
+    intContext.sensorsSupported = sensorsContext.sensorSupported;
     intContext.sensorsDetails = sensorsContext.sensorsDetails;
     //VIC user context is reference of this internal one, so no need to update it
 
@@ -94,8 +94,8 @@ void LDSP_cleanupSensors()
     // daallocated sensor buffers
     if(sensorsContext.sensorBuffer != nullptr)
         delete[] sensorsContext.sensorBuffer;
-    if(sensorsContext.sensorsStates != nullptr)
-        delete[] sensorsContext.sensorsStates;
+    if(sensorsContext.sensorSupported != nullptr)
+        delete[] sensorsContext.sensorSupported;
     if(sensorsContext.sensorsDetails != nullptr)
         delete[] sensorsContext.sensorsDetails;
 }
@@ -178,7 +178,7 @@ void initSensorBuffers()
 {
     // allocate buffers for sensor input samples
     sensorsContext.sensorBuffer  = new float[chn_sens_count]; // we allocate elements also for supported but non present sensors
-    sensorsContext.sensorsStates = new sensorState[chn_sens_count]; 
+    sensorsContext.sensorSupported = new bool[chn_sens_count]; 
     sensorsContext.sensorsDetails  = new string[chn_sens_count];
 
     // initialize 
@@ -202,9 +202,9 @@ void initSensorBuffers()
 
             // init state
             if(sens_struct->present)
-                sensorsContext.sensorsStates[chnCnt] = sensor_present;
+                sensorsContext.sensorSupported[chnCnt] = true;
             else
-                sensorsContext.sensorsStates[chnCnt] = sensor_not_present;
+                sensorsContext.sensorSupported[chnCnt] = false;
 
             // init type
             // in case sensors has more channels, pick the description of the current channel
@@ -222,7 +222,7 @@ void initSensorBuffers()
     for(; chnCnt<chn_sens_count; chnCnt++)
     {
         sensorsContext.sensorBuffer[chnCnt] = 0; // this value will never be updated
-        sensorsContext.sensorsStates[chnCnt] = sensor_not_supported;
+        sensorsContext.sensorSupported[chnCnt] = false;
         sensorsContext.sensorsDetails[chnCnt] = "Not supported";
     }
 }

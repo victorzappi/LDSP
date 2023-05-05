@@ -92,7 +92,7 @@ bool setup(LDSPcontext *context, void *userData)
     lcdLightInvSrate = 1.0 / context->controlSampleRate;
 	lcdLightPhase = 0.0;
 	
-	ctrlOutputWrite(context, chn_cout_ledB, on);
+	ctrlOutputWrite(context, chn_cout_ledB, 1);
 
 
 	oscReceiver.setup(localPort, on_receive);

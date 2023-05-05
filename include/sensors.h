@@ -88,7 +88,7 @@ struct LDSPsensorsContext {
     sensor_struct sensors[LDSP_sensor::count];
     unordered_map<int, int> sensorsType_index; // automatically populated
     float *sensorBuffer;
-    sensorState *sensorsStates;
+    bool *sensorSupported;
     string *sensorsDetails;
 };
 
