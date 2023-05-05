@@ -1,9 +1,5 @@
 project(ldsp)
 
-include(CMakePrintHelpers)
-
-
-
 # https://stackoverflow.com/a/62085797
 # Source files for the LDSP core itself
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cpp *.c)
@@ -69,6 +65,6 @@ target_link_libraries(ldsp
   PRIVATE sndfile 
   PRIVATE glob
   PRIVATE libpd_static
-  PRIVATE fftw3
+  PRIVATE fftw3f
 )
 

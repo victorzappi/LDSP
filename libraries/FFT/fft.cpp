@@ -8,27 +8,27 @@ bool FFT::setup(unsigned int length) {
 
     this->length = length;
 
-    this->timeIn = (fftw_complex *) fftw_malloc(length * sizeof(fftw_complex));
-    this->timeOut = (fftw_complex *) fftw_malloc(length * sizeof(fftw_complex));
-    this->freq = (fftw_complex *) fftw_malloc(length * sizeof(fftw_complex));
-    this->forwardPlan = fftw_plan_dft_1d(this->length, this->timeIn, this->freq, FFTW_FORWARD, FFTW_MEASURE);
-    this->inversePlan = fftw_plan_dft_1d(this->length, this->freq, this->timeOut, FFTW_BACKWARD, FFTW_MEASURE);
+    this->timeIn = (fftwf_complex *) fftwf_malloc(length * sizeof(fftwf_complex));
+    this->timeOut = (fftwf_complex *) fftwf_malloc(length * sizeof(fftwf_complex));
+    this->freq = (fftwf_complex *) fftwf_malloc(length * sizeof(fftwf_complex));
+    this->forwardPlan = fftwf_plan_dft_1d(this->length, this->timeIn, this->freq, FFTW_FORWARD, FFTW_MEASURE);
+    this->inversePlan = fftwf_plan_dft_1d(this->length, this->freq, this->timeOut, FFTW_BACKWARD, FFTW_MEASURE);
 
     return true;
 }
 
 void FFT::cleanup() {
-    fftw_free(this->timeIn);
-    fftw_free(this->timeOut);
-    fftw_free(this->freq);
-    fftw_destroy_plan(forwardPlan);
-    fftw_destroy_plan(inversePlan);
-    fftw_cleanup();
+    fftwf_free(this->timeIn);
+    fftwf_free(this->timeOut);
+    fftwf_free(this->freq);
+    fftwf_destroy_plan(forwardPlan);
+    fftwf_destroy_plan(inversePlan);
+    fftwf_cleanup();
 }
 
 
 void FFT::fft() {
-    fftw_execute(forwardPlan);
+    fftwf_execute(forwardPlan);
 }
 
 void FFT::fft(const std::vector<float> &input) {
@@ -43,7 +43,7 @@ void FFT::fft(const std::vector<float> &input) {
 }
 
 void FFT::ifft() {
-    fftw_execute(inversePlan);
+    fftwf_execute(inversePlan);
     for (int i = 0; i < this->length; i++) {
         this->timeOut[i][FFT_REAL] /= this->length;
         this->timeOut[i][FFT_IMAG] /= this->length;
