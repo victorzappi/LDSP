@@ -27,6 +27,15 @@ if(NOT EXISTS ${LDSP_PROJECT}/main.cpp AND NOT EXISTS ${LDSP_PROJECT}/main.c)
   list(APPEND SOURCES main.cpp)
 endif()
 
+# set preprocessor directives:
+# Avoid rebuilding things we don't need to when switching projects,
+# By only passing definition main.cpp
+GET_FILENAME_COMPONENT(LDSP_PROJECT_NAME ${LDSP_PROJECT} NAME)
+set_property(
+  SOURCE ${CMAKE_CURRENT_LIST_DIR}/main.cpp 
+  PROPERTY COMPILE_DEFINITIONS PROJECT_NAME="${LDSP_PROJECT_NAME}"
+)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin/)
 add_executable(ldsp ${SOURCES})
 
@@ -38,12 +47,16 @@ set (LIBPD_INCLUDE_DIRS
   ${LIBPD_DIR}/pure-data/src 
   ${LIBPD_DIR}/cpp
 )
-
 target_include_directories(ldsp
   PRIVATE ../include
   PRIVATE ..
   PRIVATE ${LIBPD_INCLUDE_DIRS}
 )
+
+# All necessary headers for fftw
+target_include_directories(ldsp PRIVATE ../dependencies/fftw3/api)
+target_link_directories(ldsp PRIVATE ../dependencies/fftw3)
+
 
 target_link_libraries(ldsp
   PRIVATE libraries
@@ -52,5 +65,6 @@ target_link_libraries(ldsp
   PRIVATE sndfile 
   PRIVATE glob
   PRIVATE libpd_static
+  PRIVATE fftw3f
 )
 
