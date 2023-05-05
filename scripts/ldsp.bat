@@ -132,6 +132,9 @@ rem End of :get_api_level
     exit /b 1
   )
 
+  set "api_define=-DAPI=%api_level%"
+
+
   rem support for NEON floating-point unit
   for /f "tokens=2 delims=:" %%i in ('type %hw_config% ^| findstr /r "supports neon floating point unit"') do set neon_setting=%%i
 
@@ -141,27 +144,27 @@ rem End of :get_api_level
 
   if "%arch%" == "armv7a" (
   if "%neon_setting%" == "true" (
-    set neon="-DANDROID_ARM_NEON=ON"
-    set explicit_neon="-DEXPLICIT_ARM_NEON"
+    set "neon=-DANDROID_ARM_NEON=ON"
+    set "explicit_neon=-DEXPLICIT_ARM_NEON=1"
   ) else if "%neon_setting%" == "True" (
-    set neon="-DANDROID_ARM_NEON=ON"
-    set explicit_neon="-DEXPLICIT_ARM_NEON"
+    set "neon=-DANDROID_ARM_NEON=ON"
+    set "explicit_neon=-DEXPLICIT_ARM_NEON=1"
   ) else if "%neon_setting%" == "yes" (
-    set neon="-DANDROID_ARM_NEON=ON"
-    set explicit_neon="-DEXPLICIT_ARM_NEON"
+    set "neon=-DANDROID_ARM_NEON=ON"
+    set "explicit_neon=-DEXPLICIT_ARM_NEON=1"
   ) else if "%neon_setting%" == "Yes" (
-    set neon="-DANDROID_ARM_NEON=ON"
-    set explicit_neon="-DEXPLICIT_ARM_NEON"
+    set "neon=-DANDROID_ARM_NEON=ON"
+    set "explicit_neon=-DEXPLICIT_ARM_NEON=1"
   ) else if "%neon_setting%" == "1" (
-    set neon="-DANDROID_ARM_NEON=ON"
-    set explicit_neon="-DEXPLICIT_ARM_NEON"
+    set "neon=-DANDROID_ARM_NEON=ON"
+    set "explicit_neon=-DEXPLICIT_ARM_NEON=1"
   ) else (
-    set neon=""
-    set explicit_neon=""
+    set "neon="
+    "explicit_neon=-DEXPLICIT_ARM_NEON=0"
   )
   ) else (
-    set neon=""
-    set explicit_neon=""
+    set "neon="
+    set "explicit_neon=-DEXPLICIT_ARM_NEON=0"
   )
 
   if "%project%" == "" (
@@ -190,7 +193,7 @@ rem End of :get_api_level
     exit /b 1
   )
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=%NDK%\build\cmake\android.toolchain.cmake -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% "-DANDROID_NDK=%NDK%" %neon% "-DLDSP_PROJECT=%project%" -G Ninja .
+  cmake -DCMAKE_TOOLCHAIN_FILE=%NDK%\build\cmake\android.toolchain.cmake -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% "-DANDROID_NDK=%NDK%" %explicit_neon% %api_define% %neon% "-DLDSP_PROJECT=%project%" -G Ninja .
 
   if not %ERRORLEVEL% == 0 (
     echo Cannot configure: CMake failed
@@ -212,12 +215,24 @@ rem End of :configure
   exit /b 0
 rem End of :build
 
+:stop
+  rem Stop the currently-running user project on the phone.
+
+  echo "Stopping LDSP..."
+  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
+  
+  exit /b 0
+rem Ecd of :Stop
+
 :install
   rem Install the user project, LDSP hardware config and resources to the phone.
   if not exist "bin\ldsp" (
     echo Cannot push: No ldsp executable found. Please run "ldsp build\ first.
     exit /b 1
   )
+
+  set vendor=%~1
+  set model=%~2
 
   set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
 
@@ -257,6 +272,9 @@ rem End of :install
     exit /b 1
   )
 
+  set vendor=%~1
+  set model=%~2
+
   set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
 
   adb root
@@ -290,19 +308,51 @@ rem End of :push_sdcard
 :run
   rem Run the user project on the phone.
 
+  set args=%~1
+
   adb shell "su -c 'chmod +x /data/ldsp/ldsp'" rem is this needed?
-  adb shell "su -c '/data/ldsp/ldsp'"
+  adb shell "su -c '/data/ldsp/ldsp %args%'"
   exit /b 0
 rem End of :run
+
+:stop
+  rem Stop the currently-running user project on the phone.
+
+  echo "Stopping LDSP..."
+  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
+  
+  exit /b 0
+rem End of :Stop
+
+:install_scripts
+  rem # Install the LDSP scripts on the phone.
+  
+  adb root rem needed?
+  adb shell "su -c 'mkdir -p /data/ldsp/scripts'"
+  adb push .\scripts\ldsp_* /data/ldsp/scripts/
+  
+  exit /b 0
+rem End of :install_scripts
+
+:push_scripts_sdcard
+  rem # Push the LDSP scripts to the phone's SD card, for manual installation.
+  
+  adb root rem needed?
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
+  adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/
+  
+  exit /b 0
+rem End of :push_scripts_sdcard
 
 :help
   rem Print usage information.
   echo usage:
   echo   ldsp configure [vendor] [model] [version] [project]
   echo   ldsp build
-  echo   ldsp push [vendor] [model]
+  echo   ldsp install [vendor] [model]
   echo   ldsp push_sdcard [vendor] [model]
-  echo   ldsp run [arguments]
+  echo   ldsp run ^"[list of arguments]^"
+  echo   ldsp stop
   exit /b 0
 rem End of :help
 
@@ -335,4 +385,19 @@ if "%1" == "run" (
   exit /b %ERRORLEVEL%
 )
 
-rem TODO add stop, install_scripts, push_scripts_sdcard and possibly run_persistent
+if "%1" == "stop" (
+  call :stop
+  exit /b %ERRORLEVEL%
+)
+
+if "%1" == "install_scripts" (
+  call :install_scripts
+  exit /b %ERRORLEVEL%
+)
+
+if "%1" == "push_scripts_sdcard" (
+  call :push_scripts_sdcard
+  exit /b %ERRORLEVEL%
+)
+
+rem TODO possibly run_persistent
