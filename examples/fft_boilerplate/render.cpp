@@ -52,13 +52,9 @@ void render(LDSPcontext *context, void *userData)
         imag[i] = fft.getImagComponent(i);
     }
 
-
-    // Perform the Inverse Transform
-    fft.ifft(real, imag);
-
     for (int i = 0; i < n_fft; i++) {
         for (int channel = 0; channel < context->audioOutChannels; channel++) {
-            audioWrite(context, i, channel, fft.getTimeDomainSample(i));
+            audioWrite(context, i, channel, 0);
         }
     }  
 }
