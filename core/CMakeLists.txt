@@ -1,5 +1,9 @@
 project(ldsp)
 
+include(CMakePrintHelpers)
+
+
+
 # https://stackoverflow.com/a/62085797
 # Source files for the LDSP core itself
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cpp *.c)
@@ -26,6 +30,15 @@ endif()
 if(NOT EXISTS ${LDSP_PROJECT}/main.cpp AND NOT EXISTS ${LDSP_PROJECT}/main.c)
   list(APPEND SOURCES main.cpp)
 endif()
+
+# set preprocessor directives:
+# Avoid rebuilding things we don't need to when switching projects,
+# By only passing definition main.cpp
+GET_FILENAME_COMPONENT(LDSP_PROJECT_NAME ${LDSP_PROJECT} NAME)
+set_property(
+  SOURCE ${CMAKE_CURRENT_LIST_DIR}/main.cpp 
+  PROPERTY COMPILE_DEFINITIONS PROJECT_NAME="${LDSP_PROJECT_NAME}"
+)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin/)
 add_executable(ldsp ${SOURCES})
