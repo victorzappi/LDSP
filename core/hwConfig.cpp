@@ -44,7 +44,7 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig);
 LDSPhwConfig* LDSP_HwConfig_alloc()
 {
     LDSPhwConfig* hwconfig = new LDSPhwConfig();
-    
+
     // these are the only parts of the config that need defaults
     hwconfig->hw_confg_file = HW_CONFIG_FILE;
     hwconfig->device_id_placeholder = DEV_ID_PLCHLDR_STR;
@@ -72,7 +72,7 @@ int LDSP_parseHwConfigFile(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 {
     if(!settings)
 		return -1;
-    
+
     hwconfigVerbose = settings->verbose;
 
     if(hwconfigVerbose)
@@ -82,7 +82,7 @@ int LDSP_parseHwConfigFile(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	ifstream f_config(hwconfig->hw_confg_file.c_str());
 	if (!f_config.is_open())
 	{
-		fprintf(stderr, "Cannot open hardware configuration file %s\n", hwconfig->hw_confg_file.c_str());
+		fprintf(stderr, "Cannot open hardware configuration file %s: %s\n", hwconfig->hw_confg_file.c_str(), strerror(errno));
 	 	return -1;
 	}
 
@@ -92,7 +92,7 @@ int LDSP_parseHwConfigFile(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
     // parse specific settings
 	parseMixerSettings(&config, hwconfig);
 	parseCtrlOutputs(&config, hwconfig);
-	
+
     // done parsing config file
 	f_config.close();
 
@@ -123,12 +123,12 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
         if(s.compare("") != 0)
 		    hwconfig->xml_volumes_file = optional;
     }
-	
+
 	// playback parse
 	ordered_json paths = mixer["playback path names"];
-	
+
 	// populate paths names and aliases
-	for (auto &it : paths.items()) 
+	for (auto &it : paths.items())
 	{
 		hwconfig->paths_p[it.key()] = it.value();
 		hwconfig->paths_p_order.push_back(it.key()); // to keep track of order of insertion in map
@@ -138,7 +138,7 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
 	// capture parse
 	paths = mixer["capture path names"];
 	// populate paths names and aliases
-	for(auto &it : paths.items()) 
+	for(auto &it : paths.items())
 	{
 		hwconfig->paths_c[it.key()] = it.value();
 		hwconfig->paths_c_order.push_back(it.key()); // to keep track of order of insertion in map
@@ -148,7 +148,7 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
     optional = mixer["default playback device number"];
 	if(optional.is_number_integer())
 		hwconfig->default_dev_p = optional;
-	
+
 	optional = mixer["default capture device number"];
 	if(optional.is_number_integer())
 		hwconfig->default_dev_c = optional;
@@ -187,7 +187,7 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 	// these are all optional
 	// parse control outputs
 	ordered_json ctrlOutputs = config_["control outputs"];
-	for(auto &it : ctrlOutputs.items()) 
+	for(auto &it : ctrlOutputs.items())
 	{
 		int ctrlOut;
 		string key = it.key();
@@ -195,17 +195,17 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 		if(ctrlOut_indices.find(key)!=ctrlOut_indices.end())
 		{
 			ordered_json ctrlOutput = it.value();
-			
+
 			// control file
 			// retrieve control file name
 			json val = ctrlOutput["control file"];
-			
+
 			string ctrl;
 			if(val.is_string())
 				ctrl = val;
 			// remains empty otherwise and auto fill will be tried later on
-				
-			// assign control file 
+
+			// assign control file
 			ctrlOut = ctrlOut_indices[key];
 			hwconfig->ctrlOutputs[DEVICE_CTRL_FILE][ctrlOut] = ctrl;
 
@@ -226,7 +226,7 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 				hwconfig->ctrlOutputs[DEVICE_SCALE][ctrlOut_indices[key]] = max;
 			else if(max.is_number_integer())
 				hwconfig->ctrlOutputs[DEVICE_SCALE][ctrlOut_indices[key]] = to_string(max); // can be a number, but still needs to be stringified
-			else 
+			else
 				hwconfig->ctrlOutputs[DEVICE_SCALE][ctrlOut_indices[key]] = ""; // default! will be tenatively auto filled
 		}
 	}

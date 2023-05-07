@@ -310,7 +310,8 @@ rem End of :push_sdcard
 
   set args=%~1
 
-  adb shell "su -c 'chmod +x /data/ldsp/ldsp'" rem is this needed?
+  rem is this needed?
+  adb shell "su -c 'chmod +x /data/ldsp/ldsp'"
   adb shell "su -c '/data/ldsp/ldsp %args%'"
   exit /b 0
 rem End of :run
