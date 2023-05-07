@@ -186,14 +186,14 @@ rem End of :get_api_level
     exit /b 1
   )
 
-  if not exist %NDK% (
+  if not exist "%NDK%" (
     echo Cannot configure: NDK not found
     echo Please specify a valid NDK path with
     echo     set NDK=path to NDK
     exit /b 1
   )
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=%NDK%\build\cmake\android.toolchain.cmake -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% "-DANDROID_NDK=%NDK%" %explicit_neon% %api_define% %neon% "-DLDSP_PROJECT=%project%" -G Ninja .
+  cmake "-DCMAKE_TOOLCHAIN_FILE=%NDK%\build\cmake\android.toolchain.cmake" -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% "-DANDROID_NDK=%NDK%" %explicit_neon% %api_define% %neon% "-DLDSP_PROJECT=%project%" -G Ninja .
 
   if not %ERRORLEVEL% == 0 (
     echo Cannot configure: CMake failed
@@ -220,7 +220,7 @@ rem End of :build
 
   echo "Stopping LDSP..."
   adb shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
-  
+
   exit /b 0
 rem Ecd of :Stop
 
@@ -320,27 +320,27 @@ rem End of :run
 
   echo "Stopping LDSP..."
   adb shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
-  
+
   exit /b 0
 rem End of :Stop
 
 :install_scripts
   rem # Install the LDSP scripts on the phone.
-  
+
   adb root rem needed?
   adb shell "su -c 'mkdir -p /data/ldsp/scripts'"
   adb push .\scripts\ldsp_* /data/ldsp/scripts/
-  
+
   exit /b 0
 rem End of :install_scripts
 
 :push_scripts_sdcard
   rem # Push the LDSP scripts to the phone's SD card, for manual installation.
-  
+
   adb root rem needed?
   adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
   adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/
-  
+
   exit /b 0
 rem End of :push_scripts_sdcard
 
