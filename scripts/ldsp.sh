@@ -251,7 +251,7 @@ install () {
 
   # Push all project resources, including Pd files in Pd projects
   # adb push "$PROJECT"/* /data/ldsp/
-  
+
   #TODO switch to project folders on phone
   # then change name of bin to project name
   # add remove function to delete project folder from phone
@@ -261,7 +261,7 @@ install () {
   find "$PROJECT" -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -print0 | xargs -0 -I{} adb push {} /data/ldsp/
 
 	adb push bin/ldsp /data/ldsp/ldsp
-
+  adb shell "su -c 'chmod +x /data/ldsp/ldsp'"
 }
 
 # Push the user project, LDSP hardware config and resources to phone's SD card, for manual installation.
@@ -294,6 +294,7 @@ push_sdcard () {
 
 
 	adb push bin/ldsp /sdcard/ldsp/ldsp
+  adb shell "su -c 'chmod +x /sdcard/ldsp/ldsp'"
 }
 
 # Install the LDSP scripts on the phone.
