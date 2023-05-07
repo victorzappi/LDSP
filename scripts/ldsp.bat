@@ -312,7 +312,7 @@ rem End of :push_sdcard
 
   rem is this needed?
   adb shell "su -c 'chmod +x /data/ldsp/ldsp'"
-  adb shell "su -c '/data/ldsp/ldsp %args%'"
+  adb shell "su -c 'cd /data/ldsp && ./ldsp %args%'"
   exit /b 0
 rem End of :run
 
