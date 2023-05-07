@@ -61,17 +61,17 @@ class LDSP_EventHandler : public pd::PdReceiver
     // Redirect floats to console
     void receiveFloat(const std::string &dest, float num) {
         if (dest == pd_flashlightObj) {
-            if (g_ctx->ctrlOutputsState[chn_cout_flashlight] == ctrlOutput_configured) {
+            if (g_ctx->ctrlOutputsSupported[chn_cout_flashlight]) {
                 ctrlOutputWrite(g_ctx, chn_cout_flashlight, num);
             }
         }
         else if (dest == pd_vibrationObj) {
-            if (g_ctx->ctrlOutputsState[chn_cout_vibration] == ctrlOutput_configured) {
+            if (g_ctx->ctrlOutputsSupported[chn_cout_vibration]) {
                 ctrlOutputWrite(g_ctx, chn_cout_vibration, num);
             }
         }
         else if (dest == pd_backlightObj) {
-            if (g_ctx->ctrlOutputsState[chn_cout_lcdBacklight] == ctrlOutput_configured) {
+            if (g_ctx->ctrlOutputsSupported[chn_cout_lcdBacklight]) {
                 ctrlOutputWrite(g_ctx, chn_cout_lcdBacklight, num);
             }
         }
