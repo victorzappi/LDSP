@@ -10,14 +10,14 @@ Then, make sure that you have Developer Options enabled on the phone, then insid
 
 ## DEPENDENCIES 
 
-- **GIt [sort of a dependency]**: while not needed to build/run LDSP applications, Git is very useful to download the LDSP environment and keep it up-to-date:
+- **GIt [optional]**: while not needed to build/run LDSP applications, Git is very useful to download the LDSP environment and keep it up-to-date:
 [https://git-scm.com/book/en/v2/Getting-Started-Installing-Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
 - **Android NDK**: includes the C++ compiler (the toolchain) and the run-time libraries necessary to build from your laptop LDSP applications that can run on your phone.
 [https://developer.android.com/ndk/downloads](https://developer.android.com/ndk/downloads)
 --> Once downloaded, note down the path of the NDK, it will be needed later! <---
 
-If you are on macOS, you may encounter problems when installing the NDK dmg from the official link. Luckily, Google offers an unofficial link from where you can download a zip file directly, which just needs to be extracted and moved to your preferred location.
+  - If you are on macOS, you may encounter problems when installing the NDK dmg from the official link. Luckily, Google offers an unofficial link from where you can download a zip file directly, which just needs to be extracted and moved to your preferred location.
 As of May 2023, the latest version of the macOS NDK zip file can be found here: 
 [https://dl.google.com/android/repository/android-ndk-r25c-darwin.zip](https://dl.google.com/android/repository/android-ndk-r25c-darwin.zip)
 You can potentially edit this link to download future NDK releases.
