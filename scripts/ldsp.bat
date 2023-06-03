@@ -233,6 +233,7 @@ rem Ecd of :Stop
 
   set vendor=%~1
   set model=%~2
+  set project=%~3
 
   set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
 
@@ -245,23 +246,24 @@ rem Ecd of :Stop
     adb push %hw_config% /data/ldsp/ldsp_hw_config.json
   )
 
-  rem Push all project resources, including Pd files in Pd projects
-  rem adb push "%project%\*" /data/ldsp/
-
-  rem Push all project resources
-  rem this includes Pd files in Pd projects, but excludes C/C++ and assembly files
+  rem Install all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
+  rem first folders
   @echo off
   for /F "delims=" %%i in ('dir /B /A:D "%project%"') do (
-      adb push "%project%\%%i" /data/ldsp/
+      dir /B /A "%project%\%%i\*.cpp" "%project%\%%i\*.c" "%project%\%%i\*.h" "%project%\%%i\*.hpp" >nul 2>&1
+      if errorlevel 1 (
+          adb push "%project%\%%i" /data/ldsp/
+      )
   )
+  rem then files
   for %%i in ("%project%\*") do (
       if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" (
           adb push "%%i" /data/ldsp/
       )
   )
 
-
   adb push bin\ldsp /data/ldsp/ldsp
+  adb shell "su -c 'chmod 777 /data/ldsp/ldsp'"
   exit /b 0
 rem End of :install
 
@@ -274,6 +276,7 @@ rem End of :install
 
   set vendor=%~1
   set model=%~2
+  set project=%~3
 
   set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
 
@@ -286,15 +289,16 @@ rem End of :install
     adb push %hw_config% /sdcard/ldsp/ldsp_hw_config.json
   )
 
-  rem Push all project resources, including Pd files in Pd projects
-  rem adb push "%project%\*" /sdcard/ldsp/
-
-  rem Push all project resources
-  rem this includes Pd files in Pd projects, but excludes C/C++ and assembly files
+  rem Push all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
+  rem first folders
   @echo off
   for /F "delims=" %%i in ('dir /B /A:D "%project%"') do (
-      adb push "%project%\%%i" /sdcard/ldsp/
+      dir /B /A "%project%\%%i\*.cpp" "%project%\%%i\*.c" "%project%\%%i\*.h" "%project%\%%i\*.hpp" >nul 2>&1
+      if errorlevel 1 (
+          adb push "%project%\%%i" /sdcard/ldsp/
+      )
   )
+  rem then files
   for %%i in ("%project%\*") do (
       if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" (
           adb push "%%i" /sdcard/ldsp/
@@ -302,6 +306,7 @@ rem End of :install
   )
 
   adb push bin\ldsp /sdcard/ldsp/ldsp
+  adb shell "su -c 'chmod 777 /sdcard/ldsp/ldsp'"
   exit /b 0
 rem End of :push_sdcard
 
@@ -310,8 +315,6 @@ rem End of :push_sdcard
 
   set args=%~1
 
-  rem is this needed?
-  adb shell "su -c 'chmod 777 /data/ldsp/ldsp'"
   adb shell "su -c 'cd /data/ldsp && ./ldsp %args%'"
   exit /b 0
 rem End of :run
@@ -350,8 +353,8 @@ rem End of :push_scripts_sdcard
   echo usage:
   echo   ldsp configure [vendor] [model] [version] [project]
   echo   ldsp build
-  echo   ldsp install [vendor] [model]
-  echo   ldsp push_sdcard [vendor] [model]
+  echo   ldsp install [vendor] [model] [project]
+  echo   ldsp push_sdcard [vendor] [model] [project]
   echo   ldsp run ^"[list of arguments]^"
   echo   ldsp stop
   exit /b 0
@@ -372,17 +375,17 @@ if "%1" == "build" (
 )
 
 if "%1" == "install" (
-  call :install %2 %3
+  call :install %2 %3 %4
   exit /b %ERRORLEVEL%
 )
 
 if "%1" == "push_sdcard" (
-  call :push_sdcard %2 %3
+  call :push_sdcard %2 %3 %4
   exit /b %ERRORLEVEL%
 )
 
 if "%1" == "run" (
-  call :run %2 %3 %4 %5 %6 %7 %8 %9
+  call :run %2
   exit /b %ERRORLEVEL%
 )
 
