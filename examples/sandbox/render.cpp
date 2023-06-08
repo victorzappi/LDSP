@@ -113,7 +113,7 @@ void render(LDSPcontext *context, void *userData)
 
 	float frequency = centralFrequency + badnwidth*acc_z;
 
-	int posx = multitouchRead(context, chn_mt_x, 0);
+	int posx = multiTouchRead(context, chn_mt_x, 0);
 	float lcdFreqMul = posx/(context->mtInfo->screenResolution[0]-1);
 	lcdFreqMul = map(lcdFreqMul, 0, 1, 1, 4);
 

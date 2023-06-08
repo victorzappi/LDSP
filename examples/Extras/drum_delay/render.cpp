@@ -82,7 +82,7 @@ void render(LDSPcontext *context, void *userData)
 	float amp_dry = 0;
 	
 	// check if any touch is detected
-	int anytouch = (multitouchRead(context, chn_mt_id, 0)>-1);
+	int anytouch = (multiTouchRead(context, chn_mt_id, 0)>-1);
 	// if a touch is present, set amp_drylitude grater than zero
 	if(anytouch == 1)
 	{
@@ -96,7 +96,7 @@ void render(LDSPcontext *context, void *userData)
 			std::fill(delayBuffer.begin(), delayBuffer.end(), 0); // wipe delay buffer
 
 			// prepare new delay line
-			float touchX = multitouchRead(context, chn_mt_x, 0);
+			float touchX = multiTouchRead(context, chn_mt_x, 0);
 			int region = touchX/regionSize;
 
 			// set delay time to match global bpm and region's factor

@@ -69,13 +69,13 @@ bool setup(LDSPcontext *context, void *userData)
 void render(LDSPcontext *context, void *userData)
 {
     // not all phones support the 'any touch' input
-    //int anytouch = multitouchRead(context, chn_mt_anyTouch); 
+    //int anytouch = multiTouchRead(context, chn_mt_anyTouch); 
     // so we approximate it, by checking the id assigned to the first slot
-    int anytouch = (multitouchRead(context, chn_mt_id, 0) > -1);
+    int anytouch = (multiTouchRead(context, chn_mt_id, 0) > -1);
     
     if(anytouch!=0)
     {
-        float filePosition = multitouchRead(context, chn_mt_y, 0)/maxTouchY;
+        float filePosition = multiTouchRead(context, chn_mt_y, 0)/maxTouchY;
 
         granulators[0].setFilePosition(filePosition);
         granulators[1].setFilePosition(filePosition);
@@ -83,7 +83,7 @@ void render(LDSPcontext *context, void *userData)
         granulators[0].setGrainSizeMS(grainSize);
         granulators[1].setGrainSizeMS(grainSize);
 
-        float touchX = multitouchRead(context, chn_mt_x, 0)/maxTouchX;
+        float touchX = multiTouchRead(context, chn_mt_x, 0)/maxTouchX;
         touchX = constrain(touchX, 0.2, 0.8);
         crossfade = map(touchX, 0.2, 0.8, 0, 1);
     }

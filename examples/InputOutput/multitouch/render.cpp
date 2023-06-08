@@ -71,7 +71,7 @@ void render(LDSPcontext *context, void *userData)
 
 	for(int i=0; i<MAX_TOUCHES; i++) 
 	{
-		bool touch = (multitouchRead(context, chn_mt_id, i) != -1);
+		bool touch = (multiTouchRead(context, chn_mt_id, i) != -1);
 		// new touch
 		if(touch && !touchPrev[i])
 			amp[i] = ampMax; // silence output

@@ -52,11 +52,11 @@ bool setup(LDSPcontext *context, void *userData)
 void render(LDSPcontext *context, void *userData)
 {
 	// the slot is given an actual index only when a touch is detected
-	bool touch = (multitouchRead(context, chn_mt_id, 0)!= -1); // some phones support anyTouch input, that checks all slots automatically
+	bool touch = (multiTouchRead(context, chn_mt_id, 0)!= -1); // some phones support anyTouch input, that checks all slots automatically
 	if(touch)
 	{
-		float touchX = multitouchRead(context, chn_mt_x, 0)/maxTouchX;
-		float touchY = multitouchRead(context, chn_mt_y, 0)/maxTouchY;
+		float touchX = multiTouchRead(context, chn_mt_x, 0)/maxTouchX;
+		float touchY = multiTouchRead(context, chn_mt_y, 0)/maxTouchY;
         
 		// control frequency and amplitude with touch position
         frequency = map(touchX, 0, 1, freqMin, freqMax);

@@ -255,9 +255,9 @@ install () {
 
   # Install all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
   # first folders
-  find "$PROJECT" -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /data/ldsp/
+  find "$PROJECT"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /data/ldsp/
   # then files
-  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -exec echo {} /data/ldsp/ \;
+  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -exec adb push {} /data/ldsp/ \;
 
 	adb push bin/ldsp /data/ldsp/ldsp
   adb shell "su -c 'chmod 777 /data/ldsp/ldsp'"
@@ -285,9 +285,9 @@ push_sdcard () {
 
   # Push all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
   # first folders
-  find "$PROJECT" -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /sdcard/ldsp/
+  find "$PROJECT"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /sdcard/ldsp/
   # then files
-  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -exec echo {} /sdcard/ldsp/ \;
+  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -exec adb push {} /sdcard/ldsp/ \; | xargs -I{} adb push {} /sdcard/ldsp/
 
 	adb push bin/ldsp /sdcard/ldsp/ldsp
   adb shell "su -c 'chmod 777 /sdcard/ldsp/ldsp'"

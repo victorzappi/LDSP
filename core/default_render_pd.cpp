@@ -324,7 +324,7 @@ void render(LDSPcontext *context, void *userData)
         if (gSendMultiTouch) {
 
             // Send anyTouch through to PD if it changed since last render call
-            float anyTouch = multitouchRead(context, chn_mt_anyTouch, 0);
+            float anyTouch = multiTouchRead(context, chn_mt_anyTouch, 0);
             if (anyTouch != anyTouchState && anyTouch != -1) {
                 lpd.sendFloat("ldsp_mt_anyTouch", anyTouch);
                 anyTouchState = anyTouch;
@@ -337,7 +337,7 @@ void render(LDSPcontext *context, void *userData)
                 pd::List touchList;
                 numElements = 0;
                 for (int i = 0; i < PD_MULTITOUCH_INPUTS; i++) {
-                    float newVal = multitouchRead(context, pdMTChannelMappings[i], slot); 
+                    float newVal = multiTouchRead(context, pdMTChannelMappings[i], slot); 
                     touchList.addFloat(newVal);
                     if (newVal != multiTouchState[chunkStart+i] /* && newVal != -1 */) { // -1 is a good way to signal that there is no touch in that slot
                         numElements++;             
