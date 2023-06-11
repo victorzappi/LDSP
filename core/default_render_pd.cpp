@@ -4,7 +4,8 @@
 #define PD_MINIMUM_BLOCK_SIZE 64
 #define PD_AUDIO_IN_CHANNELS 2
 
-#define PD_MT_RECIEVE_OBJ_PER_SLOT 1
+//VIC is this needed?
+#define PD_MT_RECEIVE_OBJ_PER_SLOT 1
 
 pd::PdBase lpd;
 
@@ -31,7 +32,7 @@ class LDSP_EventHandler : public pd::PdReceiver
 {
     // Redirect print statements to console
     void print(const std::string &message) {
-        printf("Recieved print msg:\n - %s\n", message.c_str());
+        printf("Received print msg:\n - %s\n", message.c_str());
     }
 
     // Redirect bangs to console
@@ -91,7 +92,7 @@ class LDSP_EventHandler : public pd::PdReceiver
 
     // Redirect symbols to console
     void receiveSymbol(const std::string &dest, const std::string &symbol) {
-        printf("Recieved symbol from %s:\n - %s\n", dest.c_str(), symbol.c_str());
+        printf("Received symbol from %s:\n - %s\n", dest.c_str(), symbol.c_str());
     }
 
     // Redirect lists to console
@@ -112,7 +113,7 @@ class LDSP_EventHandler : public pd::PdReceiver
     // Redirect messages to console
     void receiveMessage(const std::string &dest, const std::string &msg, const pd::List &list) {
         printf(
-            "Recieved Message from %s:\n - %s\n - %s\n - %s\n", 
+            "Received Message from %s:\n - %s\n - %s\n - %s\n", 
             dest.c_str(), msg.c_str(), list.toString().c_str(), list.types().c_str()
         );
     }
@@ -122,7 +123,7 @@ class LDSP_MidiHandler : public pd::PdMidiReceiver
 {
     // pd midi receiver callbacks
 	void receiveNoteOn(const int channel, const int pitch, const int velocity) {
-        printf("LDSP Host Recieved Midi Message: \n");
+        printf("LDSP Host Received Midi Message: \n");
         printf(" - Note:     %d\n", pitch);
         printf(" - Velocity: %d\n", velocity);
         printf(" - Channel:  %d\n", channel);
@@ -133,7 +134,7 @@ class LDSP_MidiHandler : public pd::PdMidiReceiver
                             const int channel,
                             const int controller,
                             const int value) {
-        printf("LDSP Host Recieved Midi Control Change: \n");
+        printf("LDSP Host Received Midi Control Change: \n");
         printf(" - Note:     %d\n", channel);
         printf(" - Velocity: %d\n", controller);
         printf(" - Channel:  %d\n", value);
@@ -267,10 +268,13 @@ bool setup(LDSPcontext *context, void *userData)
 
         // Initliaze multitouch resources
         gNumTouchSlots = context->mtInfo->touchSlots;
-        printf("%d\n", gNumTouchSlots);
+        //printf("%d\n", gNumTouchSlots);
         // Set initial multitouch states
         mtStateBufferSize = PD_MULTITOUCH_INPUTS*gNumTouchSlots;
         multiTouchState.resize(mtStateBufferSize);
+        // init
+        for (int i = 0; i < multiTouchState.size(); i++)
+            multiTouchState[i] = -1.0;
         anyTouchState = 0.0;
 
         // Map the position of each value in the pd list
@@ -331,7 +335,7 @@ void render(LDSPcontext *context, void *userData)
             }
 
             int numElements;
-            // Send each touch slot to its respective pd recieve element
+            // Send each touch slot to its respective pd receive element
             for (int slot = 0; slot < gNumTouchSlots; slot++) {
                 int chunkStart = slot*PD_MULTITOUCH_INPUTS;
                 pd::List touchList;
@@ -339,7 +343,7 @@ void render(LDSPcontext *context, void *userData)
                 for (int i = 0; i < PD_MULTITOUCH_INPUTS; i++) {
                     float newVal = multiTouchRead(context, pdMTChannelMappings[i], slot); 
                     touchList.addFloat(newVal);
-                    if (newVal != multiTouchState[chunkStart+i] /* && newVal != -1 */) { // -1 is a good way to signal that there is no touch in that slot
+                    if (newVal != multiTouchState[chunkStart+i]  && (newVal != -1 || i == (int)pd_mt_id) ) { // no -1 values, except for id=-1; it is a good way to signal that there is no touch in that slot
                         numElements++;             
                         multiTouchState[chunkStart+i] = newVal;
                     }

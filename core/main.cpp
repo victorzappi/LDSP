@@ -43,9 +43,10 @@ int main(int argc, char** argv)
 
 	if(LDSP_parseArguments(argc, argv, settings) < 0)
 	{
+		// in case help is printed
 		LDSP_InitSettings_free(settings);
-		fprintf(stderr, "Error: unable to parse command line arguments\n");
-		return 1;
+		cout << "\nBye!" << "\n";
+		return 0;
 	}
 
 	LDSPhwConfig* hwconfig = LDSP_HwConfig_alloc();

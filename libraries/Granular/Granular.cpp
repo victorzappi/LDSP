@@ -17,7 +17,7 @@ bool Granular::initializeAllParams(float sampleRate)
 		
 		this->_pointers[i] = 0.0;
 		this->_filePositions[i] = 0;
-		this->_grainSizes[i] = 0.0 * sampleRate;
+		this->_grainSizes[i] = 0.001 * sampleRate;
 		this->_muted[i] = false;
 		
 	}
@@ -36,6 +36,8 @@ bool Granular::setup(int numGrains, float sampleRate, const std::string & filena
 {
 	this->_numGrains = numGrains;
 	this->_sampleRate = sampleRate;
+	this->_playbackSpeed = 1;
+	this->_filePositionRandomness = 0;
 	this->_pointers.resize(this->_numGrains);
 	this->_filePositions.resize(this->_numGrains);
 	this->_grainSizes.resize(this->_numGrains);

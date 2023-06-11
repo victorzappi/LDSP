@@ -18,14 +18,15 @@
  */
 
 // This code example uses this sounds from freesound:
-// "323623__shpira__tech-drums.wav" by holizna ( https://freesound.org/people/holizna/sounds/629178/ ) licensed under CCBYNC 4.0
+// "629178__holizna__simple-lofi-vinyl-e-piano-loop-95-bpm.wav" by holizna ( https://freesound.org/people/holizna/sounds/629178/ ) licensed under CCBYNC 4.0
+// the original file has beend exported as a mono track and resampled at 48 kHz
 
 #include "LDSP.h"
 #include "MonoFilePlayer.h"
 
 
 // drum loop has to have same samplerate as project!
-string filename = "629178__holizna__simple-lofi-vinyl-e-piano-loop-95-bpm.wav";
+string filename = "629178__holizna__simple-lofi-vinyl-e-piano-loop-95-bpm_mono_48k.wav";
 //-------------------------------------------
 
 MonoFilePlayer player;

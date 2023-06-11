@@ -30,7 +30,7 @@
 #X text 120 360 get nth touch: \; ldsp_touch_n list format \; 0: x
 pos of touch \; 1: y pos of touch \; 2: id of touch \; 3: pressure
 of touch \;;
-#X text 684 469 We can recieve multiple simultaneous touches! \; The
+#X text 684 469 We can receive multiple simultaneous touches! \; The
 number of touches depends on the phone.;
 #X text 74 539 map x touch reading between 0-1;
 #X text 80 566 map between 0-220 HZ;
