@@ -68,12 +68,19 @@ For now, just download the apk from here:
 
 ## INSTALL LDSP ON LAPTOP
 
-- Install on laptop: open a shell in the folder where you want to clone the Github repository. Choose a convenient location, since here you will find code examples and where you will likely write your code.
+Open a shell in the folder where you want to clone the Github repository. Choose a convenient location, since here you will find code examples and where you will likely write your code.
 
 Clone the repository from Github:
-	git clone https://github.com/victorzappi/LDSP.git
+```console
+git clone https://github.com/victorzappi/LDSP.git
+```
+The repo includes some submodules, i.e., code stored in other repos that is compiled as part of LDSP. This is done totally transparently! You just need to use the shell to enter the LDSP folder you just downloadewd and clone all the submodules from there:
+```console
+cd LDSP
+git submodule update --init --recursive
+```
 
-Then export a new environment variable called NDK, with the path to its actual content, i..e, the path where the toolchain folder can be found.
+Finally, export a new environment variable called NDK, with the path to the actual content of the Android NDK you downloaded from the dependecies list. Specifically, export the path where the toolchain folder can be found. This allows LDSP to use the toolchain and the C++ run-time!
 We recommend you make the variable persistent, otherwise you will have to export it again every time you open a new shell to build an LDSP application. This can be done on [Linux](https://stackoverflow.com/a/13046663), [macOS](https://support.apple.com/guide/terminal/use-environment-variables-apd382cc5fa-4f58-4449-b20a-41c53c006f8f/mac) as well as [Windows](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables?view=powershell-7.3#saving-environment-variables-with-the-system-control-panel).
 
 
