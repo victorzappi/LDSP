@@ -10,7 +10,7 @@ Then, make sure that you have Developer Options enabled on the phone, then insid
 
 ## DEPENDENCIES 
 
-- **GIt [optional]**: while not needed to build/run LDSP applications, Git is very useful to download the LDSP environment and keep it up-to-date:
+- **Git [optional]**: while not needed to build/run LDSP applications, Git is very useful to download the LDSP environment from this repo and keep it up-to-date:
 [https://git-scm.com/book/en/v2/Getting-Started-Installing-Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
 - **Android NDK**: includes the C++ compiler (the toolchain) and the run-time libraries necessary to build from your laptop LDSP applications that can run on your phone.
@@ -23,12 +23,12 @@ As of May 2023, the latest version of the macOS NDK zip file can be found here:
 You can potentially edit this link to download future NDK releases.
 Alternatively, 
 you can install the NDK via Homebrew, here is how: [https://macappstore.org/android-ndk/](https://macappstore.org/android-ndk/)
-To find the installation path, try: 
+To find the installation path, open a terminal and try (the NDK contains several versions of clang for Android cross-compilation): 
   ```console
 	sudo find / -name 'clang++' 
   ```
 
-- **CMake**: a tool that makes it easier to build projects in C++. It is officially supported by Google for Android app development and it comes in very hand to run the Android NDK C++ tool chain!
+- **CMake**: a tool that makes it easier to build projects in C++. It is officially supported by Google for Android app development and it comes in very handy to run the Android NDK C++ toolchain!
 Download: [https://cmake.org/download/](https://cmake.org/download/)
 Install: [https://cmake.org/install/](https://cmake.org/install/)
 
@@ -38,7 +38,7 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
   ```
   You should see the number of the installed version!
 
-- **Ninja Build System**: we use this tool to speed up the building process of LDSP applications. The LDSP environment includes the NDK and some third-party libraries (all open-source) that need to be built and linked against, and [Ninja](https://ninja-build.org/) makes this almost effortlessly!
+- **Ninja Build System**: we use this tool to speed up the building process of LDSP applications. The LDSP environment includes the NDK and some third-party libraries (all open-source) that need to be built and linked against, and [Ninja](https://ninja-build.org/) makes this almost effortless!
 
     - Linux: install via your package manager
     - macOS: install via Homebrew or MacPorts; otherwise follow Windows’ guidelines
@@ -49,7 +49,7 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
   ninja --version
   ```
 
-- **ADB (Android device bridge)**: a small tool that allows you to open a shell on your phone via USB. We use it to install, run and stop LDSP applications during development. You can then set up your SSH server to run/stop LDSP applications.
+- **ADB (Android device bridge)**: a small tool that allows you to open a shell on your phone via USB. We mainly use it to install, run and stop LDSP applications during development. You can also set up an SSH server on your phone to do all these things wirelessly, but ADB is simpler and in most cases more convenient.
 
     - Linux: install via your package manager
     - macOS: install via Homebrew or MacPorts; otherwise follow Windows’ guidelines
@@ -60,27 +60,27 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
   adb --version
   ```
 
-- **ADBD Insecure**: a lightweight Android app massively used by XDA developers that enables ADB shells to do way more things (it remounts the phone’s file system as r/w and automatically invokes root privileges for ADB shells). 
-For now, just download the apk from here:
+- **ADBD Insecure [optional]**: a lightweight Android app massively used by XDA developers that enables ADB shells to do way more things (it remounts the phone’s file system as r/w and automatically invokes root privileges for ADB shells). Highly recommended!
+We will install it on the phone. But, for now, just download the apk from here:
 [https://forum.xda-developers.com/t/2014-11-10-root-adbd-insecure-v2-00.1687590/](https://forum.xda-developers.com/t/2014-11-10-root-adbd-insecure-v2-00.1687590/)
 
 - **Pure Data “vanilla” [optional]**:  in case you want to code LDSP applications in Pd rather than C++: [https://puredata.info/downloads](https://puredata.info/downloads)
 
 ## INSTALL LDSP ON LAPTOP
 
-Open a shell in the folder where you want to clone the Github repository. Choose a convenient location, since here you will find code examples and where you will likely write your code.
+- **Clone the repo**: open a shell in the folder where you want to clone the GitHub repository. Choose a convenient location, since here you will find code examples and it is also where you will likely write your own code/projects.
 
-Clone the repository from Github:
-```console
-git clone https://github.com/victorzappi/LDSP.git
-```
-The repo includes some submodules, i.e., code stored in other repos that is compiled as part of LDSP. This is done totally transparently! You just need to use the shell to enter the LDSP folder you just downloadewd and clone all the submodules from there:
-```console
-cd LDSP
-git submodule update --init --recursive
-```
+  Clone the repository from Github:
+  ```console
+  git clone https://github.com/victorzappi/LDSP.git
+  ```
+- **Init submodules**: the repo includes some submodules, i.e., code stored in other repos that is compiled as libraries used by LDSP. This is done totally transparently! You just need to use the shell to enter the LDSP folder you just downloadewd and clone all the submodules from there with a single command:
+  ```console
+  cd LDSP
+  git submodule update --init --recursive
+  ```
 
-Finally, export a new environment variable called NDK, with the path to the actual content of the Android NDK you downloaded from the dependecies list. Specifically, export the path where the toolchain folder can be found. This allows LDSP to use the toolchain and the C++ run-time!
+- **Export the NDK var**: finally, export a new environment variable called NDK, with the path to the actual content of the Android NDK you downloaded from the dependecies list. Specifically, export the full path that points to where the 'toolchains' and the 'sources' folders can be found (i.e., path to the folder that contains them). This allows LDSP to use the toolchain and the C++ run-time!
 We recommend you make the variable persistent, otherwise you will have to export it again every time you open a new shell to build an LDSP application. This can be done on [Linux](https://stackoverflow.com/a/13046663), [macOS](https://support.apple.com/guide/terminal/use-environment-variables-apd382cc5fa-4f58-4449-b20a-41c53c006f8f/mac) as well as [Windows](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables?view=powershell-7.3#saving-environment-variables-with-the-system-control-panel).
 
 
