@@ -26,4 +26,8 @@ add_subdirectory(libpd)
 target_compile_options(libpd PRIVATE "-Wno-everything")
 
 
+add_subdirectory(onnxruntime)
+
+
+
 

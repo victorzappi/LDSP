@@ -260,6 +260,7 @@ install () {
   # this includes Pd files in Pd projects, but excludes C/C++ and assembly files
   find "$PROJECT" -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -print0 | xargs -0 -I{} adb push {} /data/ldsp/
 
+  # adb push dependencies/onnxruntime/arm7/libonnxruntime.so /data/dependencies/onnxruntime/arm7/libonnxruntime.so
 	adb push bin/ldsp /data/ldsp/ldsp
   adb shell "su -c 'chmod 777 /data/ldsp/ldsp'"
 }
@@ -327,7 +328,7 @@ run () {
   # Run adb shell in a subshell, so that it doesn't receive the SIGINT signal
   (
     trap "" INT
-    adb shell "su -c 'cd /data/ldsp/ && ./ldsp $@'" # we invoke su before running the bin, needed on some phones: https://stackoverflow.com/a/27274416
+    adb shell " su -c 'cd /data/ldsp/ && export LD_LIBRARY_PATH="../dependencies/onnxruntime/arm7/" && ./ldsp $@'" # we invoke su before running the bin, needed on some phones: https://stackoverflow.com/a/27274416
   ) &
 
 
