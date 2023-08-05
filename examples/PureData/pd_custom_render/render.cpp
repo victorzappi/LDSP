@@ -9,22 +9,22 @@ class LDSP_EventHandler : public pd::PdReceiver
 {
     // Redirect print statements to console
     void print(const std::string &message) {
-        printf("Recieved print msg:\n - %s\n", message.c_str());
+        printf("Received print msg:\n - %s\n", message.c_str());
     }
 
     // Redirect bangs to console
     void receiveBang(const std::string &dest) {
-        printf("Recieved Bang from %s\n", dest.c_str());
+        printf("Received Bang from %s\n", dest.c_str());
     }
 
     // Redirect floats to console
     void receiveFloat(const std::string &dest, float num) {
-        printf("Recieved Float from %s:\n - %f\n", dest.c_str(), num);
+        printf("Received Float from %s:\n - %f\n", dest.c_str(), num);
     }
 
     // Redirect symbols to console
     void receiveSymbol(const std::string &dest, const std::string &symbol) {
-        printf("Recieved symbol from %s:\n - %s\n", dest.c_str(), symbol.c_str());
+        printf("Received symbol from %s:\n - %s\n", dest.c_str(), symbol.c_str());
     }
 
     // Redirect lists to console
@@ -45,7 +45,7 @@ class LDSP_EventHandler : public pd::PdReceiver
     // Redirect messages to console
     void receiveMessage(const std::string &dest, const std::string &msg, const pd::List &list) {
         printf(
-            "Recieved Message from %s:\n - %s\n - %s\n - %s\n", 
+            "Received Message from %s:\n - %s\n - %s\n - %s\n", 
             dest.c_str(), msg.c_str(), list.toString().c_str(), list.types().c_str()
         );
     }
@@ -55,7 +55,7 @@ class LDSP_MidiHandler : public pd::PdMidiReceiver
 {
     // pd midi receiver callbacks
 	void receiveNoteOn(const int channel, const int pitch, const int velocity) {
-        printf("LDSP Host Recieved Midi Message: \n");
+        printf("LDSP Host Received Midi Message: \n");
         printf(" - Note:     %d\n", pitch);
         printf(" - Velocity: %d\n", velocity);
         printf(" - Channel:  %d\n", channel);
@@ -66,7 +66,7 @@ class LDSP_MidiHandler : public pd::PdMidiReceiver
                             const int channel,
                             const int controller,
                             const int value) {
-        printf("LDSP Host Recieved Midi Control Change: \n");
+        printf("LDSP Host Received Midi Control Change: \n");
         printf(" - Note:     %d\n", channel);
         printf(" - Velocity: %d\n", controller);
         printf(" - Channel:  %d\n", value);

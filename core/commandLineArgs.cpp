@@ -36,33 +36,42 @@ unordered_map<string, int> gFormats; // extern in tinyalsaAudio.cpp
 
 void LDSP_usage(const char *argv)
 {
-	// fprintf(stderr, "Passthrough from buil-in mic to headphones, via the selected devices\n");
-    fprintf(stderr, "usage: %s [options]\n", argv);
-    // fprintf(stderr, "options:\n");
-	// fprintf(stderr, "-c | --playback-card <card number>	[0]  	The playback card\n");
-    // fprintf(stderr, "-d | --playback-device <device number>	[15]	Playback card's device\n");
-    // fprintf(stderr, "-C | --capture-card <card number>	[0]  	The playback card\n");
-    // fprintf(stderr, "-D | --capture-device <device number>	[15]	Playback card's device\n");
-	// fprintf(stderr, "-n | --playback-channels <count> 	[2]     The number of output channels\n");
-	// fprintf(stderr, "-n | --capture-channels <count> 	[1]     The number of output channels\n");
-    // fprintf(stderr, "-p | --period-size <size> 		[256]	The size of the PCM's period\n");
-    // fprintf(stderr, "-b | --period-count <count> 		[2]	The number of PCM periods in each PCM buffer\n");
-    // fprintf(stderr, "-r | --rate <rate> 			[48000]	The sample rate [Hz]\n");
-    // fprintf(stderr, "-f | --format <format index> 		[0]  	The frames are in floating-point PCM\n");
-    // fprintf(stderr, "Possible formats:\n");
-    // for(int i=0; i<PCM_FORMAT_MAX; i++)
-    // 	fprintf(stderr, "\tindex %d - %s\n", i, format_strings[i]);
-
-	/* formats supported by all phones
-	PCM_FORMAT_S16_LE = 0,
-    PCM_FORMAT_S32_LE,     */
+    fprintf(stderr, "Usage: %s [options]\n", argv);
+    fprintf(stderr, "options, with default values in brackets:\n");
+	fprintf(stderr, "-c | --card <card number>\t\t\tSound card [0]\n");
+    fprintf(stderr, "-d | --output-device-num <device number>\tCard's playback device number\n");
+    fprintf(stderr, "-D | --input-device-num <device number>\t\tCard's capture device number\n");
+	fprintf(stderr, "-d | --output-device-id <id>\t\t\tCard's playback device id (name)\n");
+    fprintf(stderr, "-D | --input-device-id <id>\t\t\tCard's capture device id (name)\n");
+	fprintf(stderr, "-p | --period-size <size>\t\t\tNumber of frames per each audio block [256]\n");
+	fprintf(stderr, "-b | --period-count <count>\t\t\tNumber of audio blocks the audio ring buffer can contain [2]\n");
+	fprintf(stderr, "-n | --output-channels <count>\t\t\tNumber of playback audio channels [2]\n");
+	fprintf(stderr, "-N | --input-channels <count>\t\t\tNumber of capture audio channels [1]\n");
+	fprintf(stderr, "-r | --samplerate <rate>\t\t\tSample rate in Hz [48000]\n");
+	fprintf(stderr, "-f | --format <format index>\t\t\tIndex of format of samples [0]\n");
+    fprintf(stderr, "\tPossible formats:\n");
+    for(int f=0; f<LDSP_pcm_format::MAX; f++)
+	{
+		LDSP_pcm_format ff = (LDSP_pcm_format::_enum)LDSP_pcm_format::_from_index(f);
+        string name = ff._to_string();
+		printf("\t\tindex %d - %s\n", f, name.c_str());
+	}
+	fprintf(stderr, "-o | --output-path <path name>\t\t\tOutput mixer path\n");
+	fprintf(stderr, "-i | --input-path <path name>\t\t\tInput mixer path\n");
+	fprintf(stderr, "-O | --output-only\t\t\t\tDisables captures [capture enabled]\n");
+	fprintf(stderr, "-P | --sensors-off\t\t\t\tDisables sensors [sensors enabled]\n");
+	fprintf(stderr, "-Q | --ctrl-inputs-off\t\t\t\tDisables control inputs [control inputs enabled]\n");
+	fprintf(stderr, "-R | --ctrl-outputs-off\t\t\t\tDisables control outputs [control outputs enabled]\n");
+	fprintf(stderr, "-A | --perf-mode-off\t\t\t\tDisables CPU's governor peformance mode [performance mode enabled]\n");
+	fprintf(stderr, "-v | --verbose\t\t\t\t\tPrints all phone's info, current settings main function calls [off]\n");
+	fprintf(stderr, "-h | --help\t\t\t\t\tPrints this and exits [off]\n");
 }
 
 
 int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 {
  	// Create a map that associates each argument with its original position
-    std::unordered_map<char*, int> orig_pos;
+    unordered_map<char*, int> orig_pos;
     for (int i = 0; i < argc; i++) {
         orig_pos[argv[i]] = i;
     }
@@ -106,6 +115,7 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 	};
 
 	int retVal = 0;
+	int notRec = 0;
 
 	optparse_init(&opts, argv);
 	while ((c = optparse_long(&opts, long_options, NULL)) != -1) {
@@ -166,9 +176,19 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 			//case '?': // we want extra arguments to be accepted and possibly managed by user
 				LDSP_usage(argv[0]);
 				retVal = -1;
+				break;
 			default:
+				notRec++;
 				break;
 		}
+	}
+
+	if(notRec > 0)
+	{ 
+		string cc = "argument";
+		if(notRec > 1)
+			cc = "arguments";
+		printf("\n\t%d %s not recognized by main parser\n", notRec, cc.c_str());
 	}
 
 	

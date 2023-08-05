@@ -25,7 +25,7 @@ if [ "${arch[2]}" == 'AArch64' ]; then
 	echo 'supports neon floating point unit: true' # aarch64 always supports neon
 	exit 0
 elif [ "${arch[2]}" == 'ARMv7' ]; then
-	echo 'target architecture: armv7'
+	echo 'target architecture: armv7a'
 else
 	echo 'Could not get architecture info ):'
 	exit 0

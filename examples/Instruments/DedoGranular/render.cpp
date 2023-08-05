@@ -25,7 +25,7 @@ using std::vector;
 #define GRANULATORS_NUM 2
 
 int numGrains = 4;
-string file[GRANULATORS_NUM] = {"./piano5.wav", "DAVE.wav"};
+string file[GRANULATORS_NUM] = {"./audiofileA.wav", "audiofileB.wav"}; // choose two audiofiles and put them in the project directory; set LDSP sample rate to match the files' rate
 float amplitude[2] = {1.0, 0.3};
 float playbackSpeed = 1;
 int grainSize = 1000;
@@ -69,13 +69,13 @@ bool setup(LDSPcontext *context, void *userData)
 void render(LDSPcontext *context, void *userData)
 {
     // not all phones support the 'any touch' input
-    //int anytouch = multitouchRead(context, chn_mt_anyTouch); 
+    //int touch = multiTouchRead(context, chn_mt_anyTouch); 
     // so we approximate it, by checking the id assigned to the first slot
-    int anytouch = (multitouchRead(context, chn_mt_id, 0) > -1);
+    bool touch = (multiTouchRead(context, chn_mt_id, 0) != -1);
     
-    if(anytouch!=0)
+    if(touch)
     {
-        float filePosition = multitouchRead(context, chn_mt_y, 0)/maxTouchY;
+        float filePosition = multiTouchRead(context, chn_mt_y, 0)/maxTouchY;
 
         granulators[0].setFilePosition(filePosition);
         granulators[1].setFilePosition(filePosition);
@@ -83,7 +83,7 @@ void render(LDSPcontext *context, void *userData)
         granulators[0].setGrainSizeMS(grainSize);
         granulators[1].setGrainSizeMS(grainSize);
 
-        float touchX = multitouchRead(context, chn_mt_x, 0)/maxTouchX;
+        float touchX = multiTouchRead(context, chn_mt_x, 0)/maxTouchX;
         touchX = constrain(touchX, 0.2, 0.8);
         crossfade = map(touchX, 0.2, 0.8, 0, 1);
     }

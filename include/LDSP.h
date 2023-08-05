@@ -192,7 +192,7 @@ static inline float audioRead(LDSPcontext *context, int frame, int channel);
 
 static inline float sensorRead(LDSPcontext *context, sensorChannel channel);
 static inline int buttonRead(LDSPcontext *context, btnInputChannel channel);
-static inline int multitouchRead(LDSPcontext *context, multiTouchInputChannel channel, int touchSlot=0);
+static inline int multiTouchRead(LDSPcontext *context, multiTouchInputChannel channel, int touchSlot=0);
 static inline void ctrlOutputWrite(LDSPcontext *context, ctrlOutputChannel channel, float value);
 
 //static inline float analogInNormFactor(LDSPcontext *context, sensorChannel channel);
@@ -253,7 +253,7 @@ static inline int buttonRead(LDSPcontext *context, btnInputChannel channel)
     return context->ctrlInputs[channel];
 }
 
-static inline int multitouchRead(LDSPcontext *context, multiTouchInputChannel channel, int touchSlot)
+static inline int multiTouchRead(LDSPcontext *context, multiTouchInputChannel channel, int touchSlot)
 {
     if(channel==chn_mt_anyTouch)
         return context->ctrlInputs[chn_btn_count+chn_mt_anyTouch];

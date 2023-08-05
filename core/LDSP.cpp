@@ -51,7 +51,7 @@ void LDSP_defaultSettings(LDSPinitSettings *settings)
     settings->sensorsOff = 0; // sensors are on by default
     settings->ctrlInputsOff = 0; // control inputs are on by default
     settings->ctrlOutputsOff = 0; // control outputs are on by default
-    settings->verbose = 1; //0; // shut up by default
+    settings->verbose = 0; // shut up by default
     settings->deviceOutId = ""; // if not specified, extracted at run-time //VIC! remove 
     settings->deviceInId = ""; // if not specified, extracted at run-time 
 }

@@ -19,6 +19,7 @@
 
 // This code example uses this sounds from freesound:
 // "323623__shpira__tech-drums.wav" by shpira ( https://freesound.org/s/323623/ ) licensed under CCBYNC 4.0
+// the original file has beend exported as a mono track
 
 #include "LDSP.h"
 #include "MonoFilePlayer.h"
@@ -27,7 +28,7 @@
 
 
 // drum loop has to have same samplerate as project!
-string filename = "323623__shpira__tech-drums.wav";
+string filename = "323623__shpira__tech-drums_mono.wav";
 float bpm = 102; // bpm of drum loop
 int screenRegions = SCREEN_REGIONS; // number of vertical regions we split the screen into
 // each region is associated to a delay time factor and a feedback value
@@ -37,7 +38,7 @@ float feedbacks[SCREEN_REGIONS] = {0.5, 0.6, 0.7, 0.8};
 //-------------------------------------------
 MonoFilePlayer player;
 
-int anytouch_prev = 0;
+bool touch_prev = false;
 
 // declare variables for circular buffer
 std::vector<float> delayBuffer;
@@ -82,21 +83,21 @@ void render(LDSPcontext *context, void *userData)
 	float amp_dry = 0;
 	
 	// check if any touch is detected
-	int anytouch = (multitouchRead(context, chn_mt_id, 0)>-1);
+	bool touch = (multiTouchRead(context, chn_mt_id, 0) !=-1);
 	// if a touch is present, set amp_drylitude grater than zero
-	if(anytouch == 1)
+	if(touch)
 	{
 		// activate dry and silence wet
 		amp_dry = 0.5; // not too loud please
 		amp_wet = 0;
 		// if this is a new touch [rising edge]
-		if(anytouch_prev == 0)
+		if(!touch_prev)
 		{
 			player.trigger(); // retrigger the drumloop from beginning
 			std::fill(delayBuffer.begin(), delayBuffer.end(), 0); // wipe delay buffer
 
 			// prepare new delay line
-			float touchX = multitouchRead(context, chn_mt_x, 0);
+			float touchX = multiTouchRead(context, chn_mt_x, 0);
 			int region = touchX/regionSize;
 
 			// set delay time to match global bpm and region's factor
@@ -113,12 +114,12 @@ void render(LDSPcontext *context, void *userData)
 		amp_dry = 0;
 		
 		// if touch has just left [falling edge]
-		if(anytouch_prev == 1)
+		if(touch_prev)
 			amp_wet = 0.5; // put delay into the mix, but not too loud please
 	}
 
 	// save state of touch for next check
-	anytouch_prev = anytouch;
+	touch_prev = touch;
 
 
 	for(int n=0; n<context->audioFrames; n++)

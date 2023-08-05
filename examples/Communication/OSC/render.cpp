@@ -99,8 +99,8 @@ void render(LDSPcontext *context, void *userData)
 
 
 	// retrieve x and y touch position
-	float touchX = multitouchRead(context, chn_mt_x, 0)/maxTouchX;
-	float touchY = multitouchRead(context, chn_mt_y, 0)/maxTouchY;
+	float touchX = multiTouchRead(context, chn_mt_x, 0)/maxTouchX;
+	float touchY = multiTouchRead(context, chn_mt_y, 0)/maxTouchY;
 
 	// send via OSC only if new value
 	if(touchX != touchX_prev || touchY != touchY_prev)

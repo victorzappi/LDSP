@@ -249,16 +249,15 @@ install () {
     adb push "$hw_config" /data/ldsp/ldsp_hw_config.json
   fi
 
-  # Push all project resources, including Pd files in Pd projects
-  # adb push "$PROJECT"/* /data/ldsp/
-
   #TODO switch to project folders on phone
   # then change name of bin to project name
   # add remove function to delete project folder from phone
 
-  # Push all project resources
-  # this includes Pd files in Pd projects, but excludes C/C++ and assembly files
-  find "$PROJECT" -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -print0 | xargs -0 -I{} adb push {} /data/ldsp/
+  # Install all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
+  # first folders
+  find "$PROJECT"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /data/ldsp/
+  # then files
+  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -exec adb push {} /data/ldsp/ \;
 
   # Push shared onnxruntime library to phone
   # TODO: push version based on selected phone architecture
@@ -288,14 +287,11 @@ push_sdcard () {
     adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
   fi
 
-  # Push all project resources
-  # adb push "$PROJECT"/* /sdcard/ldsp/
-
-  # Push all project resources
-  # this includes Pd files in Pd projects, but excludes C/C++ and assembly files
-  find "$PROJECT" -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -print0 | xargs -0 -I{} adb push {} /sdcard/ldsp/
-
-
+  # Push all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
+  # first folders
+  find "$PROJECT"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /sdcard/ldsp/
+  # then files
+  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -exec adb push {} /sdcard/ldsp/ \; | xargs -I{} adb push {} /sdcard/ldsp/
 
 	adb push bin/ldsp /sdcard/ldsp/ldsp
   adb shell "su -c 'chmod 777 /sdcard/ldsp/ldsp'"
