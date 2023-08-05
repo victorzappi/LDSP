@@ -58,7 +58,7 @@ target_include_directories(ldsp PRIVATE ../dependencies/fftw3/api)
 target_link_directories(ldsp PRIVATE ../dependencies/fftw3)
 
 # All neccessary headers for onnxruntime
-set(ONNXRUNTIME_PATH /Users/jhoopes/code/libraries/onnxruntime)
+set(ONNXRUNTIME_PATH ../dependencies/onnxruntime)
 message("${ONNXRUNTIME_PATH}")
 target_include_directories(ldsp PRIVATE "${ONNXRUNTIME_PATH}/include/onnxruntime/core/session" PRIVATE)
 
@@ -66,12 +66,6 @@ target_include_directories(ldsp PRIVATE "${ONNXRUNTIME_PATH}/include/onnxruntime
 
 target_link_directories(ldsp 
   PRIVATE ../dependencies/onnxruntime/arm7
-  PRIVATE /Users/jhoopes/code/libraries/copies/LDSP/dependencies/onnxruntime/arm7/_deps/onnx-build
-  PRIVATE /Users/jhoopes/code/libraries/copies/LDSP/dependencies/onnxruntime/arm7/_deps/protobuf-build
-  PRIVATE /Users/jhoopes/code/libraries/copies/LDSP/dependencies/onnxruntime/arm7/_deps/re2-build
-  PRIVATE /Users/jhoopes/code/libraries/copies/LDSP/dependencies/onnxruntime/arm7/_deps/abseil_cpp-build/absl/base
-  PRIVATE /Users/jhoopes/code/libraries/copies/LDSP/dependencies/onnxruntime/arm7/_deps/abseil_cpp-build/absl/hash
-  PRIVATE /Users/jhoopes/code/libraries/copies/LDSP/dependencies/onnxruntime/arm7/_deps/abseil_cpp-build/absl/container
 )
 
 
@@ -86,27 +80,5 @@ target_link_libraries(ldsp
 
   # DYNAMIC LIBRARY
   PRIVATE onnxruntime
-
-  # STATIC LIBS
-  PRIVATE onnxruntime_session
-  PRIVATE onnxruntime_optimizer
-  PRIVATE onnxruntime_providers
-  PRIVATE onnxruntime_util
-  PRIVATE onnxruntime_framework
-  PRIVATE onnxruntime_graph
-  PRIVATE onnxruntime_mlas
-  PRIVATE onnxruntime_common
-  PRIVATE onnxruntime_flatbuffers
-  PRIVATE onnx_test_data_proto
-  PRIVATE onnx
-  PRIVATE onnx_proto
-  PRIVATE protobuf-lite
-  PRIVATE re2
-  PRIVATE absl_base
-  PRIVATE absl_throw_delegate
-  PRIVATE absl_raw_hash_set
-  PRIVATE absl_hash
-  PRIVATE absl_city
-  PRIVATE absl_low_level_hash
 )
 
