@@ -260,7 +260,10 @@ install () {
   # this includes Pd files in Pd projects, but excludes C/C++ and assembly files
   find "$PROJECT" -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -print0 | xargs -0 -I{} adb push {} /data/ldsp/
 
-  # adb push dependencies/onnxruntime/arm7/libonnxruntime.so /data/dependencies/onnxruntime/arm7/libonnxruntime.so
+  # Push shared onnxruntime library to phone
+  # TODO: push version based on selected phone architecture
+  # - only push if library doesn't exist yet
+  adb push dependencies/onnxruntime/arm7/libonnxruntime.so /data/dependencies/onnxruntime/arm7/libonnxruntime.so
 	adb push bin/ldsp /data/ldsp/ldsp
   adb shell "su -c 'chmod 777 /data/ldsp/ldsp'"
 }
