@@ -18,8 +18,8 @@ bool setup(LDSPcontext *context, void *userData) {
     // Initialize ONNX Runtime Model Wrapper
     OrtModel model;
     bool success = model.setup(
-        "hello_world",                     // ORT environment
-        "../models/model.onnx"             // path to onnx model
+        "hello_world",                    // ORT environment name
+        "./models/model.onnx"             // path to onnx model
     );
 
 
@@ -28,9 +28,11 @@ bool setup(LDSPcontext *context, void *userData) {
         return 1;
     }
 
+    // Setup Input + Output Tensors
     float input[] = {0.5};
     float output[1];
 
+    // Run the model
     model.run(input, output);
 
     printf("input: %f\n", input[0]);

@@ -126,8 +126,6 @@ void OrtModel::run(float * inputTensorData, float * outputTensorData) {
     Ort::RunOptions options;
     std::vector<Ort::Value> outputTensors = session->Run(options, inputNodeNames.data(), &inputTensor, 1, outputNodeNames.data(), 1);
 
-
-    // std::vector<float> outputData = outputTensors[0].getTensorRawData();
     float * tensorData = (float *) outputTensors[0].GetTensorRawData();
     memcpy(outputTensorData, tensorData, sizeof(float)*this->outputNodeDims[1]);
 }
