@@ -65,7 +65,7 @@ target_include_directories(ldsp PRIVATE "${ONNXRUNTIME_PATH}/include/onnxruntime
 
 
 target_link_directories(ldsp 
-  PRIVATE ../dependencies/onnxruntime/arm7
+  PRIVATE ../dependencies/onnxruntime/armeabi-v7a
 )
 
 
