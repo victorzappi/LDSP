@@ -262,7 +262,7 @@ install () {
   # Push shared onnxruntime library to phone
   # TODO: push version based on selected phone architecture
   # - only push if library doesn't exist yet
-  adb push dependencies/onnxruntime/arm7/libonnxruntime.so /data/dependencies/onnxruntime/arm7/libonnxruntime.so
+  adb push dependencies/onnxruntime/armeabi-v7a/libonnxruntime.so /data/ldsp/libonnxruntime.so
 	adb push bin/ldsp /data/ldsp/ldsp
   adb shell "su -c 'chmod 777 /data/ldsp/ldsp'"
 }
@@ -327,7 +327,7 @@ run () {
   # Run adb shell in a subshell, so that it doesn't receive the SIGINT signal
   (
     trap "" INT
-    adb shell " su -c 'cd /data/ldsp/ && export LD_LIBRARY_PATH="../dependencies/onnxruntime/arm7/" && ./ldsp $@'" # we invoke su before running the bin, needed on some phones: https://stackoverflow.com/a/27274416
+    adb shell " su -c 'cd /data/ldsp/ && export LD_LIBRARY_PATH="." && ./ldsp $@'" # we invoke su before running the bin, needed on some phones: https://stackoverflow.com/a/27274416
   ) &
 
 
