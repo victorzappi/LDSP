@@ -58,7 +58,7 @@ void LDSP_usage(const char *argv)
 	}
 	fprintf(stderr, "-o | --output-path <path name>\t\t\tOutput mixer path\n");
 	fprintf(stderr, "-i | --input-path <path name>\t\t\tInput mixer path\n");
-	fprintf(stderr, "-O | --output-only\t\t\t\tDisables captures [capture enabled]\n");
+	fprintf(stderr, "-O | --audio-input-off\t\t\t\tDisables audio capture [audio capture enabled]\n");
 	fprintf(stderr, "-P | --sensors-off\t\t\t\tDisables sensors [sensors enabled]\n");
 	fprintf(stderr, "-Q | --ctrl-inputs-off\t\t\t\tDisables control inputs [control inputs enabled]\n");
 	fprintf(stderr, "-R | --ctrl-outputs-off\t\t\t\tDisables control outputs [control outputs enabled]\n");
@@ -104,7 +104,7 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 		{ "format",       		'f', OPTPARSE_REQUIRED },
 		{ "output-path",       	'o', OPTPARSE_REQUIRED },
 		{ "input-path",       	'i', OPTPARSE_REQUIRED },
-		{ "output-only",       	'O', OPTPARSE_NONE },
+		{ "audio-input-off",	'O', OPTPARSE_NONE },
 		{ "sensors-off",       	'P', OPTPARSE_NONE },
 		{ "ctrl-inputs-off",    'Q', OPTPARSE_NONE },
 		{ "ctrl-outputs-off",   'R', OPTPARSE_NONE },
