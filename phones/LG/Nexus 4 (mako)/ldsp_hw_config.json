@@ -1,0 +1,30 @@
+{
+	"device": "LG Nexus 4",
+	"target architecture": "armv7a",
+	"supports neon floating point unit": "true",
+	"mixer settings":
+	{
+		"mixer paths xml file": "/etc/mixer_paths.xml",
+		"mixer volumes xml file": "",
+		"playback path names":
+		{ 
+			"line-out": "headphones",
+			"speaker": "speaker",
+			"handset": "handset"
+		},
+		"capture path names":
+		{
+			"line-in": "headset-mic",
+		   	"mic": "camcorder-mic",
+		   	"handset": "handset-mic"
+		},
+		"default playback device number": 14, 
+		"default capture device number": 0,
+		"mixer playback device activation": "SLIMBUS_0_RX Audio Mixer DEVICE_ID",
+		"mixer capture device activation": "DEVICE_ID Mixer SLIM_0_TX"
+	},
+	"control outputs":
+	{
+		
+	}
+}

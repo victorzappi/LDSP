@@ -209,7 +209,7 @@ configure () {
   fi
 
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon $api_define "-DLDSP_PROJECT=$PROJECT" -G Ninja .
+  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon $api_define "-DLDSP_PROJECT=$PROJECT" -G Ninja .
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: CMake failed"
@@ -259,10 +259,14 @@ install () {
   # then files
   find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -exec adb push {} /data/ldsp/ \;
 
+  # Push the onnxruntime library that matches the phones' architecture
+  target_arch=$(grep -o '"target architecture": "[^"]*' "$hw_config" | grep -o '[^"]*$')
+  onnx_path="./dependencies/onnxruntime/$target_arch/libonnxruntime.so"
+
   # Push shared onnxruntime library to phone
   # TODO: push version based on selected phone architecture
   # - only push if library doesn't exist yet
-  adb push dependencies/onnxruntime/armeabi-v7a/libonnxruntime.so /data/ldsp/onnxruntime/libonnxruntime.so
+  adb push $onnx_path /data/ldsp/onnxruntime/libonnxruntime.so
 	adb push bin/ldsp /data/ldsp/ldsp
   adb shell "su -c 'chmod 777 /data/ldsp/ldsp'"
 }

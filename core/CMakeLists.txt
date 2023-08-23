@@ -59,13 +59,11 @@ target_link_directories(ldsp PRIVATE ../dependencies/fftw3)
 
 # All neccessary headers for onnxruntime
 set(ONNXRUNTIME_PATH ../dependencies/onnxruntime)
-message("${ONNXRUNTIME_PATH}")
 target_include_directories(ldsp PRIVATE "${ONNXRUNTIME_PATH}/include/onnxruntime/core/session" PRIVATE)
 
 
-
 target_link_directories(ldsp 
-  PRIVATE ../dependencies/onnxruntime/armeabi-v7a
+  PRIVATE "../dependencies/onnxruntime/${DEVICE_ARCH}"
 )
 
 
