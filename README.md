@@ -144,7 +144,7 @@ After this, go to the configuration .json file you have opened in your text edit
 
 In order to try LDSP with our rooted phone, we can try the sine example that you find in LDSP/examples/sine. From the LDSP folder’s terminal with command
 ```console
-./scripts/ldsp.sh --vendor=nameOfVendor —model="Name of Model" —version=x.x.x --project=./examples/Fundamentals/sine configure build
+./scripts/ldsp.sh --vendor=nameOfVendor --model="Name of Model" --version=x.x.x --project=./examples/Fundamentals/sine configure build
 ```
 
 The vendor, model and version you can find with the commands explained before or in the configuration file, and folder of the specific phone. 
@@ -152,7 +152,7 @@ The vendor, model and version you can find with the commands explained before or
 The first time you configure and build it is also going to install and check dependencies and so on, so it might take longer. 
 We will later push the sine example to our phone with the command
 ```console
-./scripts/ldsp.sh --vendor=nameOfVendor —model="Name of Model"  —version=x.x.x —project=./examples/Fundamentals/sine install 
+./scripts/ldsp.sh --vendor=nameOfVendor --model="Name of Model"  --version=x.x.x --project=./examples/Fundamentals/sine install 
 ```
 We can run it in our phones from this same terminal with
 ```console
@@ -164,9 +164,9 @@ You will able to see a list of the control inputs and sensors after running a pr
 You can stop the project with control + c.
 To check the line between headphones for example and mic we can use the example ‘passthrough’. We build and configure same as before, and push same as before. 
 ```console
-./scripts/ldsp.sh --vendor=nameOfVendor —model="Name of Model" —version=x.x.x --project=./examples/Fundamentals/passthrough configure build
+./scripts/ldsp.sh --vendor=nameOfVendor —model="Name of Model" --version=x.x.x --project=./examples/Fundamentals/passthrough configure build
 
-./scripts/ldsp.sh --vendor=nameOfVendor —model="Name of Model" —version=x.x.x —project=./examples/Fundamentals/passthrough install
+./scripts/ldsp.sh --vendor=nameOfVendor —model="Name of Model" --version=x.x.x --project=./examples/Fundamentals/passthrough install
 ```
 
 We can run it choosing the line-out as output (meaning, the headphones) and the mic as input. We can also change the buffer size to 512 with -p, the default being 256.

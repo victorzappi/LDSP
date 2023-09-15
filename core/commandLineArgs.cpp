@@ -41,8 +41,8 @@ void LDSP_usage(const char *argv)
 	fprintf(stderr, "-c | --card <card number>\t\t\tSound card [0]\n");
     fprintf(stderr, "-d | --output-device-num <device number>\tCard's playback device number\n");
     fprintf(stderr, "-D | --input-device-num <device number>\t\tCard's capture device number\n");
-	fprintf(stderr, "-d | --output-device-id <id>\t\t\tCard's playback device id (name)\n");
-    fprintf(stderr, "-D | --input-device-id <id>\t\t\tCard's capture device id (name)\n");
+	fprintf(stderr, "-s | --output-device-id <id>\t\t\tCard's playback device id (name)\n");
+    fprintf(stderr, "-S | --input-device-id <id>\t\t\tCard's capture device id (name)\n");
 	fprintf(stderr, "-p | --period-size <size>\t\t\tNumber of frames per each audio block [256]\n");
 	fprintf(stderr, "-b | --period-count <count>\t\t\tNumber of audio blocks the audio ring buffer can contain [2]\n");
 	fprintf(stderr, "-n | --output-channels <count>\t\t\tNumber of playback audio channels [2]\n");
@@ -58,7 +58,7 @@ void LDSP_usage(const char *argv)
 	}
 	fprintf(stderr, "-o | --output-path <path name>\t\t\tOutput mixer path\n");
 	fprintf(stderr, "-i | --input-path <path name>\t\t\tInput mixer path\n");
-	fprintf(stderr, "-O | --audio-input-off\t\t\t\tDisables audio capture [audio capture enabled]\n");
+	fprintf(stderr, "-O | --output-only\t\t\t\tDisables captures [capture enabled]\n");
 	fprintf(stderr, "-P | --sensors-off\t\t\t\tDisables sensors [sensors enabled]\n");
 	fprintf(stderr, "-Q | --ctrl-inputs-off\t\t\t\tDisables control inputs [control inputs enabled]\n");
 	fprintf(stderr, "-R | --ctrl-outputs-off\t\t\t\tDisables control outputs [control outputs enabled]\n");
@@ -104,7 +104,7 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 		{ "format",       		'f', OPTPARSE_REQUIRED },
 		{ "output-path",       	'o', OPTPARSE_REQUIRED },
 		{ "input-path",       	'i', OPTPARSE_REQUIRED },
-		{ "audio-input-off",	'O', OPTPARSE_NONE },
+		{ "output-only",       	'O', OPTPARSE_NONE },
 		{ "sensors-off",       	'P', OPTPARSE_NONE },
 		{ "ctrl-inputs-off",    'Q', OPTPARSE_NONE },
 		{ "ctrl-outputs-off",   'R', OPTPARSE_NONE },

@@ -51,6 +51,8 @@ cmake_install.cmake
 .ninja_log
 build.ninja
 rules.ninja
+build.ninja.tmp*
+
 
 # Temporary local projects
 _projects/
