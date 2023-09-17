@@ -1,0 +1,56 @@
+#N canvas 405 46 923 963 10;
+#X obj 320 130 soundfiler;
+#X obj 320 79 loadbang;
+#X obj 320 430 bng 15 250 50 0 empty empty empty 17 7 0 10 #fcfcfc
+#000000 #000000;
+#X obj 320 457 tabplay~ sound0;
+#N canvas 0 22 450 278 (subpatch) 0;
+#X array sound0 11340 float 2;
+#X coords 0 1 11340 -1 200 140 1 0 0;
+#X restore 555 91 graph;
+#X obj 320 503 dac~ 1 2;
+#X msg 348 430 stop;
+#X msg 320 102 read -resize kick.wav sound0;
+#X text 551 246 kick.wav was downloaded from freesound as: "171104__dwsd__kick_gettinglaid.wav"
+by DWSD ( https://freesound.org/s/171104/ ) licensed under CC0 1 the
+original file has been exported as a mono track and resampled at 48
+kHz;
+#X msg 320 189 120;
+#X floatatom 320 288 5 0 0 0 - - - 0;
+#X obj 320 265 expr 60000/$f1;
+#X obj 320 234 clip 50 200;
+#X obj 320 382 metro 500;
+#X obj 320 152 bng 15 250 50 0 empty empty empty 17 7 0 10 #fcfcfc
+#000000 #000000;
+#X text 264 428 trigger;
+#X obj 320 352 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000
+#000000 0 1;
+#X text 356 192 bpm;
+#X text 104 190 here you can choose the tempo --->;
+#X text 174 235 let's be reasonable...;
+#X text 173 276 from tempo to delta t;
+#X text 364 289 ms;
+#X text 137 323 set metro delta t and start!;
+#X text 17 352 here you can manually stop metro/sample sequence;
+#X text 391 420 this can be used to stop current sample \, but not
+the sequence;
+#X text 68 5 This patch loads a soundfile (sample) into a table/array
+\, then activates a simple sequencer that triggers the sammple on fourth
+notes at the specified tempo;
+#X obj 320 320 t 1 f;
+#X connect 0 0 14 0;
+#X connect 1 0 7 0;
+#X connect 2 0 3 0;
+#X connect 3 0 5 0;
+#X connect 3 0 5 1;
+#X connect 6 0 3 0;
+#X connect 7 0 0 0;
+#X connect 9 0 12 0;
+#X connect 10 0 26 0;
+#X connect 11 0 10 0;
+#X connect 12 0 11 0;
+#X connect 13 0 2 0;
+#X connect 14 0 9 0;
+#X connect 16 0 13 0;
+#X connect 26 0 16 0;
+#X connect 26 1 13 1;

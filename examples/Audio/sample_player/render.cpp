@@ -17,7 +17,7 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// This code example uses this sounds from freesound:
+// This code example uses this sound from freesound:
 // "629178__holizna__simple-lofi-vinyl-e-piano-loop-95-bpm.wav" by holizna ( https://freesound.org/people/holizna/sounds/629178/ ) licensed under CCBYNC 4.0
 // the original file has beend exported as a mono track and resampled at 48 kHz
 
