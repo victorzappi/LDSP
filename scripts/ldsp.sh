@@ -240,41 +240,11 @@ install () {
   fi
 
   hw_config="./phones/$VENDOR/$MODEL/ldsp_hw_config.json"
-
-  adb shell "mkdir -p /data/ldsp"
-
-  if [[ ! -f "$hw_config" ]]; then
-    echo "WARNING: Hardware config file not found, skipping..."
-  else
-    adb push "$hw_config" /data/ldsp/ldsp_hw_config.json
-  fi
-
-  #TODO switch to project folders on phone
-  # then change name of bin to project name
-  # add remove function to delete project folder from phone
-
-  # Install all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
-  # first folders
-  find "$PROJECT"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /data/ldsp/
-  # then files
-  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -exec adb push {} /data/ldsp/ \;
-
-	adb push bin/ldsp /data/ldsp/ldsp
-  adb shell "su -c 'chmod 777 /data/ldsp/ldsp'"
-}
-
-# Push the user project, LDSP hardware config and resources to phone's SD card, for manual installation.
-push_sdcard () {
-  if [[ ! -f bin/ldsp ]]; then
-    echo "Cannot push: No ldsp executable found. Please run \"ldsp build\" first."
-    exit 1
-  fi
-
-  hw_config="./phones/$VENDOR/$MODEL/ldsp_hw_config.json"
   proj="$PROJECT"
 
 
-  adb root
+  #adb root
+  # create temp folder on sdcard
   adb shell "su -c 'mkdir -p /sdcard/ldsp'"
 
   if [[ ! -f "$hw_config" ]]; then
@@ -283,26 +253,33 @@ push_sdcard () {
     adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
   fi
 
+  #TODO switch to project folders on phone?
+  # then change name of bin to project name
+  # add remove function to delete project folder from phone
+
   # Push all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
   # first folders
   find "$PROJECT"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /sdcard/ldsp/
   # then files
-  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -exec adb push {} /sdcard/ldsp/ \; | xargs -I{} adb push {} /sdcard/ldsp/
+  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} /sdcard/ldsp/ \;
 
+  # finally the ldsp bin
 	adb push bin/ldsp /sdcard/ldsp/ldsp
-  adb shell "su -c 'chmod 777 /sdcard/ldsp/ldsp'"
+
+  adb shell "mkdir -p /data/ldsp" # create ldsp folder
+  adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" # cp all files from sd card temp folder to ldsp folder
+  adb shell "su -c 'rm -r /sdcard/ldsp'" # remove temp folder from sdcard
+  
+  adb shell "su -c 'chmod 777 /data/ldsp/ldsp'" # add exe flag to ldsp bin
 }
 
 # Install the LDSP scripts on the phone.
 install_scripts() {
-  adb shell "su -c 'mkdir -p /data/ldsp/scripts'"
-  adb push ./scripts/ldsp_* /data/ldsp/scripts/
-}
-
-# Push the LDSP scripts to the phone's SD card, for manual installation.
-push_scripts_sdcard() {
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
-  adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
+  adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
+  adb shell "su -c 'mkdir -p /data/ldsp/scripts'" # create ldsp scripts folder
+  adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" # copy scripts to ldsp scripts folder
+  adb shell "su -c 'rm -r /sdcard/ldsp'" # remove temp folder from sd card
 }
 
 # Stop the currently-running user project on the phone.
@@ -356,12 +333,10 @@ help () {
   echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone, version, and project."
   echo -e "  build\t\t\t\tBuild the user project."
   echo -e "  install\t\t\t\tInstall the user project, LDSP hardware config and resources to the phone."
-  echo -e "  push_sdcard\t\t\tPush the user project, LDSP hardware config and resources to the phone's SD card, for manual installation."
   echo -e "  run\t\t\t\tRun the user project on the phone."
   echo -e "  \t\t\t\t(Any arguments passed after \"run\" are passed to the user project.)"
   echo -e "  stop\t\t\t\tStop the currently-running user project on the phone."
   echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone."
-  echo -e "  push_scripts_sdcard\t\tPush the LDSP scripts to the phone's SD card, for manual installation."
 }
 
 STEPS=()
@@ -443,14 +418,8 @@ for i in "${STEPS[@]}"; do
     install)
       install
       ;;
-    push_sdcard)
-      push_sdcard
-      ;;
     install_scripts)
       install_scripts
-      ;;
-    push_scripts_sdcard)
-      push_scripts_sdcard
       ;;
     run)
       run "${@:2}"

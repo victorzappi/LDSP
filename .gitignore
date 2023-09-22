@@ -53,6 +53,10 @@ build.ninja
 rules.ninja
 build.ninja.tmp*
 
+# OS specific files
+# -macOS
+.DS_Store
+
 
 # Temporary local projects
 _projects/

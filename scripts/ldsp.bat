@@ -237,50 +237,8 @@ rem Ecd of :Stop
 
   set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
 
-  adb root
-  adb shell "su -c 'mkdir -p /data/ldsp'"
-
-  if not exist %hw_config% (
-    echo WARNING: Hardware config file not found, skipping...
-  ) else (
-    adb push %hw_config% /data/ldsp/ldsp_hw_config.json
-  )
-
-  rem Install all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
-  rem first folders
-  @echo off
-  for /F "delims=" %%i in ('dir /B /A:D "%project%"') do (
-      dir /B /A "%project%\%%i\*.cpp" "%project%\%%i\*.c" "%project%\%%i\*.h" "%project%\%%i\*.hpp" >nul 2>&1
-      if errorlevel 1 (
-          adb push "%project%\%%i" /data/ldsp/
-      )
-  )
-  rem then files
-  for %%i in ("%project%\*") do (
-      if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" (
-          adb push "%%i" /data/ldsp/
-      )
-  )
-
-  adb push bin\ldsp /data/ldsp/ldsp
-  adb shell "su -c 'chmod 777 /data/ldsp/ldsp'"
-  exit /b 0
-rem End of :install
-
-:push_sdcard
-  rem Push the user project, LDSP hardware config and resources to the phone's SD card, for manual installation
-  if not exist "bin\ldsp" (
-    echo Cannot push: No ldsp executable found. Please run "ldsp build\ first.
-    exit /b 1
-  )
-
-  set vendor=%~1
-  set model=%~2
-  set project=%~3
-
-  set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
-
-  adb root
+  rem adb root
+  rem create temp folder on sdcard
   adb shell "su -c 'mkdir -p /sdcard/ldsp'"
 
   if not exist %hw_config% (
@@ -304,11 +262,16 @@ rem End of :install
           adb push "%%i" /sdcard/ldsp/
       )
   )
-
+  rem finally the ldsp bin
   adb push bin\ldsp /sdcard/ldsp/ldsp
-  adb shell "su -c 'chmod 777 /sdcard/ldsp/ldsp'"
+
+  adb shell "mkdir -p /data/ldsp" rem create ldsp folder
+  adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" rem cp all files from sd card temp folder to ldsp folder
+  adb shell "su -c 'rm -r /sdcard/ldsp'" rem remove temp folder from sdcard
+
+  adb shell "su -c 'chmod 777 /data/ldsp/ldsp'" rem add exe flag to ldsp bin
   exit /b 0
-rem End of :push_sdcard
+rem End of :install
 
 :run
   rem Run the user project on the phone.
@@ -329,24 +292,24 @@ rem End of :run
 rem End of :Stop
 
 :install_scripts
-  rem # Install the LDSP scripts on the phone.
+  rem Install the LDSP scripts on the phone.
 
-  adb root rem needed?
-  adb shell "su -c 'mkdir -p /data/ldsp/scripts'"
-  adb push .\scripts\ldsp_* /data/ldsp/scripts/
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" rem create temp folder on sdcard
+  adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/ rem  push scripts there
+  adb shell "su -c 'mkdir -p /data/ldsp/scripts'" rem create ldsp scripts folder
+  adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" rem copy scripts to ldsp scripts folder
+  adb shell "su -c 'rm -r /sdcard/ldsp'" rem remove temp folder from sd card
 
   exit /b 0
 rem End of :install_scripts
 
-:push_scripts_sdcard
-  rem # Push the LDSP scripts to the phone's SD card, for manual installation.
+:clean
+  rem Clean project.
 
-  adb root rem needed?
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
-  adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/
+  ninja clean
 
   exit /b 0
-rem End of :push_scripts_sdcard
+rem End of :clean
 
 :help
   rem Print usage information.
@@ -354,9 +317,10 @@ rem End of :push_scripts_sdcard
   echo   ldsp configure [vendor] [model] [version] [project]
   echo   ldsp build
   echo   ldsp install [vendor] [model] [project]
-  echo   ldsp push_sdcard [vendor] [model] [project]
   echo   ldsp run ^"[list of arguments]^"
   echo   ldsp stop
+  echo   ldsp clean
+  echo   ldsp install_scripts
   exit /b 0
 rem End of :help
 
@@ -379,11 +343,6 @@ if "%1" == "install" (
   exit /b %ERRORLEVEL%
 )
 
-if "%1" == "push_sdcard" (
-  call :push_sdcard %2 %3 %4
-  exit /b %ERRORLEVEL%
-)
-
 if "%1" == "run" (
   call :run %2
   exit /b %ERRORLEVEL%
@@ -394,13 +353,13 @@ if "%1" == "stop" (
   exit /b %ERRORLEVEL%
 )
 
-if "%1" == "install_scripts" (
-  call :install_scripts
+if "%1" == "clean" (
+  call :clean
   exit /b %ERRORLEVEL%
 )
 
-if "%1" == "push_scripts_sdcard" (
-  call :push_scripts_sdcard
+if "%1" == "install_scripts" (
+  call :install_scripts
   exit /b %ERRORLEVEL%
 )
 
