@@ -43,6 +43,8 @@ struct LDSPhwConfig {
     int default_dev_c;
     string deviceActivationCtl_p;
     string deviceActivationCtl_c;
+    string devActCtl2_p; // secondary playback device activation control, mostly used for line-out
+    string devActCtl2_c; // secondary capture device activation control, mostly used for line-in
     string *ctrlOutputs[2]; // control file and max value (or max file)
 };
 

@@ -56,7 +56,7 @@ int mixerCtl_setStr(mixer *mx, const char *name, const char *val, bool verbose=t
 int setDefaultMixerPath(mixer *mx, xml_document *xml);
 int activateDevice(mixer *mx, string &deviceActivationCtl, string device_id, LDSPhwConfig *hwconfig);
 void deactivateDevice(mixer *mx, string deviceActivationCtl);
-int loadPath(mixer *mx, xml_document *xml, unordered_map<string, string> *paths, vector<string> *paths_order, string &pathAlias, LDSPhwConfig *hwconfig);
+int loadPath(mixer *mx, xml_document *xml, unordered_map<string, string> *paths, vector<string> *paths_order, string &pathAlias, LDSPhwConfig *hwconfig, LDSPinitSettings *settings, bool isCapture=false);
 
 
 
@@ -121,7 +121,8 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 
 	
 	// if necessary, activate devices
-	if(!hwconfig->deviceActivationCtl_p.empty())
+	// i.e., when in config file device activation path is given, but secondary device activation path is empty
+	if(!hwconfig->deviceActivationCtl_p.empty() && hwconfig->devActCtl2_p.empty())
 	{
 		if(activateDevice(mix, hwconfig->deviceActivationCtl_p , settings->deviceOutId, hwconfig) < 0)
 		{
@@ -131,7 +132,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	}
 	if(!settings->outputOnly)
 	{
-		if(!hwconfig->deviceActivationCtl_c.empty())
+		if(!hwconfig->deviceActivationCtl_c.empty() && hwconfig->devActCtl2_c.empty())
 		{
 			if(activateDevice(mix, hwconfig->deviceActivationCtl_c , settings->deviceInId, hwconfig) < 0)
 			{
@@ -145,7 +146,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	string pathAlias = settings->pathOut;
 	unordered_map<string, string> *paths = &hwconfig->paths_p;
 	vector<string> *paths_order = &hwconfig->paths_p_order;
-	if(loadPath(mix, mixer_docs, paths, paths_order, pathAlias, hwconfig)!=0)
+	if(loadPath(mix, mixer_docs, paths, paths_order, pathAlias, hwconfig, settings)!=0)
 	{
 		fprintf(stderr, "Playback path error\n");
 		LDSP_resetMixerPaths(hwconfig);
@@ -159,7 +160,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 		pathAlias = settings->pathIn;
 		paths = &hwconfig->paths_c;
 		paths_order = &hwconfig->paths_c_order;
-		if(loadPath(mix, mixer_docs, paths, paths_order, pathAlias, hwconfig)!=0)
+		if(loadPath(mix, mixer_docs, paths, paths_order, pathAlias, hwconfig, settings)!=0)
 		{
 			fprintf(stderr, "Capture path error\n");
 			LDSP_resetMixerPaths(hwconfig);
@@ -500,7 +501,40 @@ int setPath(mixer *mx, xml_document *xml, string pathName, LDSPhwConfig *hwconfi
 }
 
 
-int loadPath(mixer *mx, xml_document *xml, unordered_map<string, string> *paths, vector<string> *paths_order, string &pathAlias, LDSPhwConfig *hwconfig)
+int lateDeviceActivation(mixer *mx, string pathName, string firstPath, string device, string devActCtl, string devActCtl2, LDSPhwConfig *hwconfig)
+{
+	// if there is a secondary device activation control, we should activate the device that matches the mixer path
+	// if it was not supplied in the config file, then this is not necessary...
+	if(!devActCtl2.empty())
+	{
+		// if mixer path is line-out or line_in
+		if (pathName == firstPath)
+		{
+			// we call the secondary device activation control
+			if(activateDevice(mix, devActCtl2, device, hwconfig) < 0)
+			{
+				LDSP_resetMixerPaths(hwconfig);
+				return -1;
+			}
+		}
+		else
+		{
+			// otherwise the main activation control
+			if(activateDevice(mix, devActCtl, device, hwconfig) < 0)
+			{
+				LDSP_resetMixerPaths(hwconfig);
+				return -1;
+			}
+		}
+	}
+	//BE CAREFUL! here we hardcode two important details:
+	//_1 'line-out' and 'line-in' are the first paths in the 'path names' sections of the json config file
+	//_2 the scondary device activation control is for line-out/line-in [a.k.a., heapdhones and headset mic]
+	
+	return 0;
+}
+
+int loadPath(mixer *mx, xml_document *xml, unordered_map<string, string> *paths, vector<string> *paths_order, string &pathAlias, LDSPhwConfig *hwconfig, LDSPinitSettings *settings, bool isCapture)
 {
 	string pathName;
 	if(!pathAlias.empty())
@@ -519,6 +553,33 @@ int loadPath(mixer *mx, xml_document *xml, unordered_map<string, string> *paths,
 		pathName = (*paths)[(*paths_order)[0]]; // get id of first element put in map
 		pathAlias = (*paths_order)[0]; // get also alias of first element put in map, for printouts where outside of function
 	}
+
+	// in some phones, paths are not needed, e.g., phones with no line-out/line-in socket that work via speaker by default
+	// this means that there can be config files that have empty path names
+	if(pathName=="")
+	{
+		if(mixerVerbose)
+			printf("Setting empty path, with alias: %s\n", pathAlias.c_str());
+		return 0;
+	}
+
+	// on some phones, we need to activate the correct device acccording to the chosen mixer path
+	string devActCtl, devActCtl2, device;
+	string firstPath =  (*paths)[(*paths_order)[0]];
+	if(!isCapture)
+	{
+		device = settings->deviceOutId;
+		devActCtl = hwconfig->deviceActivationCtl_p;
+		devActCtl2 = hwconfig->devActCtl2_p;
+	}
+	else
+	{
+		device = settings->deviceInId;
+		devActCtl = hwconfig->deviceActivationCtl_c;
+		devActCtl2 = hwconfig->devActCtl2_c;
+	}
+	if(lateDeviceActivation(mx, pathName, firstPath, device, devActCtl, devActCtl2, hwconfig)!=0)
+		return -5;
 
 	// set the chosen mixer path
 	xml_document *xml_paths = &xml[0];

@@ -513,8 +513,13 @@ int initCtrlInputs()
             }
             
             printf("\t%s supported!\n", LDSP_ctrlInput[i].c_str());
-            if(ctrlIn.isMultiInput)
-                printf("\t\tup to %d parallel inputs\n", ctrlInputsContext.mtInfo.touchSlots);
+            if(ctrlIn.isMultiInput) 
+            {
+                if(ctrlInputsContext.mtInfo.touchSlots > 1)
+                    printf("\t\tup to %d parallel inputs (multi touch)\n", ctrlInputsContext.mtInfo.touchSlots);
+                else
+                    printf("\t\tsingle input (single touch)\n", ctrlInputsContext.mtInfo.touchSlots);
+            }
             if(devinfo[i].size()==1)
                 s = "device";
             else

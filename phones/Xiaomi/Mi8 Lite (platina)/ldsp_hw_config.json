@@ -21,7 +21,9 @@
 		"default playback device number": 13,
 		"default capture device number": 0,
 		"mixer playback device activation": "SEC_MI2S_RX Audio Mixer DEVICE_ID",
-		"mixer capture device activation": "DEVICE_ID Mixer INT3_MI2S_TX"
+		"mixer capture device activation": "DEVICE_ID Mixer INT3_MI2S_TX",
+		"mixer playback device secondary activation": "",
+		"mixer capture device secondary activation": ""
 	},
 	"control outputs":
 	{

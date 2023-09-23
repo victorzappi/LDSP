@@ -20,8 +20,10 @@
 		},
 		"default playback device number": 15, 
 		"default capture device number": 0,
-		"mixer playback device activation": "SLIMBUS_5_RX Audio Mixer DEVICE_ID",
-		"mixer capture device activation": "DEVICE_ID Mixer SLIM_0_TX"
+		"mixer playback device activation": "SLIMBUS_0_RX Audio Mixer DEVICE_ID",
+		"mixer capture device activation": "DEVICE_ID Mixer SLIM_0_TX",
+		"mixer playback device secondary activation": "SLIMBUS_5_RX Audio Mixer DEVICE_ID",
+		"mixer capture device secondary activation": "DEVICE_ID Mixer AFE_PCM_TX"
 	},
 	"control outputs":
 	{

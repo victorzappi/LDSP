@@ -52,6 +52,8 @@ LDSPhwConfig* LDSP_HwConfig_alloc()
     hwconfig->default_dev_c = 0;
 	hwconfig->deviceActivationCtl_p = "";
     hwconfig->deviceActivationCtl_c = "";
+	hwconfig->devActCtl2_p = "";
+	hwconfig->devActCtl2_c = "";
     hwconfig->ctrlOutputs[DEVICE_CTRL_FILE] = new string[chn_cout_count];
 	hwconfig->ctrlOutputs[DEVICE_SCALE] = new string[chn_cout_count];
 
@@ -160,8 +162,25 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
         if(s.compare("") != 0)
 		    hwconfig->deviceActivationCtl_p = optional;
     }
+	
+	optional = mixer["mixer playback device secondary activation"];
+	if(optional.is_string())
+    {
+        string s = optional;
+        if(s.compare("") != 0)
+		    hwconfig->devActCtl2_p = optional;
+    }
+
 
 	optional = mixer["mixer capture device activation"];
+	if(optional.is_string())
+    {
+        string s = optional;
+        if(s.compare("") != 0)
+		    hwconfig->deviceActivationCtl_c = optional;
+    }
+	
+	optional = mixer["mixer capture device secondary activation"];
 	if(optional.is_string())
     {
         string s = optional;
