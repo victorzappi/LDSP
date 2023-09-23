@@ -520,7 +520,7 @@ void *audioLoop(void*)
 		{
 			if(pcm_read(pcmContext.capture->pcm, pcmContext.capture->rawBuffer, pcmContext.capture->frameBytes)!=0)
 			{
-				fprintf(stderr, "Capture error, aborting...\n");
+				fprintf(stderr, "\nCapture error, aborting...\n");
 			}
 
 			fromRawToFloat(pcmContext.capture);
@@ -537,7 +537,7 @@ void *audioLoop(void*)
 
 		if(pcm_write(pcmContext.playback->pcm, pcmContext.playback->rawBuffer, pcmContext.playback->frameBytes)!=0)
 		{
-			fprintf(stderr, "Playback error, aborting...\n");
+			fprintf(stderr, "\nPlayback error, aborting...\n");
 		}
 
 		if(!ctrlOutputsOff_)

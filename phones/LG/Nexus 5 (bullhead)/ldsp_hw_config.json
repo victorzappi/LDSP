@@ -8,14 +8,14 @@
 		"mixer volumes xml file": "",
 		"playback path names":
 		{ 
-			"line-out": "headphones",
 			"speaker": "speaker",
+			"line-out": "headphones",
 			"handset": "handset"
 		},
 		"capture path names":
 		{
+			"mic": "handset-mic",
 			"line-in": "headset-mic",
-		   	"mic": "handset-mic",
 		   	"handset": "unprocessed-handset-mic"
 		},
 		"default playback device number": 15, 
@@ -23,7 +23,7 @@
 		"mixer playback device activation": "SLIMBUS_0_RX Audio Mixer DEVICE_ID",
 		"mixer capture device activation": "DEVICE_ID Mixer SLIM_0_TX",
 		"mixer playback device secondary activation": "SLIMBUS_5_RX Audio Mixer DEVICE_ID",
-		"mixer capture device secondary activation": "DEVICE_ID Mixer AFE_PCM_TX"
+		"mixer capture device secondary activation": ""
 	},
 	"control outputs":
 	{

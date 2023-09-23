@@ -8,14 +8,14 @@
 		"mixer volumes xml file": "",
 		"playback path names":
 		{ 
-			"line-out": "headset",
 			"speaker": "speaker",
+			"line-out": "headset",
 			"handset": "handset"
 		},
 		"capture path names":
 		{
-			"line-in": "rec-headset-mic",
 		   	"mic": "rec-stereo-mic",
+			"line-in": "rec-headset-mic",
 		   	"handset": "rec-stereo-mic"
 		},
 		"default playback device number": 15,

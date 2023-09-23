@@ -8,14 +8,14 @@
 		"mixer volumes xml file": "/system/etc/audio/hissc/mixer_volumes_ALICEPA_normal.xml",
 		"playback path names":
 		{ 
-			"headphones": "media-headphone",
 			"speaker": "media-speaker",
+			"headphones": "media-headphone",
 			"handset": "media-earpiece"
 		},
 		"capture path names":
 		{
-			"line-in": "communication-headset-mic",
 		   	"mic": "camcorder-mic",
+			"line-in": "communication-headset-mic",
 		   	"handset": "communication-mic"
 		},
 		"default playback device number": 0,

@@ -1,10 +1,8 @@
-This is an uncommon phone
-
 The ldsp_architecture.sh script is not able to detect the type of architecture, 
 because this info is not included in '/proc/cpuinfo'
 by running 'cat /proc/cpuinfo' it is possible to see that it comes with neon
 and the architecture can be found on the internet [32 bits -> armv7a]
 
-The mixer routing requires an extra command to switch to line-out/line-in that is currently not support by LDSP, so for now only speaker/mic and handset work
+Compared to other phones, the mixer playback routing requires an extra command to switch to line-out/line-in
 
 Only multitouch has been tested so far

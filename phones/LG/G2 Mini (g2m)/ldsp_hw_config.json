@@ -8,14 +8,14 @@
 		"mixer volumes xml file": "",
 		"playback path names":
 		{ 
-			"line-out": "headphones-lite",
 			"speaker": "speaker",
+			"line-out": "headphones-lite",
 			"handset": "handset"
 		},
 		"capture path names":
 		{
+			"mic": "lg-loopback-earpiece-mic",
 			"line-in": "lg-loopback-headset-mic",
-		   	"mic": "lg-loopback-earpiece-mic",
 		   	"handset": "handset-mic"
 		},
 		"default playback device number": 15,
