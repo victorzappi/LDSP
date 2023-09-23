@@ -266,7 +266,7 @@ install () {
   # finally the ldsp bin
 	adb push bin/ldsp /sdcard/ldsp/ldsp
 
-  adb shell "mkdir -p /data/ldsp" # create ldsp folder
+  adb shell "su mkdir -p /data/ldsp" # create ldsp folder
   adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" # cp all files from sd card temp folder to ldsp folder
   adb shell "su -c 'rm -r /sdcard/ldsp'" # remove temp folder from sdcard
   

@@ -265,7 +265,7 @@ rem Ecd of :Stop
   rem finally the ldsp bin
   adb push bin\ldsp /sdcard/ldsp/ldsp
 
-  adb shell "mkdir -p /data/ldsp" rem create ldsp folder
+  adb shell "su mkdir -p /data/ldsp" rem create ldsp folder
   adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" rem cp all files from sd card temp folder to ldsp folder
   adb shell "su -c 'rm -r /sdcard/ldsp'" rem remove temp folder from sdcard
 
