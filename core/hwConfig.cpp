@@ -185,7 +185,7 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
     {
         string s = optional;
         if(s.compare("") != 0)
-		    hwconfig->deviceActivationCtl_c = optional;
+		    hwconfig->devActCtl2_c = optional;
     }
 }
 
