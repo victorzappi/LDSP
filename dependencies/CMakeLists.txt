@@ -17,12 +17,15 @@ set(BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
 set(ENABLE_FLOAT ON CACHE BOOL "single-precision" FORCE)
 add_subdirectory(fftw3)
 
+# Add the custom 'glob' directory to the beginning of the include path
+include_directories(BEFORE ./glob)
+
 add_subdirectory(glob)
 link_libraries(glob)
 add_subdirectory(libpd)
 
-#VIC we get some warnings from lubpd and we cannot do anything about them
-# this line hides some of the them [not sure why not all of them]
+#VIC we get some warnings from libpd and we cannot do anything about them
+# this line hides some of them [not sure why not all of them]
 target_compile_options(libpd PRIVATE "-Wno-everything")
 
 

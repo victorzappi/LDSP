@@ -518,7 +518,7 @@ int initCtrlInputs()
                 if(ctrlInputsContext.mtInfo.touchSlots > 1)
                     printf("\t\tup to %d parallel inputs (multi touch)\n", ctrlInputsContext.mtInfo.touchSlots);
                 else
-                    printf("\t\tsingle input (single touch)\n", ctrlInputsContext.mtInfo.touchSlots);
+                    printf("\t\tsingle input (single touch)\n");
             }
             if(devinfo[i].size()==1)
                 s = "device";
