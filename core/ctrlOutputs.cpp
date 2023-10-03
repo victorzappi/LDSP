@@ -158,10 +158,7 @@ bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, s
     }
     // cannot find any folder ):
     if(path == "")
-    {
-        closedir(directory);
         return false;
-    }
 
     // if we found folder, 
     // search for a subfolder whose name contains one of the strings
@@ -202,7 +199,6 @@ bool ctrlOutputAutoFill_ctrl(int out, shared_ptr<ctrlOutputKeywords> keywords, s
     directory = opendir(path.c_str());
     if (directory == nullptr)
     {
-        closedir(directory); 
         fprintf(stderr, "Control output \"%s\", cannot open file \"%s\" during autofill!\n", LDSP_ctrlOutput[out].c_str(), path.c_str());
         return false;
     }
