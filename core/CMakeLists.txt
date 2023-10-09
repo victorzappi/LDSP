@@ -64,6 +64,7 @@ target_link_libraries(ldsp
   PRIVATE tinyalsa
   PRIVATE sndfile 
   PRIVATE glob
+  PRIVATE serial
   PRIVATE libpd_static
   PRIVATE fftw3f
 )

@@ -27,8 +27,26 @@
 #ifndef PRIORITY_UTILS_H_
 #define PRIORITY_UTILS_H_
 
-//#include <stdbool.h>
 #include <pthread.h>
+
+// main threads ordered by priority [order 0 is max priority]
+constexpr unsigned int LDSPprioOrder_audio = 0;
+constexpr unsigned int LDSPprioOrder_ctrlInputs = 1;
+// ctrlOutputs run on the audio thread and are immediate
+// sensor data are retrieved from the audio thread, but they are read in an Android sever thread we have no control over
+
+// these are for optional threads, that are spawn only if the associated features are enabled
+constexpr unsigned int LDSPprioOrder_screenCtl = 50;
+
+constexpr unsigned int LDSPprioOrder_midiRead = 10;
+constexpr unsigned int LDSPprioOrder_midiWrite = 10;
+
+constexpr unsigned int LDSPprioOrder_oscReceive = 2;
+constexpr unsigned int LDSPprioOrder_oscSend = 2;
+
+constexpr unsigned int LDSPprioOrder_arduinoRead = 2;
+constexpr unsigned int LDSPprioOrder_arduinoWrite = 2;
+
 
 //-----------------------------------------------------------------------------------------------------------
 // set maximum priority to this thread

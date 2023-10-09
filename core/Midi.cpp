@@ -82,8 +82,8 @@ pthread_t Midi::outputThread;
 bool Midi::shouldStop = false;
 int Midi::midiObjectNumber = 0;
 //VIC
-int	Midi::prioReadThread  = -1;
-int	Midi::prioWriteThread  = -1;
+int	Midi::prioOrderReadThrd  = LDSPprioOrder_midiRead;
+int	Midi::prioOrderWriteThrd  = LDSPprioOrder_midiWrite;
 int Midi::verbose = 0;
 
 
@@ -184,18 +184,26 @@ void Midi::enableParser(bool enable){
 	}
 }
 
-void *Midi::midiInputLoop(void *){
-	//AV: Set Priority only
-	set_priority(prioReadThread, Midi::verbose);
+void *Midi::midiInputLoop(void*){
+	// set minimum thread niceness
+ 	set_niceness(-20, false);
+
+    // set thread priority
+	set_priority(prioOrderReadThrd, false);
+	
 	for(unsigned int n = 0; n < objAddrs[kMidiInput].size(); n++){
 		objAddrs[kMidiInput][n] -> readInputLoop();
 	}
 	return (void *)0;
 }
 
-void *Midi::midiOutputLoop(void *){
-	//AV: Set Priority only
-	set_priority(prioWriteThread, Midi::verbose);
+void *Midi::midiOutputLoop(void*){
+	// set minimum thread niceness
+ 	set_niceness(-20, false);
+
+    // set thread priority
+	set_priority(prioOrderWriteThrd, false);
+
 	for(unsigned int n = 0; n < objAddrs[kMidiOutput].size(); n++){
 		objAddrs[kMidiOutput][n] -> writeOutputLoop();
 	}
@@ -234,6 +242,9 @@ void Midi::readInputLoop(){
 	inputThreadRunning = false;
 }
 
+//VIC it seems that no bytes are ever written to outputBytes and the pointer are never moved
+// hence this thread IS NOT USED, it never sends any message to the port
+// the only way to send a MIDI messages is to use writeOutput() directly
 void Midi::writeOutputLoop(){
 	while(!shouldStop){
 		usleep(1000);
@@ -256,7 +267,7 @@ void Midi::writeOutputLoop(){
 	printf("Output Loop Ended. ");
 	outputThreadRunning = false;
 }
-int Midi::readFrom(const char* port,/*VIC added*/ int prio){
+int Midi::readFrom(const char* port,/*VIC added*/ int prioOrder){
 	objAddrs[kMidiInput].push_back(this);
 	inputPort = open(port, O_RDONLY | O_NONBLOCK | O_NOCTTY);
 	if(inputPort < 0){
@@ -266,7 +277,7 @@ int Midi::readFrom(const char* port,/*VIC added*/ int prio){
 		//AV: Commented Auxiliary Task
 		//Bela_scheduleAuxiliaryTask(midiInputTask);
 		if(!inputThreadRunning) {
-			prioReadThread = prio; //VIC
+			prioOrderReadThrd = prioOrder; //VIC
 			pthread_create(&inputThread, NULL, midiInputLoop, NULL);
 			inputThreadRunning = true;
 		}
@@ -274,7 +285,7 @@ int Midi::readFrom(const char* port,/*VIC added*/ int prio){
 	}
 }
 
-int Midi::writeTo(const char* port,/*VIC added*/ int prio){
+int Midi::writeTo(const char* port,/*VIC added*/ int prioOrder){
 	objAddrs[kMidiOutput].push_back(this);
 	outputPort = open(port, O_WRONLY, 0);
 	if(outputPort < 0){
@@ -284,7 +295,7 @@ int Midi::writeTo(const char* port,/*VIC added*/ int prio){
 		//AV: Commented Aux
 		//Bela_scheduleAuxiliaryTask(midiOutputTask);
 		if(!outputThreadRunning) {
-			prioWriteThread = prio; //VIC
+			prioOrderWriteThrd = prioOrder; //VIC
 			pthread_create(&outputThread, NULL, midiOutputLoop, NULL);
 			outputThreadRunning = true;
 		}

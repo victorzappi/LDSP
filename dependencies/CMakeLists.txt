@@ -22,6 +22,7 @@ include_directories(BEFORE ./glob)
 
 add_subdirectory(glob)
 link_libraries(glob)
+add_subdirectory(serial)
 add_subdirectory(libpd)
 
 #VIC we get some warnings from libpd and we cannot do anything about them

@@ -33,23 +33,31 @@ float inverseSampleRate;
 
 float amp = 0.0;
 
-void midiMessageCallback(MidiChannelMessage message, void* arg) {
-	if(arg != NULL) {
+void midiMessageCallback(MidiChannelMessage message, void* arg) 
+{
+	if(arg != NULL) 
+	{
 		printf("Message from midi port %s: ", (const char*) arg);
 		printf("channel %d, byte0 %d, byte1 %d\n", message.getChannel(), message.getDataByte(0), message.getDataByte(1));
 		
-		// int chn = message.getChannel();
+		// int chn = message.getChannel(); // coudl be useful in other cases!
 		int type = message.getType();
 		int note, vel;
-		//int cc, val;
-		
+		//int cc, val; // midi ccs are parsed too! type is kmmControlChange
 
+		// in Midi.h, look for midiMessageType to see all types of messages that are parsed
+		
+		// to be thread-safe, all frequency and amp should be atomics
+		// but let's keep this example as simple as possible (;
 		if(type==kmmNoteOn) 
 		{
-			amp = 1;
+			// note to frequency mapping
 			note = message.getDataByte(0);
-			frequency = 440.0 * powf(2, (note-69)/12.0);
-			//vel = message.getDataByte(1);
+			frequency = 440.0 * powf(2, (note-69)/12.0); // from midi note number to freqency
+			
+			// velocity to amp mapping
+			vel = message.getDataByte(1); 
+			amp = 0.3*(vel/127.0) + 0.7; // let's use vel to control only 30% of the amp
 		}
 		else if(type==kmmNoteOff) 
 			amp = 0;
@@ -65,14 +73,18 @@ bool setup(LDSPcontext *context, void *userData)
 
 	const char* midiPort = midi.getDefaultMidiPort();
 
-	// set up midi to read and write from midi controller
-	if(midi.readFrom(midiPort, 5)==-1) {
+	// set up midi object to read from the midi controller connected to specified midi port
+	if(midi.readFrom(midiPort)==-1) 
+	{
 		printf("Cannot open MIDI device %s\n", midiPort);
 		return false;
 	}
 
+	// we activate the parser mechanism, so that each time we receive a message, bytes are correctly interpreted automatically!
 	midi.enableParser(true);
-	midi.setParserCallback(midiMessageCallback, (void*) midiPort);
+	midi.setParserCallback(midiMessageCallback, (void*) midiPort); // this is the callback that will be triggered when a new message arrives and is parsed
+
+	//TODO add midi.writeTo() example code
 
     return true;
 }
@@ -81,6 +93,7 @@ void render(LDSPcontext *context, void *userData)
 {
 	for(int n=0; n<context->audioFrames; n++)
 	{
+		// frequency and amplitude are controlled via midi, from within the callback
 		float out = amp * maxAmp * sinf(phase);
 		phase += 2.0f * (float)M_PI * frequency * inverseSampleRate;
 		while(phase > 2.0f *M_PI)

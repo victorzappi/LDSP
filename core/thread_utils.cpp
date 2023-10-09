@@ -24,7 +24,7 @@
  *      Author: Victor Zappi
  */
 
-#include "priority_utils.h"
+#include "thread_utils.h"
 
 #include <stdio.h>
 
@@ -32,7 +32,7 @@
 #include <sched.h>
 #include <sys/resource.h>
 #include <unistd.h> // getpid
-
+#include <string>
 
 
 // adapted from here:
@@ -54,7 +54,10 @@ void set_priority(int order, bool verbose)
 	params.sched_priority = sched_get_priority_max(SCHED_FIFO) - order;
 
 	if(verbose)
-		printf("Trying to set thread realtime prio %d\n", params.sched_priority);
+	{
+		std::string rt = (order == 0) ? " (real-time)" : "";
+		printf("Trying to set thread prio to %d%s\n", params.sched_priority, rt.c_str());
+	}
 
 	// Attempt to set thread real-time priority to the SCHED_FIFO policy
 	if (pthread_setschedparam(this_thread, SCHED_FIFO, &params) != 0) {

@@ -111,6 +111,10 @@ void OscSender::sendNow(const oscpkt::Message& extMsg){
 void *OscSender::send_thread_func(void* ptr){
 	OscSender *instance = (OscSender*)ptr;
 
+	// set minimum thread niceness
+ 	set_niceness(-20, false);
+
+    // set thread priority
 	set_priority(instance->prioOrder, false);
 
     while(!instance->stop){
@@ -120,6 +124,7 @@ void *OscSender::send_thread_func(void* ptr){
     return (void *)0;
 }
 
+//TODO switch to atomic non-blocking circular buffer, like in arduino
 void OscSender::empty_queue(){
     if (!queue.empty()){
         pw->init().startBundle();

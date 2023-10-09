@@ -59,13 +59,13 @@ The Bela software is distributed under the GNU Lesser General Public License (LG
 #include <unistd.h>
 #include <cstdio>
 // thread and priority
-#include "priority_utils.h"
+#include "thread_utils.h"
 
 
 typedef unsigned char midi_byte_t;
 
 
-typedef enum midiMessageType{
+typedef enum midiMessageType {
 	kmmNoteOff = 0,
 	kmmNoteOn,
 	kmmPolyphonicKeyPressure,
@@ -311,7 +311,7 @@ public:
 	 */
 	void setParserCallback(void (*callback)(MidiChannelMessage, void*), void* arg=NULL){
 		// if callback is not NULL, also enable the parser
-		enableParser(callback != NULL); //this needs to be first, as it deletes the parser(if exists)
+		enableParser(callback != NULL); //this needs to be first, as it deletes the parser (if exists)
 		getParser()->setCallback(callback, arg);
 	}
 
@@ -320,14 +320,14 @@ public:
 	 * @param port Midi port to open
 	 * @return 1 on success, -1 on failure
 	 */
-	int readFrom(const char* port,/*VIC added*/ int prio=10);
+	int readFrom(const char* port,/*VIC added*/ int prioOrder=LDSPprioOrder_midiRead);
 
 	/**
 	 * Open the specified output Midi port and prepares to write to it.
 	 * @param port Midi port to open
 	 * @return 1 on success, -1 on failure
 	 */
-	int writeTo(const char* port,/*VIC added*/ int prio=10);
+	int writeTo(const char* port,/*VIC added*/ int prioOrder=LDSPprioOrder_midiWrite);
 
 	/**
 	 * Get received midi bytes, one at a time.
@@ -392,8 +392,8 @@ private:
     static bool outputThreadRunning;
     static bool shouldStop;
     //VIC
-    static int prioReadThread;
-    static int prioWriteThread;
+    static int prioOrderReadThrd;
+    static int prioOrderWriteThrd;
     static int midiObjectNumber;
 
 	const char* defaultMidiPort = "/dev/snd/midiC1D0"; // if the phone supports MIDI devices, this should show up in file system, regardless of default USB settings in Developer Options

@@ -25,10 +25,7 @@ The Bela software is distributed under the GNU Lesser General Public License (LG
 #include <memory>
 #include <vector>
 #include "oscpkt.hh"
-#include "priority_utils.h" //VIC
-
-
-constexpr unsigned int OscReceiverPrioOrder = 2;
+#include "thread_utils.h" //VIC
 
 
 class UdpServer;
@@ -83,5 +80,5 @@ private:
 	std::function<void(oscpkt::Message* msg, const char* addr, void* arg)> on_receive;
 	void* onReceiveArg = nullptr;
 
-	unsigned int prioOrder = OscReceiverPrioOrder;
+	unsigned int prioOrder = LDSPprioOrder_oscReceive;
 };

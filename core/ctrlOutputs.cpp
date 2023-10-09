@@ -19,7 +19,7 @@
 #include "ctrlOutputs.h"
 #include "LDSP.h"
 #include "tinyalsaAudio.h" // for LDSPinternalContext
-#include "priority_utils.h"
+#include "thread_utils.h"
 
 #include <sstream> // for ostream
 #include <dirent.h> // to search for files
@@ -53,7 +53,6 @@ const char *pwrBtn_input_cmd = "input keyevent 26";
 const char *tap_input_cmd = "input tap 1 1";
 extern bool gShouldStop; // extern from tinyalsaAudio.cpp
 pthread_t screenCtl_thread;
-constexpr unsigned int ScreenCtrlLoopPrioOrder = 50;
 bool initialScreenState;
 int nextScreenState = -1;
 float nextBrightness = 0;
@@ -566,8 +565,13 @@ void* screenCtrl_loop(void* arg)
 {
     static const useconds_t sleepTime_us = 100000;
     static const unsigned int tapInterval = 20; // as a multiple of sleep time [sleep cycles]!
-    // low prio
-    set_priority(ScreenCtrlLoopPrioOrder, false);
+    
+    // set minimum thread niceness
+ 	set_niceness(-20, false);
+
+    // set thread priority    
+    set_priority(LDSPprioOrder_screenCtl, false);
+    
     bool tapActive = false;
     unsigned int tapCounter = 0;
 

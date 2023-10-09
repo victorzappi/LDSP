@@ -5,7 +5,7 @@
 #include "ctrlInputs.h"
 #include "LDSP.h"
 #include "tinyalsaAudio.h" // for LDSPinternalContext
-#include "priority_utils.h"
+#include "thread_utils.h"
 
 #include <sys/poll.h>
 #include <fcntl.h>
@@ -30,7 +30,6 @@ const char *ctrlInput_devPath = "/dev/input";
 
 extern bool gShouldStop; // extern from tinyalsaAudio.cpp
 pthread_t ctrlInput_thread;
-constexpr unsigned int CtrlInputsLoopPrioOrder = 1;
 
 
 
@@ -57,11 +56,11 @@ int print_flags = 0;
 
 int initCtrlInputs();
 void initCtrlInputBuffers();
-void* ctrlInputs_loop(void* arg);
+void* ctrlInputs_loop(void*);
 void closeCtrlInputDevices();
 
 //VIC not important if unseuccessful, we will still run LDSP if no inputs can be read
-void LDSP_initCtrlInputs(LDSPinitSettings *settings)
+void LDSP_initCtrlInputs(LDSPinitSettings* settings)
 {
     ctrlInputsVerbose = settings->verbose;
     ctrlInputsOff = settings->ctrlInputsOff;
@@ -126,7 +125,11 @@ void* ctrlInputs_loop(void* arg)
     int slot = 0;
     unordered_map<unsigned short, unordered_map<int, int> > &event_map = ctrlInputsContext.ctrlInputsEvent_channel;
     
-    set_priority(CtrlInputsLoopPrioOrder, false);
+    // set minimum thread niceness
+ 	set_niceness(-20, false);
+
+    // set thread priority
+    set_priority(LDSPprioOrder_ctrlInputs, false);
 
     while(!gShouldStop) 
     {
@@ -170,7 +173,7 @@ void* ctrlInputs_loop(void* arg)
                                 if(ctrlIn.isMultiInput)
                                      idx = slot;
                                 //printf("____event %d, code %d, value %d, chn %d, idx %d, vec %d\n", event.type, event.code, event.value, chn, idx, ctrlIn.value.size());
-                                ctrlIn.value[idx]->store(event.value/* , std::memory_order_release */); // atomic store, thread-safe! //TODO check this in atomics
+                                ctrlIn.value[idx]->store(event.value); // atomic store, thread-safe!
                             }
                         }
                     }
@@ -583,13 +586,13 @@ void closeCtrlInputDevices()
 void readCtrlInputs()
 {
     // BE CAREFUL, mapping is manual!
-    // an must be the same in LDSP.h buttonReadn() and multitouchRead()
+    // and must be the same in LDSP.h buttonRead() and multitouchRead()
     const int offset = chn_btn_count+1;
     // put in context buffer lastest single event values first
     for(int chn=0; chn<offset; chn++) // includes chn_mt_anyTouch
     {
         if(ctrlInputsContext.ctrlInputs[chn].supported)
-            ctrlInputsContext.ctrlInBuffer[chn] = ctrlInputsContext.ctrlInputs[chn].value[0]->load(/* std::memory_order_acquire */); //TODO check this in atomics
+            ctrlInputsContext.ctrlInBuffer[chn] = ctrlInputsContext.ctrlInputs[chn].value[0]->load();
     }
 
     int touchSlots = ctrlInputsContext.mtInfo.touchSlots;
@@ -599,7 +602,7 @@ void readCtrlInputs()
             continue;
 
         for(int slot=0; slot<touchSlots; slot++)
-            ctrlInputsContext.ctrlInBuffer[offset+chn*touchSlots+slot] = ctrlInputsContext.ctrlInputs[offset+chn].value[slot]->load(/* std::memory_order_acquire */); //TODO check this in atomics
+            ctrlInputsContext.ctrlInBuffer[offset+chn*touchSlots+slot] = ctrlInputsContext.ctrlInputs[offset+chn].value[slot]->load();
         
     }    
 }

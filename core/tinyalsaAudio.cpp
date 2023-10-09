@@ -39,7 +39,7 @@
 #include "tinyalsaAudio.h"
 #include "mixer.h"
 // /#include "tinyAlsaExtension.h"
-#include "priority_utils.h"
+#include "thread_utils.h"
 #include "sensors.h"
 #include "ctrlInputs.h"
 #include "ctrlOutputs.h"
@@ -182,13 +182,17 @@ int LDSP_startAudio(void *userData)
 	}
 
 
-	setup(userContext, userData);
+	if(!setup(userContext, userData))
+	{
+		LDSP_requestStop();
+		return -1;
+	}
 
 	pthread_t audioThread;
 	if( pthread_create(&audioThread, nullptr, audioLoop, nullptr) ) 
 	{
 		fprintf(stderr, "Error:unable to create thread\n");
-		return -1;
+		return -2;
 	}
 
 	// wait for end of thread
@@ -508,11 +512,11 @@ void cleanupLowLevelAudioStruct(LDSPpcmContext *pcmContext)
 
 void *audioLoop(void*)
 {
-	// set thread niceness
- 	set_niceness(-20, audioVerbose); // only necessary if not real-time
+	// set minimum thread niceness
+ 	set_niceness(-20, audioVerbose); // only necessary if not real-time, but just in case...
 
 	// set thread priority
-	set_priority(0, audioVerbose);
+	set_priority(LDSPprioOrder_audio, audioVerbose);
 
 	while(!gShouldStop)
 	{

@@ -109,7 +109,8 @@ int main(int argc, char** argv)
 		LDSP_cleanupSensors();
 		LDSP_resetMixerPaths(hwconfig);
 		LDSP_HwConfig_free(hwconfig);
-	 	return 1;
+		cout << "\nBye /:" << "\n";
+	 	return -1;
 	}
 
 
