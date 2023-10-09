@@ -63,7 +63,7 @@ struct ctrlOutputKeywords {
         {
             {"torch", "flash", ""},
             {"lcd", "", ""},
-            {"white", "rgb", ""}, //VIC not sure! still to see one
+            {"white", ""/* "rgb" */, ""}, //VIC teporarily disabled rgb led, because not sure how it works and can generate crashes!
             {"red", "", ""},
             {"green", "", ""},
             {"blue", "", ""},
