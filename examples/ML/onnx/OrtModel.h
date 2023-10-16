@@ -31,7 +31,7 @@ public:
 
     bool setup(const char * _sessionName, const char * _modelPath);
     void run();
-    void run(float * inputTensorData, float * outputTensorData);
+    void run(float inputTensorData[1][1][1], float * outputTensorData);
     void cleanup();
     
 };

@@ -1,12 +1,21 @@
 #include "OrtModel.h"
 #include <iostream>
+#include <thread>
 
+Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+Ort::RunOptions options;
 
 bool OrtModel::setup(const char * _sessionName, const char * _modelPath) {
 
+    unsigned int max_threads = std::thread::hardware_concurrency();
+
+    printf("Max thread: %d\n", max_threads);
 
     Ort::SessionOptions sessionOptions;
-    sessionOptions.SetIntraOpNumThreads(1);
+    sessionOptions.SetIntraOpNumThreads(max_threads);
+    sessionOptions.SetInterOpNumThreads(1);
+    sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+    sessionOptions.EnableCpuMemArena();
 
     this->modelPath = _modelPath;
     this->sessionName = _sessionName;
@@ -116,14 +125,12 @@ void OrtModel::run() {
 
 }
 
-void OrtModel::run(float * inputTensorData, float * outputTensorData) {
-
+void OrtModel::run(float inputTensorData[1][1][1], float * outputTensorData) {
 
     // create input tensor object from data values
-    auto memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-    Ort::Value inputTensor = Ort::Value::CreateTensor<float>(memoryInfo, inputTensorData, this->inputNodeDims[1], inputNodeDims.data(), 2);
+    //auto memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+    Ort::Value inputTensor = Ort::Value::CreateTensor<float>(memoryInfo, &inputTensorData[0][0][0], this->inputNodeDims[1], inputNodeDims.data(), 3);
 
-    Ort::RunOptions options;
     std::vector<Ort::Value> outputTensors = session->Run(options, inputNodeNames.data(), &inputTensor, 1, outputNodeNames.data(), 1);
 
     float * tensorData = (float *) outputTensors[0].GetTensorRawData();
