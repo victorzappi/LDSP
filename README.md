@@ -8,6 +8,18 @@ Your Android Phone needs to be rooted. This process highly depends on the specif
 
 Then, make sure that you have Developer Options enabled on the phone, then inside Developer options activate USB debugging.
 
+- **Phones we have tested**:
+- - Asus ZenFone 2 Laser (ZE500KL - Z00ED)
+- - Asus ZenFone Go (ZB500KG - X00BD)
+- - Huawei P8 Lite (alice)
+- - Nexus G2 Mini (g2m)
+- - Nexus 4 (mako)
+- - Nexus 5 (bullhead)
+- - Samsung Galaxy Tab 4 (SM-T237P)
+- - Xiaomi Mi8 Lite (platina)
+
+If you configure a new phone, please let us know and we will add the configuration file you have populated (more on that later). 
+
 ## DEPENDENCIES 
 
 - **Git [optional]**: while not needed to build/run LDSP applications, Git is very useful to download the LDSP environment from this repo and keep it up-to-date:
@@ -25,7 +37,7 @@ Alternatively,
 you can install the NDK via Homebrew, here is how: [https://macappstore.org/android-ndk/](https://macappstore.org/android-ndk/)
 To find the installation path, open a terminal and try (the NDK contains several versions of clang for Android cross-compilation): 
   ```console
-	sudo find / -name 'clang++' 
+  sudo find / -name 'clang++' 
   ```
 
 - **CMake**: a tool that makes it easier to build projects in C++. It is officially supported by Google for Android app development and it comes in very handy to run the Android NDK C++ toolchain!
@@ -89,17 +101,11 @@ We recommend you make the variable persistent, otherwise you will have to export
 
 ## PHONE CONFIGURATION
 
-First, we will install ADB Insecure on the phone and activate it. With the phone connected to the computer via USB, open a shell in the folder where you downloaded the apk and run:
-```console
-adb install adbd-Insecure-v2.00.apk
-```
 
-Take a look at your phone, it may ask for permission! Once installation is done (this usually takes about 5 seconds or less), find the app on the phone, open it and tick 'enable insecure adbd' and 'enable at boot'. The latter option often does not work, so if you reboot your phone you may need to re-enable ADBD Insecure.
-
-Now we can install LDSP scripts on the phone, that will help us configure LDSP for the specific phone. We open a shell in the LDSP’s folder (where you clone the repo) and run:
-
+Now we can install LDSP scripts on the phone, that will help us configure LDSP for the specific phone. We open a shell in the LDSP’s folder (where you cloned the repo) and run:
+ ```console
 sh scripts/ldsp.sh install_scripts
-
+ ```
 In the terminal we were just using we will write:
 ```console
 adb shell
@@ -107,14 +113,14 @@ adb shell
 
 We are inside our phone! It probably says something like root@mako for example.
 
-We will go to the LDSP scripts from this terminal in the phone and we can check the architecture of the phone, android version that will be useful for the configuration file of the specific phone and the configure build and run of projects:
+We will go to the LDSP scripts from this terminal in the phone and we can check the architecture of the phone as well as the android version. This will be useful for the configuration file of the specific phone and the configure build and run of projects:
 ```console
 cd /data/ldsp/scripts
 sh ldsp_architecture.sh 
 sh ldsp_androidVersion.sh 
 ```
 
-In this case, LF Nexus 4, the architecture is armv7a (it’s missing an a), has value ‘true’ for supporting neon floating point unit, and the Android version is 5.1.1.
+Some phones do not have their architecture, but it is something we can also search online!
 We can run a script to see the audio devices divided in Playback and Capture devices. We want to focus on the ones with an id along the lines of MultiMedia in the Playback devices, as its number will serve us later for our configuration file. 
 ```console
 sh ldsp_audioDevices.sh
@@ -124,19 +130,36 @@ For example, the playback device with id = multimedia5 which is number 14, we en
 
 This is the .json file for configuring a phone.  You can copy one of another phones in LDSP > phones > Vendor > Model, to another folder while you search for all of this, and then copy+paste it in its own folder inside the corresponding vendor. 
 
-We need to find the .xml where we will find all this information in a more clear manner, to also retrieve the playback path names and capture path names. 
+We need to find the path to a .xml file where we will find all this information in a more clear manner, to also retrieve the playback path names and capture path names. 
 ```console
 sh ldsp_mixerPaths.sh 
 ```
 
-We will retrieve that file and copy it in our working folder (not the one that will be in LDSP!). We open it with our text editor of preference. 
-The example that we used before for the ‘default playback device number’ in our configuration .json can be seen here again. We should choose for that a deep buffer playback or a low latency playback which is better. In this case we have both, being MultiMedia1 deep-buffer-playback, with number 0, and MultiMedia5, being low-latency-playback, with number 14.  
+If you are not able to find it like that, you can run:
+```console
+find / -name mixer_paths.xml.
+```
 
-We also need to probably change the name of the playback paths names, according to what the vendor put in this model. For example, we can assume the line-out corresponds to the headphones. 
+Once you find it, you have to retrieve it into your computer. This can be done within terminal -in the folder on your computer you desire the archive to be in- by running:
+``` console
+adb pull path/to/xml/in/phone
+```
 
-And we need to do the same with the capture path names. For example we can assume that the ‘line-in’ is the headset-mic.
+We will use a .json configure file of another phone as a template, which you can find in any of the specific phones already configured.
+We will populate the the name of device, target architecture, floating point support, the path to the xml file as well as the playback paths names and capture path names, default playback device number and default capture device number. The mixer playback/capture device activation are usually populated through the scripts -you can leave it as the template-, though in some cases, like the Nexus 5, you will have to populate it yourself as well as the secondary activation. Be mindful of the placeholders. Control outputs are also populated by the script -it's better to delete whatever the template .json file had. 
 
-After this, go to the configuration .json file you have opened in your text editor. If you copies it from another phone, as requested before, you can delete what is in brackets after control inputs, as it will be automatically populated through use. You can now paste it inside of the LDSP/phones/vendor/model folder. 
+With the mixer_paths.xml and the output from the ldsp_audioDevices.sh, we can infere the deafault playback and capture number. We are looking, in the xml file, for a deep buffer playback or a low latency playback usually by the identifier MultiMediaNumber. We can then see the number it corresponds to in the output from our LDSP script. For example, you might find a deep-buffer-playback by the id of MultiMedia1, you search for it in the output to find it has the number 15. This is the number you put in either the playback or capture number. 
+
+We also need to change the name of the playback paths names and capture paths names, according to how they are named by the vendor in each specific model. For example, we can assume the line-out corresponds to the headphones or line-in to a headset-mic, so we can search for those types of keywords in our mixer_paths.xml file and populate our configuration file accordingly. 
+
+This configuration .json file should be in your LDSP/phones/vendor/model folder, in order to be used. If you configure a phone, please let us know! So we can add it to the repository, to the list, and make it more accesible to other people. 
+
+We have had the experience of certain phones that do not have any type of mixer_paths.xml -or even .xml files at all. This makes it impossible, as of now, to configure the phone for proper LDSP use. The phones in question are:
+- - LG Optimus L3 
+- - MEDION_E4504_S13A_206_160302 
+- - Xiaomi Redmi 9
+- - Samsung Galaxy S3 mini
+
 
 
 ## RUNNING EXAMPLES
@@ -173,4 +196,15 @@ We can run it choosing the line-out as output (meaning, the headphones) and the 
 ```console
 ./scripts/ldsp.sh run "-o line-out -i mic -p 512"
 ```
+
+
+## OPTIONS 
+
+ 
+In order to see the available options you can tinker around with, you can run 
+  ```console
+./scripts/ldsp.sh run "-h" 
+```
+
+-h stands for help.
 
