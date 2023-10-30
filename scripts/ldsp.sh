@@ -124,6 +124,18 @@ get_api_level () {
 	echo $level
 }
 
+get_onnx_version () {
+  major=$(echo "$1" | cut -d . -f 1)
+  # if [[ $major -ge 7 ]]; then 
+  #   onnx_version="above24_prebuilt"
+  # else 
+  #   onnx_version="below24"
+  # fi
+  onnx_version=$onnx
+
+  echo $onnx_version
+}
+
 # Configure the LDSP build system to build for the given phone model, Android version, and project path.
 configure () {
   if [[ $VENDOR == "" ]]; then
@@ -208,8 +220,9 @@ configure () {
     exit 1
   fi
 
+  onnx_version=$(get_onnx_version "$version")
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon $api_define "-DLDSP_PROJECT=$PROJECT" -G Ninja .
+  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon $api_define "-DLDSP_PROJECT=$PROJECT" "-DONNX_VERSION=$onnx_version" -G Ninja .
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: CMake failed"
@@ -261,7 +274,9 @@ install () {
 
   # Push the onnxruntime library that matches the phones' architecture
   target_arch=$(grep -o '"target architecture": "[^"]*' "$hw_config" | grep -o '[^"]*$')
-  onnx_path="./dependencies/onnxruntime/$target_arch/libonnxruntime.so"
+
+  onnx_version=$(get_onnx_version "$version")
+  onnx_path="./dependencies/onnxruntime/$target_arch/$onnx_version/libonnxruntime.so"
 
   # Push shared onnxruntime library to phone
   # TODO: push version based on selected phone architecture
