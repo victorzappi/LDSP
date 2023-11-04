@@ -4,6 +4,8 @@ add_library(libraries OBJECT ${SOURCES})
 
 target_include_directories(libraries PUBLIC Biquad)
 target_include_directories(libraries PUBLIC Arduino)
+target_include_directories(libraries PUBLIC Gui)
+# granular?
 target_include_directories(libraries PUBLIC JSON)
 target_include_directories(libraries PUBLIC LinInterpolator)
 target_include_directories(libraries PUBLIC OscReceiver)

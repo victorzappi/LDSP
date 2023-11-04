@@ -99,6 +99,7 @@ struct LDSPinternalContext {
     multiTouchInfo *mtInfo;
 	//uint64_t audioFramesElapsed;
     //operator LDSPcontext () {return *(LDSPcontext*)this;}
+    string projectName;
 };
 
 

@@ -67,5 +67,6 @@ target_link_libraries(ldsp
   PRIVATE serial
   PRIVATE libpd_static
   PRIVATE fftw3f
+  PRIVATE seasocks
 )
 

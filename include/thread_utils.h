@@ -47,6 +47,8 @@ constexpr unsigned int LDSPprioOrder_oscSend = 2;
 constexpr unsigned int LDSPprioOrder_arduinoRead = 2;
 constexpr unsigned int LDSPprioOrder_arduinoWrite = 2;
 
+constexpr unsigned int LDSPprioOrder_webserverServe = 20;
+constexpr unsigned int LDSPprioOrder_webserverClient = 20;
 
 //-----------------------------------------------------------------------------------------------------------
 // set maximum priority to this thread

@@ -95,6 +95,7 @@ struct LDSPcontext {
     const float controlSampleRate;
     const multiTouchInfo * const mtInfo;
 	//uint64_t audioFramesElapsed;
+    const string projectName;
 };
 
 enum sensorChannel {

@@ -25,8 +25,8 @@ unsigned int Arduino::_numOfInputs = 1;
 unsigned int Arduino::maxInPacketSize = 0;
 
 atomic<float> Arduino::outputs[output_buffer_size];
-int Arduino::outputs_storeIndex = -1;
-atomic<int> Arduino::outputs_loadIndex;
+int Arduino::outputs_readPtr = -1;
+atomic<int> Arduino::outputs_writePtr;
 
 
 void Arduino::listPorts()
@@ -89,7 +89,7 @@ bool Arduino::open(int baudrate, string port)
     readBufferIdx.store(0);
 
     // prepare write loop var
-    outputs_loadIndex.store(-1);
+    outputs_writePtr.store(-1);
 
     // start loops
     shouldStop = false;
@@ -150,10 +150,10 @@ void Arduino::write(float value)
 		if(my_serial->isOpen())
         {
             // read the index of the last value we wrote
-            unsigned int loadIndex = outputs_loadIndex.load();
+            unsigned int loadIndex = outputs_writePtr.load();
             loadIndex = (loadIndex + 1) % output_buffer_size;
             outputs[loadIndex].store(value); // write latest value
-            outputs_loadIndex.store(loadIndex);  // Update index of the last value we wrote
+            outputs_writePtr.store(loadIndex);  // Update index of the last value we wrote
         }    
     }
 }
@@ -283,16 +283,16 @@ void* Arduino::writeLoop(void*)
         // this is guaranteed by the large size of the buffer, i.e., the store index [write pointer] will never overtake by a lap the load index [read pointer]
 
         // read the index of the latest value to write
-        unsigned int loadIndex = outputs_loadIndex.load();
+        unsigned int loadIndex = outputs_writePtr.load();
         // until the index of the last write value is equal to the index of the last value we sent...
-        while(outputs_storeIndex != loadIndex) 
+        while(outputs_readPtr != loadIndex) 
         { 
             // send as a string!
-            const string val = to_string(outputs[outputs_storeIndex].load()) + '\n';
+            const string val = to_string(outputs[outputs_readPtr].load()) + '\n';
             my_serial->write(val);
 		    my_serial->flushOutput(); // make sure the data is sent... but be careful, this is blocking
 
-            outputs_storeIndex = (outputs_storeIndex + 1) % output_buffer_size;;  // and update the index of the last value we sent
+            outputs_readPtr = (outputs_readPtr + 1) % output_buffer_size;;  // and update the index of the last value we sent
         }
 
         usleep(ArduinoWriteSleepUs);

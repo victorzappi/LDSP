@@ -162,6 +162,7 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 	gFormats.clear();
 
 	// init context
+	intContext.projectName = settings->projectName;
     intContext.audioIn = pcmContext.capture->audioBuffer;
 	intContext.audioOut = pcmContext.playback->audioBuffer;
 	intContext.audioFrames = pcmContext.playback->config.period_size;

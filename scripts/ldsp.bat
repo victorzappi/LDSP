@@ -247,18 +247,18 @@ rem Ecd of :Stop
     adb push %hw_config% /sdcard/ldsp/ldsp_hw_config.json
   )
 
-  rem Push all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
+  rem Push all project resources, including Pd files in Pd projects, but excluding C/C++, assembly, javascript files and folders that contain those files
   rem first folders
   @echo off
   for /F "delims=" %%i in ('dir /B /A:D "%project%"') do (
-      dir /B /A "%project%\%%i\*.cpp" "%project%\%%i\*.c" "%project%\%%i\*.h" "%project%\%%i\*.hpp" >nul 2>&1
+      dir /B /A "%project%\%%i\*.cpp" "%project%\%%i\*.c" "%project%\%%i\*.h" "%project%\%%i\*.hpp" "%project%\%%i\*.S" "%project%\%%i\*.s" "%project%\%%i\*.js" >nul 2>&1
       if errorlevel 1 (
           adb push "%project%\%%i" /sdcard/ldsp/
       )
   )
   rem then files
   for %%i in ("%project%\*") do (
-      if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" (
+      if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" if /I not "%%~xi" == ".js" (
           adb push "%%i" /sdcard/ldsp/
       )
   )
@@ -270,6 +270,9 @@ rem Ecd of :Stop
   adb shell "su -c 'rm -r /sdcard/ldsp'" rem remove temp folder from sdcard
 
   adb shell "su -c 'chmod 777 /data/ldsp/ldsp'" rem add exe flag to ldsp bin
+
+  rem TODO deal with sketch.js like in ldsp.sh
+
   exit /b 0
 rem End of :install
 

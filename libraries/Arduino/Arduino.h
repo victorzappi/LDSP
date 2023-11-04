@@ -60,8 +60,8 @@ private:
     
     pthread_t arduinoWrite_thread;
     static std::atomic<float> outputs[output_buffer_size];
-    static int outputs_storeIndex;
-    static std::atomic<int> outputs_loadIndex;
+    static int outputs_readPtr;
+    static std::atomic<int> outputs_writePtr;
 
     static void* readLoop(void*);
     static void* writeLoop(void*);
@@ -74,7 +74,7 @@ bool Arduino::setNumOfInputs(int numOfInputs)
     if(my_serial != nullptr)
 	{
 		if(!my_serial->isOpen())
-            return false; // to late to set number of inputs!
+            return false; // too late to set number of inputs!
     }
 
     _numOfInputs = numOfInputs;
