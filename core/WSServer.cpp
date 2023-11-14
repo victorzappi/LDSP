@@ -1,5 +1,5 @@
 /***** WSServer.cpp *****/
-#include <WSServer.h>
+#include "WSServer.h"
 #include <seasocks/IgnoringLogger.h>
 #include <seasocks/Server.h>
 #include <seasocks/WebSocket.h>
@@ -162,10 +162,10 @@ void* WSServer::serve_func_static(void* arg)
  	set_niceness(-20, false);
 
     // set thread priority
-	set_priority(LDSPprioOrder_webserverServe, false);
+	set_priority(LDSPprioOrder_wsserverServe, false);
 
-	WSServer* weServer = static_cast<WSServer*>(arg);    
-    return weServer->serve_func();
+	WSServer* wsServer = static_cast<WSServer*>(arg);    
+    return wsServer->serve_func();
 }
 
 void* WSServer::client_func()
@@ -228,7 +228,7 @@ void* WSServer::client_func_static(void* arg)
  	set_niceness(-20, false);
 
     // set thread priority
-    set_priority(LDSPprioOrder_webserverClient, false);
+    set_priority(LDSPprioOrder_wsserverClient, false);
 
 	WSServer* weServer = static_cast<WSServer*>(arg);    
     return weServer->client_func();

@@ -1,6 +1,7 @@
 #include "Gui.h"
 #include <iostream>
 #include "WSServer.h"
+#include "WebServer.h"
 
 Gui::Gui()
 {
@@ -43,6 +44,10 @@ int Gui::setup(unsigned int port, std::string address)
 			ws_disconnect();
 		}
 	);
+
+	//VIC
+	web_server = std::unique_ptr<WebServer>(new WebServer());
+	web_server->setup(port-1);
 	return 0;
 }
 

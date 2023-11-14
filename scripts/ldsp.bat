@@ -237,9 +237,6 @@ rem Ecd of :Stop
 
   set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
 
-  rem adb root
-  rem create temp folder on sdcard
-  adb shell "su -c 'mkdir -p /sdcard/ldsp'"
 
   if not exist %hw_config% (
     echo WARNING: Hardware config file not found, skipping...
@@ -247,21 +244,38 @@ rem Ecd of :Stop
     adb push %hw_config% /sdcard/ldsp/ldsp_hw_config.json
   )
 
-  rem Push all project resources, including Pd files in Pd projects, but excluding C/C++, assembly, javascript files and folders that contain those files
+  rem Push all project resources, including Pd files in Pd projects, but excluding C/C++, assembly script files and folders that contain those files
   rem first folders
   @echo off
   for /F "delims=" %%i in ('dir /B /A:D "%project%"') do (
-      dir /B /A "%project%\%%i\*.cpp" "%project%\%%i\*.c" "%project%\%%i\*.h" "%project%\%%i\*.hpp" "%project%\%%i\*.S" "%project%\%%i\*.s" "%project%\%%i\*.js" >nul 2>&1
+      dir /B /A "%project%\%%i\*.cpp" "%project%\%%i\*.c" "%project%\%%i\*.h" "%project%\%%i\*.hpp" "%project%\%%i\*.S" "%project%\%%i\*.s" >nul 2>&1
       if errorlevel 1 (
           adb push "%project%\%%i" /sdcard/ldsp/
       )
   )
   rem then files
   for %%i in ("%project%\*") do (
-      if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" if /I not "%%~xi" == ".js" (
+      if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" (
           adb push "%%i" /sdcard/ldsp/
       )
   )
+
+  rem push gui resources, but only if they are not on phone yet
+  rem Check if the folder exists on the Android device
+  adb shell "if [ ! -d '/data/ldsp/gui' ]; then echo 'not_exists'; else echo 'exists'; fi" > temp.txt
+  rem Read the result into a variable
+  set /p FOLDER_STATUS=<temp.txt
+  rem Check the folder status
+  if "%FOLDER_STATUS%"=="not_exists" (
+      echo Folder /data/ldsp/gui does not exist. Pushing resources/gui to /sdcard/ldsp/gui.
+      adb push resources\gui /sdcard/ldsp/gui
+  ) else (
+      echo Folder /data/ldsp/gui already exists on the device.
+  )
+  rem Clean up temporary file
+  del temp.txt
+
+
   rem finally the ldsp bin
   adb push bin\ldsp /sdcard/ldsp/ldsp
 
@@ -270,8 +284,6 @@ rem Ecd of :Stop
   adb shell "su -c 'rm -r /sdcard/ldsp'" rem remove temp folder from sdcard
 
   adb shell "su -c 'chmod 777 /data/ldsp/ldsp'" rem add exe flag to ldsp bin
-
-  rem TODO deal with sketch.js like in ldsp.sh
 
   exit /b 0
 rem End of :install
@@ -314,6 +326,14 @@ rem End of :install_scripts
   exit /b 0
 rem End of :clean
 
+:clean_phone
+  rem Remove the ldsp directory from the device.
+
+  adb shell "su -c 'rm -r /data/ldsp/'" 
+
+  exit /b 0
+rem End of :clean_phone
+
 :help
   rem Print usage information.
   echo usage:
@@ -323,6 +343,7 @@ rem End of :clean
   echo   ldsp run ^"[list of arguments]^"
   echo   ldsp stop
   echo   ldsp clean
+  echo   ldsp clean_phone
   echo   ldsp install_scripts
   exit /b 0
 rem End of :help
@@ -358,6 +379,11 @@ if "%1" == "stop" (
 
 if "%1" == "clean" (
   call :clean
+  exit /b %ERRORLEVEL%
+)
+
+if "%1" == "clean_phone" (
+  call :clean_phone
   exit /b %ERRORLEVEL%
 )
 

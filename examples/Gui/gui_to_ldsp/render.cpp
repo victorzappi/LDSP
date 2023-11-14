@@ -76,7 +76,10 @@ void render(LDSPcontext *context, void *userData)
 	float pitch = data[0]; //range of values is [0,1],
 	pitch = map(pitch,0,1,40,80); // we map it to [20,80] for MIDI pitches
 	float amplitude = data[1]; //range is [0,1]
-	float play = data[2]; //0.0 or 1.0
+	float play = data[2]; //0.0 or 1.0  
+	// play = 1;
+	// amplitude = 0.1;
+	// pitch = 55;
 
 	//for mapping
 	float frequency = 440 * powf(2, (pitch-69)/12); // compute the frequency based on the MIDI pitch

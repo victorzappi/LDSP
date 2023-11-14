@@ -248,12 +248,13 @@ bool Server::configureSocket(NativeSocketType fd) const {
         LS_ERROR(_logger, "Unable to set reuse address socket option: " << getLastError());
         return false;
     }
-#ifdef SO_REUSEPORT
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &yesPlease, sizeof(yesPlease)) == -1) {
-        LS_ERROR(_logger, "Unable to set reuse port socket option: " << getLastError());
-        return false;
-    }
-#endif
+//VIC not sure where this is defined, but on some older Android versions it is not supported
+// #ifdef SO_REUSEPORT
+//     if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &yesPlease, sizeof(yesPlease)) == -1) {
+//         LS_ERROR(_logger, "Unable to set reuse port socket option: " << getLastError());
+//         return false;
+//     }
+// #endif
     if (_maxKeepAliveDrops > 0) {
         if (setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE,
                        reinterpret_cast<const char*>(&yesPlease), sizeof(yesPlease)) == -1) {
@@ -339,7 +340,7 @@ bool Server::startListening(uint32_t ipInHostOrder, int port) {
     char buf[1024];
     ::gethostname(buf, sizeof(buf));
     LS_INFO(_logger, "Listening on http://" << buf << ":" << port << "/");
-
+    
     return true;
 }
 

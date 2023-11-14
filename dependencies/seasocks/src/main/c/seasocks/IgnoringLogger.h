@@ -31,7 +31,8 @@ namespace seasocks {
 
 class IgnoringLogger : public Logger {
 public:
-    virtual void log(Level /*level*/, const char* /*message*/) override {
+    virtual void log(Level level, const char* message) override {
+        //printf("____________________%s\n", message);
     }
 };
 

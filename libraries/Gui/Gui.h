@@ -11,6 +11,7 @@
 
 // forward declarations
 class WSServer;
+class WebServer;
 
 class Gui
 {
@@ -18,6 +19,8 @@ class Gui
 
 		std::vector<DataBuffer> _buffers;
 		std::unique_ptr<WSServer> ws_server;
+		//VIC
+		std::unique_ptr<WebServer> web_server;
 
 		bool wsIsConnected = false;
 

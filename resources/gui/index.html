@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LDSP GUI</title>
+</head>
+<body>
+    <script type="module" src="/p5.min.js"></script>
+    <script type="module" src="/LDSPWebSocket.js"></script>
+    <script type="module" src="/LDSPData.js"></script>
+    <script type="module">
+        import { default as LDSP } from '/LDSP.js';
+        window.LDSP = new LDSP();  // Create a new instance of LDSP and attach it to the global window object
+    </script>
+
+    <script src="/sketch.js"></script>
+</body>
+</html>
+

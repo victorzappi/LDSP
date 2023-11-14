@@ -232,6 +232,12 @@ clean () {
   ninja clean
 }
 
+# Remove the ldsp directory from the device
+clean_phone () {
+  adb shell "su -c 'rm -r /data/ldsp/'" 
+}
+
+
 # Install the user project, LDSP hardware config and resources to the phone.
 install () {
   if [[ ! -f bin/ldsp ]]; then
@@ -243,9 +249,6 @@ install () {
   proj="$PROJECT"
 
 
-  # create ldsp folder on sdcard
-  adb shell "su -c 'mkdir -p /sdcard/ldsp'"
-
   if [[ ! -f "$hw_config" ]]; then
     echo "WARNING: Hardware config file not found, skipping..."
   else
@@ -256,11 +259,16 @@ install () {
   # then change name of bin to project name
   # add remove function to delete project folder from phone
 
-  # Push all project resources, including Pd files in Pd projects, but excluding C/C++, assembly, javascript files and folders that contain those files
+  # Push all project resources, including Pd files in Pd projects, but excluding C/C++, assembly files and folders that contain those files
   # first folders
-  find "$PROJECT"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp "{}"/*.S "{}"/*.s "{}"/*.js 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /sdcard/ldsp/
+  find "$PROJECT"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp "{}"/*.S "{}"/*.s 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /sdcard/ldsp/
   # then files
-  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" -o -name "*.js" \) -exec adb push {} /sdcard/ldsp/ \;
+  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} /sdcard/ldsp/ \;
+
+  # push gui resources, but only if they are not on phone yet
+  if ! adb shell '[ -d "/data/ldsp/gui" ]'; then
+    adb push resources/gui /sdcard/ldsp/gui
+  fi
 
   # finally the ldsp bin
 	adb push bin/ldsp /sdcard/ldsp/ldsp
@@ -268,17 +276,7 @@ install () {
   adb shell "su -c 'mkdir -p /data/ldsp'" # create ldsp folder
   adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" # cp all files from sd card temp folder to ldsp folder
   adb shell "su -c 'chmod 777 /data/ldsp/ldsp'" # add exe flag to ldsp bin
-
-  # check if this project has a sketch.js file
-  if [[ -e "$PROJECT/sketch.js" ]]; then
-      # if it does, remove the contents of /sdcard/ldsp on the device
-      adb shell "su -c 'rm -r /sdcard/ldsp/*'"
-      # and copy sketch.js to the sdcard
-      adb push "$PROJECT/sketch.js" /sdcard/ldsp/sketch.js
-  else
-      # if it doesn't, just remove the /sdcard/ldsp directory on the device
-      adb shell "su -c 'rm -r /sdcard/ldsp'"
-  fi
+  adb shell "su -c 'rm -r /sdcard/ldsp'" # remove the temp /sdcard/ldsp directory from the device
 }
 
 # Install the LDSP scripts on the phone.
@@ -345,6 +343,8 @@ help () {
   echo -e "  \t\t\t\t(Any arguments passed after \"run\" are passed to the user project.)"
   echo -e "  stop\t\t\t\tStop the currently-running user project on the phone."
   echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone."
+  echo -e "  clean\t\tClean the user project."
+  echo -e "  clean_phone\t\tRemove all LDSP files from phone."
 }
 
 STEPS=()
@@ -422,6 +422,9 @@ for i in "${STEPS[@]}"; do
       ;;
     clean)
       clean
+      ;;
+    clean_phone)
+      clean_phone
       ;;
     install)
       install
