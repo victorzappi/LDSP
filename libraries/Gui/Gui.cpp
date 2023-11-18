@@ -46,6 +46,7 @@ int Gui::setup(unsigned int port, std::string address)
 	);
 
 	//VIC
+	// set up web server
 	web_server = std::unique_ptr<WebServer>(new WebServer());
 	web_server->setup(port-1);
 	return 0;

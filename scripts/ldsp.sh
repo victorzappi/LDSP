@@ -166,8 +166,6 @@ configure () {
   api_level=$(get_api_level "$VERSION")
   exit_code=$?
 
-  api_define="-DAPI=$api_level"
-
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: Unknown Android version: $version_full"
     exit $exit_code
@@ -209,7 +207,7 @@ configure () {
   fi
 
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon $api_define "-DLDSP_PROJECT=$PROJECT" -G Ninja .
+  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$PROJECT" -G Ninja .
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: CMake failed"
@@ -266,9 +264,17 @@ install () {
   find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} /sdcard/ldsp/ \;
 
   # push gui resources, but only if they are not on phone yet
-  if ! adb shell '[ -d "/data/ldsp/gui" ]'; then
-    adb push resources/gui /sdcard/ldsp/gui
+  # Get the list of directories in /data/ldsp
+  adb shell 'su -c "ls /data/ldsp"' > dirs.txt
+  # Check if the directory 'gui' is in the list
+  if grep -q "gui" dirs.txt; then
+      echo "Folder /data/ldsp/gui already exists on the device."
+  else
+      echo "Directory /data/ldsp/gui does not exist. Pushing resources/gui to /sdcard/ldsp/gui."
+      adb push resources/gui /sdcard/ldsp/gui
   fi
+  # Clean up
+  rm dirs.txt
 
   # finally the ldsp bin
 	adb push bin/ldsp /sdcard/ldsp/ldsp

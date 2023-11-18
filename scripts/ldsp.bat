@@ -132,9 +132,6 @@ rem End of :get_api_level
     exit /b 1
   )
 
-  set "api_define=-DAPI=%api_level%"
-
-
   rem support for NEON floating-point unit
   for /f "tokens=2 delims=:" %%i in ('type %hw_config% ^| findstr /r "supports neon floating point unit"') do set neon_setting=%%i
 
@@ -193,7 +190,7 @@ rem End of :get_api_level
     exit /b 1
   )
 
-  cmake "-DCMAKE_TOOLCHAIN_FILE=%NDK%\build\cmake\android.toolchain.cmake" -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% "-DANDROID_NDK=%NDK%" %explicit_neon% %api_define% %neon% "-DLDSP_PROJECT=%project%" -G Ninja .
+  cmake "-DCMAKE_TOOLCHAIN_FILE=%NDK%\build\cmake\android.toolchain.cmake" -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% "-DANDROID_NDK=%NDK%" %explicit_neon% %neon% "-DLDSP_PROJECT=%project%" -G Ninja .
 
   if not %ERRORLEVEL% == 0 (
     echo Cannot configure: CMake failed

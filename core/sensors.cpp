@@ -105,7 +105,7 @@ void LDSP_cleanupSensors()
 
 void initSensors()
 {
-#if ANDROID_API > 25
+#if __ANDROID_API__ > 25
     // on Android 8 and above [api 26 and above] ASensorManager_getInstance() is deprecated and throws warning
 	sensor_manager = ASensorManager_getInstanceForPackage(nullptr);
 #else

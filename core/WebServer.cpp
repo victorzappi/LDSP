@@ -1,23 +1,15 @@
 #include "WebServer.h"
 #include <seasocks/Server.h>
 #include <seasocks/PageHandler.h>
-
 #include <seasocks/IgnoringLogger.h>
 #include <seasocks/ResponseBuilder.h>
 #include <seasocks/StringUtil.h>
 
-#include <ifaddrs.h>
-#include <net/if.h>
-#include <netinet/in.h> 
-#include <arpa/inet.h>
-
-
-#include <cstring>
-#include <memory>
-#include <sstream>
 #include <fstream>
+#include <array>
+#include <regex>
 
-// #include <unistd.h>  // Include for close function
+//#include <unistd.h>  // Include for close function
 
 
 // class GuiPageHandler : public seasocks::PageHandler {
@@ -117,27 +109,39 @@ void* WebServer::serve_func_static(void* arg)
 }
 
 void WebServer::printServerAddress() {
-    struct ifaddrs *interfaces = nullptr;
-    struct ifaddrs *temp_addr = nullptr;
-    int success = 0;
+    try {
+        // run ifconfig and parse output
+        std::string command = "ifconfig";
+        std::array<char, 128> buffer;
+        std::string result;
+        std::string lastValidIPAddress;
 
-    success = getifaddrs(&interfaces);
-    if (success == 0) {
-        temp_addr = interfaces;
-        while(temp_addr != nullptr) {
-            if(temp_addr->ifa_addr->sa_family == AF_INET) {
-                // Check if interface is UP and not a loopback interface
-                if((temp_addr->ifa_flags & IFF_UP) && !(temp_addr->ifa_flags & IFF_LOOPBACK)) {
-                    char *address = inet_ntoa(((struct sockaddr_in*)temp_addr->ifa_addr)->sin_addr);
-                    printf("GUI web server listening on: %s:%d\n", address, port);
-                    break;
+        // look for all strings in this form: 1-to-3-nums.1-to-3-nums.1-to-3-nums.1-to-3-nums
+        std::regex ipRegex(R"((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}))");
+        std::smatch ipMatch;
+
+        std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
+        if (!pipe) {
+            throw std::runtime_error("popen() failed!");
+        }
+
+        // removes all strings that start and end with 255 and returns the last one
+        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+            result = buffer.data();
+            if (std::regex_search(result, ipMatch, ipRegex)) {
+                std::string ip = ipMatch[1];
+                if (ip.substr(0, 3) != "255" && ip.substr(ip.size() - 4) != ".255") {
+                    lastValidIPAddress = ip;
                 }
             }
-            temp_addr = temp_addr->ifa_next;
         }
+
+        printf("GUI web server listening on: %s:%d\n", lastValidIPAddress.c_str(), port);
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
     }
-    freeifaddrs(interfaces);
 }
+
 
 
 

@@ -20,10 +20,6 @@ add_compile_options(-fdiagnostics-color=always)
 
 GET_FILENAME_COMPONENT(PROJECT_NAME ${LDSP_PROJECT} NAME)
 
-# set preprocessor directives:
-#define ANDORID_API API 
-add_compile_definitions(ANDROID_API=${API})
-
 add_subdirectory(core)
 add_subdirectory(libraries)
 add_subdirectory(dependencies)
