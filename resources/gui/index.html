@@ -1,20 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LDSP GUI</title>
-</head>
-<body>
-    <script type="module" src="/p5.min.js"></script>
-    <script type="module" src="/LDSPWebSocket.js"></script>
-    <script type="module" src="/LDSPData.js"></script>
-    <script type="module">
-        import { default as LDSP } from '/LDSP.js';
-        window.LDSP = new LDSP();  // Create a new instance of LDSP and attach it to the global window object
-    </script>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>LDSP GUI</title>
+		<style>
+			body {
+				padding: 0;
+				margin: 0;
+				overflow:hidden
+			}
+		</style>
+		<script src="/js/jquery.js"></script>
+		<script type="module">
+			let isSafari = /constructor/i.test(window.HTMLElement) || (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })(!window['safari'] || (typeof safari !== 'undefined' && safari.pushNotification));
+			if(isSafari) {
+				import('/js/event-target-polyfill.js')
+				.then(({default: EventTarget}) => {
+					window.EventTarget = EventTarget;
+				});
+			}
+	    </script>
+		<script type="module">
+			import * as utils from '/gui/js/utils.js'
+			window.utils = utils;
+			import { default as LDSP } from '/gui/js/LDSP.js'
+			window.LDSP = new LDSP();
+		</script>
+	</head>
 
-    <script src="/sketch.js"></script>
-</body>
+	<body scroll="no">
+		<div id="gui"></div>
+	</body>
 </html>
-

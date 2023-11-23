@@ -1,7 +1,7 @@
 #include "Gui.h"
 #include <iostream>
-#include "WSServer.h"
 #include "WebServer.h"
+#include <unistd.h>
 
 Gui::Gui()
 {
@@ -17,17 +17,18 @@ int Gui::setup(unsigned int port, std::string address)
 	_addressData = address+"_data";
 	_addressControl = address+"_control";
 
-	// Set up the websocket server
-	ws_server = std::unique_ptr<WSServer>(new WSServer());
-	ws_server->setup(port);
-	ws_server->addAddress(_addressData,
+	// Set up the webserver
+	web_server = std::unique_ptr<WebServer>(new WebServer());
+	web_server->setup(_projectName_str, port);
+
+	web_server->addAddress(_addressData,
 		[this](std::string address, void* buf, int size)
 		{
 			ws_onData((const char*) buf, size);
 		},
 	 nullptr, nullptr, true);
 
-	ws_server->addAddress(_addressControl,
+	web_server->addAddress(_addressControl,
 		// onData()
 		[this](std::string address, void* buf, int size)
 		{
@@ -45,15 +46,17 @@ int Gui::setup(unsigned int port, std::string address)
 		}
 	);
 
+
 	//VIC
 	// set up web server
-	web_server = std::unique_ptr<WebServer>(new WebServer());
-	web_server->setup(port-1);
+	// web_server = std::unique_ptr<WebServer>(new WebServer());
+	// web_server->setup(_projectName_str, port-1);
 	return 0;
 }
 
 int Gui::setup(std::string projectName, unsigned int port, std::string address)
 {
+	_projectName_str = projectName;
 	_projectName = std::wstring(projectName.begin(), projectName.end());
 	setup(port, address);
 	return 0;
@@ -66,13 +69,12 @@ int Gui::setup(std::string projectName, unsigned int port, std::string address)
  */
 void Gui::ws_connect()
 {
+	// printf("++++++connect %ls\n", _projectName_str.c_str());
 	// send connection JSON
-	//JSONObject root;
-	//root[L"event"] = new JSONValue(L"connection");
 	nlohmann::json root;
 	root["event"] = "connection";
-	if(!_projectName.empty())
-		root["projectName"] = _projectName;  //root[L"projectName"] = new JSONValue(_projectName);
+	if(!_projectName_str.empty())
+		root["projectName"] = _projectName_str;  //root[L"projectName"] = new JSONValue(_projectName);
 
 	// Parse whatever needs to be parsed on connection
 
@@ -97,6 +99,7 @@ void Gui::ws_disconnect()
  */
 void Gui::ws_onControlData(const char* data, unsigned int size)
 {
+	// printf("++++++control data %s\n", data);
 	// parse the data into a JSONValue
 	// JSONValue *value = JSON::Parse(data);
 	// if (value == NULL || !value->IsObject()){
@@ -144,6 +147,8 @@ void Gui::ws_onControlData(const char* data, unsigned int size)
 //TODO make this thread-safe via atomics
 void Gui::ws_onData(const char* data, unsigned int size)
 {
+	// printf("++++++data %s\n", data);
+
 	if(customOnData && !customOnData(data, size, binaryCallbackArg))
 	{
 		return;
@@ -210,15 +215,16 @@ int Gui::sendControl(nlohmann::json root) {
     //std::wstring wide = JSON::Stringify(root);
 	std::string str = root.dump();
     //std::string str(wide.begin(), wide.end());
-    return ws_server->sendNonRt(_addressControl.c_str(), str.c_str());
+	// printf("************************send %s\n", str.c_str());
+    return web_server->sendNonRt(_addressControl.c_str(), str.c_str());
 }
 
 int Gui::doSendBuffer(const char* type, unsigned int bufferId, const void* data, size_t size)
 {
 	std::string idTypeStr = std::to_string(bufferId) + "/" + std::string(type);
 	int ret;
-	if(0 == (ret = ws_server->sendRt(_addressData.c_str(), idTypeStr.c_str())))
-                    if(0 == (ret = ws_server->sendRt(_addressData.c_str(), (void*)data, size)))
+	if(0 == (ret = web_server->sendRt(_addressData.c_str(), idTypeStr.c_str())))
+                    if(0 == (ret = web_server->sendRt(_addressData.c_str(), (void*)data, size)))
                             return 0;
 	fprintf(stderr, "You are sending messages to the GUI too fast. Please slow down\n");
 	return ret;

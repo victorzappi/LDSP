@@ -1,4 +1,4 @@
-import LDSPWebSocket from './LDSPWebSocket.js'
+import LDSPWebSocket from '/gui/js/LDSPWebSocket.js'
 
 export default class LDSPData extends LDSPWebSocket {
 	constructor(port=5555, address='gui_data', ip=location.host) {

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11)
 
 project(ldsp)
 
-set(LDSP_PROJECT "core" CACHE FILEPATH "Path to the LineageDSP project to build")
+set(LDSP_PROJECT "core" CACHE FILEPATH "Path to the LDSP project to build")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -17,8 +17,6 @@ if (EXPLICIT_ARM_NEON AND ANDROID_ARM_NEON)
 endif()
 
 add_compile_options(-fdiagnostics-color=always)
-
-GET_FILENAME_COMPONENT(PROJECT_NAME ${LDSP_PROJECT} NAME)
 
 add_subdirectory(core)
 add_subdirectory(libraries)

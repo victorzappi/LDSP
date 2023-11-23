@@ -4,42 +4,106 @@
 #include <seasocks/IgnoringLogger.h>
 #include <seasocks/ResponseBuilder.h>
 #include <seasocks/StringUtil.h>
+#include <seasocks/Request.h>
+#include <seasocks/Response.h>
 
 #include <fstream>
 #include <array>
 #include <regex>
+#include <filesystem>
+namespace fs = std::__fs::filesystem;
 
 //#include <unistd.h>  // Include for close function
 
-
-// class GuiPageHandler : public seasocks::PageHandler {
-// public:
-//     std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) override {
-//         // Create and return the response
-//         std::string content = "<html><body style='background-color:orange;display:flex;justify-content:center;align-items:center;height:100vh;'><div>LDSP</div></body></html>";
-//         return seasocks::Response::htmlResponse(content);
-//     }
-// };
-
 class GuiPageHandler : public seasocks::PageHandler {
 public:
+    GuiPageHandler(std::string projectName) : _projectName(projectName) {}
+
     std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) override {
         const std::string uri = request.getRequestUri();
 
-        if (uri == "/sketch.js") {
-            return serveFile("/data/ldsp/sketch.js", "application/javascript");
-        } else if (uri == "/p5.min.js") {
-            return serveFile("/data/ldsp/gui/p5.min.js", "application/javascript");
-        } else if (uri == "/LDSPWebSocket.js") {
-            return serveFile("/data/ldsp/gui/LDSPWebSocket.js", "application/javascript");
-        } else if (uri == "/LDSPData.js") {
-            return serveFile("/data/ldsp/gui/LDSPData.js", "application/javascript");
-        } else if (uri == "/LDSP.js") {
-            return serveFile("/data/ldsp/gui/LDSP.js", "application/javascript");
-        } else {
-            // Default: serve index.html
-            return serveFile("/data/ldsp/gui/index.html", "text/html");
+        // this is needed to pass web socket requests to the web socket handler
+        if (request.verb() == seasocks::Request::Verb::WebSocket) 
+            return seasocks::Response::unhandled();
+
+        // printf("___________%s\n", uri.c_str());
+
+        // Function to check if a string ends with another string
+        auto endsWith = [](const std::string &fullString, const std::string &ending) {
+            if (fullString.length() >= ending.length()) {
+                return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
+            } else {
+                return false;
+            }
+        };
+
+        // Handling for css files in the /gui/js/ directory
+        if (uri.find("/gui/css/") == 0) {
+            std::string filePath = "/data/ldsp/resources" + uri; 
+            // printf("/gui/css/___________%s\n", filePath.c_str());
+            return serveFile(filePath, "text/css");
         }
+
+        // Handling for js files in the /gui/js/ directory
+        if (uri.find("/gui/js/") == 0) {
+            std::string filePath = "/data/ldsp/resources" + uri; 
+            // printf("/gui/js/___________%s\n", filePath.c_str());
+            return serveFile(filePath, "application/javascript");
+        }
+
+        // Handling for js files in the /js/ directory
+        if (uri.find("/js/") == 0) {
+            std::string filePath = "/data/ldsp/resources" + uri;
+            // printf("/js/___________%s\n", filePath.c_str());
+            return serveFile(filePath, "application/javascript");
+        }
+        
+        // Handling for /gui/gui-template.html
+        if (uri == "/gui/gui-template.html") {
+            return serveFile("/data/ldsp/resources/gui/gui-template.html", "text/html");
+        }
+        
+        // Handling for /gui/p5-sketches/sketch.js
+        if (uri == "/gui/p5-sketches/sketch.js") {
+            return serveFile("/data/ldsp/resources/resources/gui/p5-sketches/sketch.js", "application/javascript");
+        }
+        
+        // Dynamic handling for project-specific files
+        if (uri.find("/projects/") == 0) {
+            std::string filePath;
+            if (endsWith(uri, "/main.html")) {
+                filePath = "/data/ldsp/projects/" + _projectName + "/main.html";
+            } else if (endsWith(uri, ".js")) {
+                filePath = "/data/ldsp/projects/" + _projectName + "/sketch.js";
+            }
+
+            //  printf("/projects/___________%s\n", filePath.c_str());
+
+            // Check if file exists
+            if (fs::exists(filePath)) {
+                return serveFile(filePath, endsWith(uri, ".js") ? "application/javascript" : "text/html");
+            } else {
+                // File not found handling
+                seasocks::ResponseBuilder builder(seasocks::ResponseCode::NotFound);
+                builder.withContentType("text/plain");
+                builder << "File not found";
+                return builder.build();
+            }
+        }
+
+        // Default case for serving the main HTML file
+        if (uri == "/" || uri == "/gui/index.html" || uri == "/gui/") {
+            // printf("/___________%s\n", uri.c_str());
+            // printf("/___________/data/ldsp/resources/gui/index.html\n");
+            return serveFile("/data/ldsp/resources/gui/index.html", "text/html");
+        }
+
+
+        // Default case for URIs that don't match any known patterns
+        seasocks::ResponseBuilder builder(seasocks::ResponseCode::NotFound);
+        builder.withContentType("text/plain");
+        builder << "Resource not found for URI: " << uri;
+        return builder.build();
     }
 
 private:
@@ -59,41 +123,49 @@ private:
             return builder.build();
         }
     }
+
+    std::string _projectName;
 };
 
 WebServer::WebServer() {}
 
-WebServer::WebServer(int _port) {
-    setup(_port);
+WebServer::WebServer(unsigned int port) {
+    setup("", port);
 }
 
 WebServer::~WebServer() {
     cleanup();
 }
 
-void WebServer::setup(int _port) {
-    port = _port;
-    server = std::make_shared<seasocks::Server>(std::make_shared<seasocks::IgnoringLogger>());
-    server->addPageHandler(std::make_shared<GuiPageHandler>());
-
-    pthread_create(&serve_thread, NULL, serve_func_static, this);
-    printServerAddress();
+void WebServer::setup(unsigned int port) {
+    setup("", port);
 }
 
+void WebServer::setup(std::string projectName, unsigned int port) {
+    _projectName = projectName;
+    _port = port;
+    auto logger = std::make_shared<seasocks::IgnoringLogger>();
+	server = std::make_shared<seasocks::Server>(logger);
+    server->addPageHandler(std::make_shared<GuiPageHandler>(_projectName));
+
+    // prepare client loop vars
+    outputs_writePtr.store(-1);
+	outputs_readPtr = -1;
+
+    shouldStop = false;
+	pthread_create(&client_thread, NULL, client_func_static, this);
+	pthread_create(&serve_thread, NULL, serve_func_static, this);
+
+    printServerAddress();
+}
 
 void* WebServer::serve_func()
 {
 	// no need to loop, Server::serve is looping already. 
 	// also, serve is killed via void WebServer::cleanup(), with server->terminate()
-    server->serve("/dev/null", port);
+    server->serve("/dev/null", _port);
     printf("GUI web server terminated!\n");
 	return (void *)0;
-}
-
-void WebServer::cleanup() {
-	server->terminate();
-	// wait for completion
-	pthread_join(serve_thread, NULL);
 }
 
 void* WebServer::serve_func_static(void* arg)
@@ -102,7 +174,7 @@ void* WebServer::serve_func_static(void* arg)
  	set_niceness(-20, false);
 
     // set thread priority
-	set_priority(LDSPprioOrder_webserverServe, false);
+	set_priority(LDSPprioOrder_wserverServe, false);
 
 	WebServer* webServer = static_cast<WebServer*>(arg);    
     return webServer->serve_func();
@@ -136,7 +208,7 @@ void WebServer::printServerAddress() {
             }
         }
 
-        printf("GUI web server listening on: %s:%d\n", lastValidIPAddress.c_str(), port);
+        printf("GUI web server listening on: %s:%d\n", lastValidIPAddress.c_str(), _port);
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }

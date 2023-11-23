@@ -47,10 +47,9 @@ constexpr unsigned int LDSPprioOrder_oscSend = 2;
 constexpr unsigned int LDSPprioOrder_arduinoRead = 2;
 constexpr unsigned int LDSPprioOrder_arduinoWrite = 2;
 
-constexpr unsigned int LDSPprioOrder_wsserverServe = 20;
-constexpr unsigned int LDSPprioOrder_wsserverClient = 20;
-
-constexpr unsigned int LDSPprioOrder_webserverServe = 50;
+// for either web socket server [wsserver] and web server [wbserver]
+constexpr unsigned int LDSPprioOrder_wserverServe = 20;
+constexpr unsigned int LDSPprioOrder_wserverClient = 20;
 
 
 //-----------------------------------------------------------------------------------------------------------

@@ -29,7 +29,7 @@ endif()
 
 # set preprocessor directives:
 # Avoid rebuilding things we don't need to when switching projects,
-# By only passing definition main.cpp
+# By only passing the definition to main.cpp
 GET_FILENAME_COMPONENT(LDSP_PROJECT_NAME ${LDSP_PROJECT} NAME)
 set_property(
   SOURCE ${CMAKE_CURRENT_LIST_DIR}/main.cpp 
@@ -50,12 +50,15 @@ set (LIBPD_INCLUDE_DIRS
 target_include_directories(ldsp
   PRIVATE ../include
   PRIVATE ..
-  PRIVATE ${LIBPD_INCLUDE_DIRS}
+  PRIVATE ${LIBPD_INCLUDE_DIRS},
+  # PRIVATE ../dependencies/libsndfile/include,
+  # PRIVATE ../dependencies/seasocks/src/main/c,
+  # PRIVATE ../dependencies/fftw3/api
 )
 
 # All necessary headers for fftw
-target_include_directories(ldsp PRIVATE ../dependencies/fftw3/api)
-target_link_directories(ldsp PRIVATE ../dependencies/fftw3)
+# target_include_directories(ldsp PRIVATE ../dependencies/fftw3/api)
+#target_link_directories(ldsp PRIVATE ../dependencies/fftw3)
 
 
 target_link_libraries(ldsp

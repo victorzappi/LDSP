@@ -9,8 +9,8 @@
 #include <memory>
 #include "DataBuffer.h"
 
-// forward declarations
-class WSServer;
+// forward declaration
+//class WSServer;
 class WebServer;
 
 class Gui
@@ -18,7 +18,7 @@ class Gui
 	private:
 
 		std::vector<DataBuffer> _buffers;
-		std::unique_ptr<WSServer> ws_server;
+		//std::unique_ptr<WSServer> ws_server;
 		//VIC
 		std::unique_ptr<WebServer> web_server;
 
@@ -33,7 +33,8 @@ class Gui
 		unsigned int _port;
 		std::string _addressControl;
 		std::string _addressData;
-		std::wstring _projectName;
+		std::wstring _projectName; //VIC what is this? it does not work went sent to JS scripts
+		std::string _projectName_str;
 
 		// User defined functions
 		std::function<bool(/* JSONObject& */nlohmann::json&, void*)> customOnControlData;

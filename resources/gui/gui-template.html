@@ -1,0 +1,21 @@
+<html>
+	<head>
+        <link rel="stylesheet" href="css/template.css">
+	</head>
+
+	<body scroll="no" style="margin: 0; overflow: hidden">
+		<link rel="stylesheet" href="css/dat-gui-ldsp-theme.css">
+		<div id="gui-container"></div>
+		<script>
+			window.data = "data"
+			window.LDSP = window.parent.LDSP;
+			window.utils = window.parent.utils;
+			window.GuiHandler = window.parent.GuiHandler;
+
+			window.addEventListener("message", function(event) {
+				$("body").append($(event.data));
+				window.parent.postMessage({ready: true});
+			});
+		</script>
+	</body>
+</html>

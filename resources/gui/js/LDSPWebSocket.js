@@ -1,21 +1,18 @@
 export default class LDSPWebSocket {
     constructor(port, address, ip = location.host) {
-         // Split the ip string on the colon character
-		const [ipAddress] = ip.split(':');
-		this.port = port;
-		this.address = address;
-		this.ip = ipAddress;  // Use only the IP address part
+        this.port = port;
+        this.address = address;
+        this.ip = ip;
 
         this.ws = null;
         this.connectInterval = 1500;
         this.url = "ws://" + this.ip + ":"+this.port+"/"+this.address;
-        
-        console.log('WebSocket URL:', this.url);
 
         this.connect(this.url);
     }
 
     connect(url) {
+        console.log("___________connect to %s\n", url)
         this.ws = new WebSocket(url);
         var that = this;
         this.ws.parent = that;
@@ -81,6 +78,8 @@ export default class LDSPWebSocket {
     onMessage(msg) {
         let data = msg.data;
         let parsedData = isJson(data);
+
+        // console.log("___________ %s\n", data)
 
         if(parsedData) {
             if(typeof parsedData.event != "undefined"){

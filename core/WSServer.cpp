@@ -3,21 +3,20 @@
 #include <seasocks/IgnoringLogger.h>
 #include <seasocks/Server.h>
 #include <seasocks/WebSocket.h>
-#include <cstring>
 #include <unistd.h>
 
 
-constexpr unsigned int WebServerClientSleepUs = 100;
+constexpr unsigned int WSServerClientSleepUs = 100;
 
 WSServer::WSServer(){}
-WSServer::WSServer(int port){
+WSServer::WSServer(unsigned int port){
 	setup(port);
 }
 WSServer::~WSServer(){
 	cleanup();
 }
 
-struct WSServerDataHandler : seasocks::WebSocket::Handler {
+struct GuiWSHandler : seasocks::WebSocket::Handler {
 	std::shared_ptr<seasocks::Server> server;
 	std::set<seasocks::WebSocket*> connections;
 	std::string address;
@@ -43,35 +42,11 @@ struct WSServerDataHandler : seasocks::WebSocket::Handler {
 	}
 };
 
-// void WSServer::client_task_func(std::shared_ptr<WSServerDataHandler> handler, const void* buf, unsigned int size){
-// 	if (handler->binary){
-// 		// make a copy of the data before we send it out
-// 		auto data = std::make_shared<std::vector<void*> >(size);
-// 		memcpy(data->data(), buf, size);
-// 		handler->server->execute([handler, data, size]{
-// 			for (auto c : handler->connections){
-// 				c->send((uint8_t*) data->data(), size);
-// 			}
-// 		});
-// 	} else {
-// 		// make a copy of the data before we send it out
-// 		std::string str = (const char*)buf;
-// 		handler->server->execute([handler, str]{
-// 			for (auto c : handler->connections){
-// 				c->send(str.c_str());
-// 			}
-// 		});
-// 	}
-// }
 
-void WSServer::setup(int _port) {
-	port = _port;
+void WSServer::setup(unsigned int port) {
+	_port = port;
 	auto logger = std::make_shared<seasocks::IgnoringLogger>();
 	server = std::make_shared<seasocks::Server>(logger);
-	//make this a regular pthread. does not need to be looped, necause serve is looping already. serve if killed with void WSServer::cleanup(){server->terminate();
-	//server_task = std::unique_ptr<AuxTaskNonRT>(new AuxTaskNonRT());
-	//server_task->create(std::string("WSServer_")+std::to_string(_port), [this](){ server->serve("/dev/null", port); });
-	//server_task->schedule();
 
     // prepare client loop vars
     outputs_writePtr.store(-1);
@@ -82,57 +57,58 @@ void WSServer::setup(int _port) {
 	pthread_create(&serve_thread, NULL, serve_func_static, this);
 }
 
-void WSServer::addAddress(std::string _address, std::function<void(std::string, void*, int)> on_receive, std::function<void(std::string)> on_connect, std::function<void(std::string)> on_disconnect, bool binary){
-	auto handler = std::make_shared<WSServerDataHandler>();
+
+void WSServer::addAddress(std::string address, std::function<void(std::string, void*, int)> on_receive, std::function<void(std::string)> on_connect, std::function<void(std::string)> on_disconnect, bool binary){
+	auto handler = std::make_shared<GuiWSHandler>();
 	handler->server = server;
-	handler->address = _address;
+	handler->address = address;
 	handler->on_receive = on_receive;
 	handler->on_connect = on_connect;
 	handler->on_disconnect = on_disconnect;
 	handler->binary = binary;
-	server->addWebSocketHandler((std::string("/")+_address).c_str(), handler);
-	
-	//turn this into a pthrea BUT create new one everytime or loop? check sendR, it is where it's schedules right now
-	// we can do the same trick with the static version of the task function, but we also need to somehow pass the params to the function
-	// we will not pass them, they will be fields [so we will remove from client_task_func signature] ---> all atomics queues
-	// let's loop the thread and wait for new elements in queues 
-	// sendRT calls add elements in queues [there will be only sendRT]
-	// thread function loops until the queues are empty
-	// address_book[_address] = {
-	// 	//.thread = std::unique_ptr<AuxTaskNonRT>(new AuxTaskNonRT()),
-	// 	.handler = handler,
-	// };
-	//address_book[_address].thread->create(std::string("WSClient_")+_address, [this, handler](void* buf, int size){ client_task_func(handler, buf, size); });
-	address_book[_address] = handler;
+	server->addWebSocketHandler((std::string("/")+address).c_str(), handler);
+
+	address_book[address] = handler;
 }
 
-int WSServer::sendNonRt(const char* _address, const char* str) {
-	return sendNonRt(_address, (const void*)str, strlen(str));
+int WSServer::sendNonRt(const char* address, const char* str) {
+	return sendNonRt(address, (const void*)str, strlen(str));
 }
 
-int WSServer::sendNonRt(const char* _address, const void* buf, unsigned int size) 
+int WSServer::sendNonRt(const char* address, const void* buf, unsigned int size) 
 {
+	// ensure the size does not exceed the buffer capacity
+    if (size > WSOutDataMax) {
+        size = WSOutDataMax; // truncate data
+		printf("Web socket server warning! The data buffer sent to %s is too long and will be truncated!\n", address);
+    }
+
+
 	// pack up arguments	
-	output_struct out;
-	out.address = (char *)_address;
-	out.buff = (void *)buf;
+	WSOutputData out;
+	out.address = (char *)address;
+	memcpy(out.buff, buf, size);    // Copy the data into the buffer; no need to erase it, because we store size too!
+	//out.buff = (void *)buf;
 	out.size = size;
 
 	// read the index of the last value we wrote
 	int writePtr = outputs_writePtr.load();
 	writePtr = (writePtr + 1) % output_queue_size;
+
+	//printf("---------------> buffer %d[%d]: %s\n", writePtr, size, (char *)out.buff);
+
 	outputs[writePtr].store(out); // push output into queue
 	outputs_writePtr.store(writePtr);  // update index of the last value in queue
 
 	return 0;
 }
 
-int WSServer::sendRt(const char* _address, const char* str) {
-	return sendNonRt(_address, (const void*)str, strlen(str));
+int WSServer::sendRt(const char* address, const char* str) {
+	return sendNonRt(address, (const void*)str, strlen(str));
 }
 
-int WSServer::sendRt(const char* _address, const void* buf, unsigned int size){
-	return sendNonRt(_address, buf, size);
+int WSServer::sendRt(const char* address, const void* buf, unsigned int size){
+	return sendNonRt(address, buf, size);
 }
 
 void WSServer::cleanup()
@@ -146,13 +122,11 @@ void WSServer::cleanup()
 
 
 
-
-//VIC
 void* WSServer::serve_func()
 {
 	// no need to loop, Server::serve is looping already. 
 	// also, serve is killed via void WSServer::cleanup(), with server->terminate()
-	server->serve("/dev/null", port);
+	server->serve("/dev/null", _port);
 	return (void *)0;
 }
 
@@ -162,7 +136,7 @@ void* WSServer::serve_func_static(void* arg)
  	set_niceness(-20, false);
 
     // set thread priority
-	set_priority(LDSPprioOrder_wsserverServe, false);
+	set_priority(LDSPprioOrder_wserverServe, false);
 
 	WSServer* wsServer = static_cast<WSServer*>(arg);    
     return wsServer->serve_func();
@@ -183,11 +157,13 @@ void* WSServer::client_func()
         { 
 			outputs_readPtr = (outputs_readPtr + 1) % output_queue_size;  // move the read pointer forward, it will be the latest value we send
 
-			output_struct output = outputs[outputs_readPtr].load(); // get current output
+			WSOutputData output = outputs[outputs_readPtr].load(); // get current output
 			// unpack 
-			std::shared_ptr<WSServerDataHandler> handler = address_book.at(output.address);
+			std::shared_ptr<GuiWSHandler> handler = address_book.at(output.address);
 			const void* buf = output.buff;
 			unsigned int size = output.size;
+
+			//printf("---------------> %s --- buffer %d[%d]: %s\n", output.address, outputs_readPtr, size, (char *)output.buff);
 			 
 			try  
 			{
@@ -217,7 +193,7 @@ void* WSServer::client_func()
 			}
 		}
 
-		usleep(WebServerClientSleepUs);
+		usleep(WSServerClientSleepUs);
 	}
 	return (void *)0;
 }
@@ -228,7 +204,7 @@ void* WSServer::client_func_static(void* arg)
  	set_niceness(-20, false);
 
     // set thread priority
-    set_priority(LDSPprioOrder_wsserverClient, false);
+    set_priority(LDSPprioOrder_wserverClient, false);
 
 	WSServer* weServer = static_cast<WSServer*>(arg);    
     return weServer->client_func();
