@@ -15,6 +15,7 @@ namespace fs = std::__fs::filesystem;
 
 //#include <unistd.h>  // Include for close function
 
+//TODO add this from Gui.cpp
 class GuiPageHandler : public seasocks::PageHandler {
 public:
     GuiPageHandler(std::string projectName) : _projectName(projectName) {}
@@ -22,11 +23,11 @@ public:
     std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) override {
         const std::string uri = request.getRequestUri();
 
+        //printf("___________%s\n", uri.c_str());
+
         // this is needed to pass web socket requests to the web socket handler
         if (request.verb() == seasocks::Request::Verb::WebSocket) 
             return seasocks::Response::unhandled();
-
-        // printf("___________%s\n", uri.c_str());
 
         // Function to check if a string ends with another string
         auto endsWith = [](const std::string &fullString, const std::string &ending) {
@@ -67,6 +68,28 @@ public:
         if (uri == "/gui/p5-sketches/sketch.js") {
             return serveFile("/data/ldsp/resources/resources/gui/p5-sketches/sketch.js", "application/javascript");
         }
+
+        // Handling for font files in the /fonts/ directory
+        if (uri.find("/fonts/") == 0) {
+            std::string filePath = "/data/ldsp/resources" + uri;
+
+            // Extract the file extension
+            std::string extension = uri.substr(uri.find_last_of(".") + 1);
+
+            // Determine the MIME type based on the file extension
+            std::string mimeType;
+            if (extension == "woff") {
+                mimeType = "font/woff";
+            } else if (extension == "woff2") {
+                mimeType = "font/woff2";
+            } else if (extension == "ttf")
+                mimeType = "font/ttf";
+
+            //printf("/font/___________%s\n", filePath.c_str());
+
+            return serveFile(filePath, mimeType);
+        }
+
         
         // Dynamic handling for project-specific files
         if (uri.find("/projects/") == 0) {

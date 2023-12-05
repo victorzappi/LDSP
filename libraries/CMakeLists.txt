@@ -14,6 +14,7 @@ target_include_directories(libraries PUBLIC AudioFile)
 target_include_directories(libraries PUBLIC Biquad)
 target_include_directories(libraries PUBLIC ../dependencies/seasocks/src/main/c) # needed by Gui
 target_include_directories(libraries PUBLIC Gui)
+target_include_directories(libraries PUBLIC GuiController)
 target_include_directories(libraries PUBLIC Granular)
 target_include_directories(libraries PUBLIC JSON)
 target_include_directories(libraries PUBLIC LinInterpolator)

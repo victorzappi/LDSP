@@ -135,6 +135,8 @@ const std::unordered_map<std::string, std::string> contentTypes = {
     {"mp3", "audio/mpeg"},
     {"wav", "audio/x-wav"},
     {"ttf", "font/ttf"},
+    {"woff", "font/woff"}, //VIC
+    {"woff2", "font/woff2"}, //VIC
 };
 
 std::string getExt(const std::string& path) {

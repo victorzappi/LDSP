@@ -215,7 +215,7 @@ int Gui::sendControl(nlohmann::json root) {
     //std::wstring wide = JSON::Stringify(root);
 	std::string str = root.dump();
     //std::string str(wide.begin(), wide.end());
-	// printf("************************send %s\n", str.c_str());
+	//printf("************************send %s\n", str.c_str());
     return web_server->sendNonRt(_addressControl.c_str(), str.c_str());
 }
 
