@@ -255,9 +255,22 @@ clean () {
   rm $settings_file
 }
 
-#TODO split this into clean_phone ---> project and clean_ldsp ---> ldsp folder AND turn into ldsp script
-# Remove the ldsp directory from the device
+# Remove current project from directory from the device
 clean_phone () {
+  if ! [[ -f $settings_file ]]; then
+    echo "Cannot clean phone: project not configured. Please run \"ldsp.sh configure [settings] first.\""
+  fi
+
+  # Retrieve variables from settings file
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
+
+  adb shell "su -c 'rm -r /data/ldsp/projects/$project_name'" 
+}
+
+# Remove the ldsp directory from the device
+clean_ldsp () {
   adb shell "su -c 'rm -r /data/ldsp/'" 
 }
 
@@ -288,15 +301,21 @@ install () {
   # now the ldsp bin
 	adb push bin/ldsp /sdcard/ldsp/projects/$project_name/ldsp
 
+
+  # Get the list of directories in /data/ldsp
+  adb shell 'su -c "ls /data/ldsp"' > dirs.txt
+  # Check if the directory 'scripts' is in the list
+  if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "scripts"; then
+    adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
+    adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
+  fi
   #TODO do this if at least one source file includes gui
   # whne gui extended to pd, gui will always be included in pd main, so the check will add "!pd" and then an extra check will be added:
   # if pd and any patch has a gui send of or receive
   # push gui resources, but only if they are not on phone yet
-  # Get the list of directories in /data/ldsp
-  adb shell 'su -c "ls /data/ldsp"' > dirs.txt
-  # Check if the directory 'gui' is in the list
+  # Check if the directory 'resources' is in the list
   if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "resources"; then
-     adb push resources /sdcard/ldsp/resources/
+    adb push resources /sdcard/ldsp/resources/
   fi
   # Clean up
   rm dirs.txt
@@ -306,15 +325,6 @@ install () {
   adb shell "su -c 'chmod 777 /data/ldsp/projects/$project_name/ldsp'" # add exe flag to ldsp bin
   
   adb shell "su -c 'rm -r /sdcard/ldsp'" # remove the temp /sdcard/ldsp directory from the device
-}
-
-# Install the LDSP scripts on the phone.
-install_scripts() {
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
-  adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
-  adb shell "su -c 'mkdir -p /data/ldsp/scripts'" # create ldsp scripts folder
-  adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" # copy scripts to ldsp scripts folder
-  adb shell "su -c 'rm -r /sdcard/ldsp'" # remove temp folder from sd card
 }
 
 # Stop the currently-running user project on the phone.
@@ -371,7 +381,6 @@ EOF
 # Print usage information.
 help () {
   echo -e "usage:"
-  echo -e "ldsp.sh install_scripts"
   echo -e "ldsp.sh configure [settings]"
   echo -e "ldsp.sh build"
   echo -e "ldsp.sh install"
@@ -379,22 +388,23 @@ help () {
   echo -e "ldsp.sh stop"
   echo -e "ldsp.sh clean"
   echo -e "ldsp.sh clean_phone"
+  echo -e "ldsp.sh clean_ldsp"
   echo -e "\nSettings (used with the 'configure' step):"
   echo -e "  --vendor=VENDOR, -v VENDOR\tThe vendor of the phone to build for."
   echo -e "  --model=MODEL, -m MODEL\tThe model of the phone to build for."
   echo -e "  --project=PROJECT, -p PROJECT\tThe path to the user project to build."
   echo -e "  --version=VERSION, -a VERSION\tThe Android version to build for."
   echo -e "\nDescription:"
-  echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone."
   echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone (vendor and model), version and project."
   echo -e "  \t\t\t\t(The above settings are needed)"
   echo -e "  build\t\t\t\tBuild the configured user project."
-  echo -e "  install\t\t\t\tInstall the configured user project, LDSP hardware config and resources to the phone."
+  echo -e "  install\t\t\t\tInstall the configured user project, LDSP hardware config, scripts and resources to the phone."
   echo -e "  run\t\t\t\tRun the configured user project on the phone."
   echo -e "  \t\t\t\t(Any arguments passed after \"run\" within quotes are passed to the user project)"
   echo -e "  stop\t\t\t\tStop the currently-running user project on the phone."
   echo -e "  clean\t\t\t\tClean the configured user project."
-  echo -e "  clean_phone\t\t\tRemove all LDSP files from phone."
+  echo -e "  clean_phone\t\t\tRemove all user project files from phone."
+  echo -e "  clean_ldsp\t\t\tRemove all LDSP files from phone."
 }
 
 STEPS=()

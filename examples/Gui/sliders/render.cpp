@@ -1,3 +1,6 @@
+// This code is based on the code credited below, but it has been modified
+// further by Victor Zappi
+
 /*
  ____  _____ _        _
 | __ )| ____| |      / \
@@ -14,7 +17,8 @@ Sliders for your GUI
 
 This example demonstrates how to create some GUI sliders to control the behaviour of your program while it
 is running. It uses the GuiController library, which uses dat.gui to auto create some control sliders which appear
-at the GUI page: bela.local/gui/
+at the GUI page: x.x.x.x:5555
+where x.x.x.x is the ip of the phone where LDSP is running
 
 The sliders are created in setup() with the function controller.addSlider("Pitch (MIDI note)", 60, 48, 84, 1);.
 The arguments are: name, initial value, minimum, maximum, and increment.

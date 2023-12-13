@@ -1,11 +1,176 @@
+// This code is based on the code credited below, but it has been modified
+// further by Victor Zappi
+
+ /*
+ ___  _____ _        _
+| __ )| ____| |      / \
+|  _ \|  _| | |     / _ \
+| |_) | |___| |___ / ___ \
+|____/|_____|_____/_/   \_\
+
+The platform for ultra-low latency audio and sensor processing
+
+http://bela.io
+
+A project of the Augmented Instruments Laboratory within the Centre for Digital Music at Queen Mary University of London. http://instrumentslab.org
+
+(c) 2016-2020 Augmented Instruments Laboratory: Andrew McPherson, Astrid Bin, Liam Donovan, Christian Heinrichs, Robert Jack, Giulio Moro, Laurel Pardue, Victor Zappi. All rights reserved.
+
+The Bela software is distributed under the GNU Lesser General Public License (LGPL 3.0), available here: https://www.gnu.org/licenses/lgpl-3.0.txt */
+
+
 #include "Gui.h"
-#include <iostream>
 #include "WebServer.h"
+#include <seasocks/PageHandler.h>
+#include <seasocks/Request.h>
+#include <seasocks/ResponseBuilder.h>
+#include <seasocks/Response.h>
+#include <iostream>
+#include <fstream>
 #include <unistd.h>
+#include <filesystem>
+namespace fs = std::__fs::filesystem;
+
+
+class GuiPageHandler : public seasocks::PageHandler {
+public:
+    GuiPageHandler(std::string projectName) : _projectName(projectName) {}
+
+    std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) override {
+        const std::string uri = request.getRequestUri();
+
+        //printf("___________%s\n", uri.c_str());
+
+        // this is needed to pass web socket requests to the web socket handler
+        if (request.verb() == seasocks::Request::Verb::WebSocket) 
+            return seasocks::Response::unhandled();
+
+        // Function to check if a string ends with another string
+        auto endsWith = [](const std::string &fullString, const std::string &ending) {
+            if (fullString.length() >= ending.length()) {
+                return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
+            } else {
+                return false;
+            }
+        };
+
+        // Handling for css files in the /gui/js/ directory
+        if (uri.find("/gui/css/") == 0) {
+            std::string filePath = "/data/ldsp/resources" + uri; 
+            // printf("/gui/css/___________%s\n", filePath.c_str());
+            return serveFile(filePath, "text/css");
+        }
+
+        // Handling for js files in the /gui/js/ directory
+        if (uri.find("/gui/js/") == 0) {
+            std::string filePath = "/data/ldsp/resources" + uri; 
+            // printf("/gui/js/___________%s\n", filePath.c_str());
+            return serveFile(filePath, "application/javascript");
+        }
+
+        // Handling for js files in the /js/ directory
+        if (uri.find("/js/") == 0) {
+            std::string filePath = "/data/ldsp/resources" + uri;
+            // printf("/js/___________%s\n", filePath.c_str());
+            return serveFile(filePath, "application/javascript");
+        }
+        
+        // Handling for /gui/gui-template.html
+        if (uri == "/gui/gui-template.html") {
+            return serveFile("/data/ldsp/resources/gui/gui-template.html", "text/html");
+        }
+        
+        // Handling for /gui/p5-sketches/sketch.js
+        if (uri == "/gui/p5-sketches/sketch.js") {
+            return serveFile("/data/ldsp/resources/resources/gui/p5-sketches/sketch.js", "application/javascript");
+        }
+
+        // Handling for font files in the /fonts/ directory
+        if (uri.find("/fonts/") == 0) {
+            std::string filePath = "/data/ldsp/resources" + uri;
+
+            // Extract the file extension
+            std::string extension = uri.substr(uri.find_last_of(".") + 1);
+
+            // Determine the MIME type based on the file extension
+            std::string mimeType;
+            if (extension == "woff") {
+                mimeType = "font/woff";
+            } else if (extension == "woff2") {
+                mimeType = "font/woff2";
+            } else if (extension == "ttf")
+                mimeType = "font/ttf";
+
+            //printf("/font/___________%s\n", filePath.c_str());
+
+            return serveFile(filePath, mimeType);
+        }
+
+        
+        // Dynamic handling for project-specific files
+        if (uri.find("/projects/") == 0) {
+            std::string filePath;
+            if (endsWith(uri, "/main.html")) {
+                filePath = "/data/ldsp/projects/" + _projectName + "/main.html";
+            } else if (endsWith(uri, ".js")) {
+                filePath = "/data/ldsp/projects/" + _projectName + "/sketch.js";
+            }
+
+            //  printf("/projects/___________%s\n", filePath.c_str());
+
+            // Check if file exists
+            if (fs::exists(filePath)) {
+                return serveFile(filePath, endsWith(uri, ".js") ? "application/javascript" : "text/html");
+            } else {
+                // File not found handling
+                seasocks::ResponseBuilder builder(seasocks::ResponseCode::NotFound);
+                builder.withContentType("text/plain");
+                builder << "File not found";
+                return builder.build();
+            }
+        }
+
+        // Default case for serving the main HTML file
+        if (uri == "/" || uri == "/gui/index.html" || uri == "/gui/") {
+            // printf("/___________%s\n", uri.c_str());
+            // printf("/___________/data/ldsp/resources/gui/index.html\n");
+            return serveFile("/data/ldsp/resources/gui/index.html", "text/html");
+        }
+
+
+        // Default case for URIs that don't match any known patterns
+        seasocks::ResponseBuilder builder(seasocks::ResponseCode::NotFound);
+        builder.withContentType("text/plain");
+        builder << "Resource not found for URI: " << uri;
+        return builder.build();
+    }
+
+private:
+    std::shared_ptr<seasocks::Response> serveFile(const std::string& path, const std::string& mimeType) {
+    std::ifstream file(path, std::ios::binary);
+
+        if (file) {
+            seasocks::ResponseBuilder builder(seasocks::ResponseCode::Ok);
+            std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            builder.withContentType(mimeType);
+            builder << content;
+            return builder.build();
+        } else {
+            seasocks::ResponseBuilder builder(seasocks::ResponseCode::NotFound);
+            builder.withContentType("text/plain");
+            builder << "File not found";
+            return builder.build();
+        }
+    }
+
+    std::string _projectName;
+};
+
 
 Gui::Gui()
 {
 }
+
 Gui::Gui(unsigned int port, std::string address)
 {
 	setup(port, address);
@@ -19,7 +184,9 @@ int Gui::setup(unsigned int port, std::string address)
 
 	// Set up the webserver
 	web_server = std::unique_ptr<WebServer>(new WebServer());
-	web_server->setup(_projectName_str, port);
+	web_server->setup(_projectName, port);
+
+	web_server->addPageHandler(std::make_shared<GuiPageHandler>(_projectName));
 
 	web_server->addAddress(_addressData,
 		[this](std::string address, void* buf, int size)
@@ -46,18 +213,14 @@ int Gui::setup(unsigned int port, std::string address)
 		}
 	);
 
+	web_server->run();
 
-	//VIC
-	// set up web server
-	// web_server = std::unique_ptr<WebServer>(new WebServer());
-	// web_server->setup(_projectName_str, port-1);
 	return 0;
 }
 
 int Gui::setup(std::string projectName, unsigned int port, std::string address)
 {
-	_projectName_str = projectName;
-	_projectName = std::wstring(projectName.begin(), projectName.end());
+	_projectName = projectName;
 	setup(port, address);
 	return 0;
 }
@@ -69,18 +232,13 @@ int Gui::setup(std::string projectName, unsigned int port, std::string address)
  */
 void Gui::ws_connect()
 {
-	// printf("++++++connect %ls\n", _projectName_str.c_str());
+	// printf("++++++connect %ls\n", _projectName.c_str());
 	// send connection JSON
 	nlohmann::json root;
 	root["event"] = "connection";
-	if(!_projectName_str.empty())
-		root["projectName"] = _projectName_str;  //root[L"projectName"] = new JSONValue(_projectName);
+	if(!_projectName.empty())
+		root["projectName"] = _projectName;  
 
-	// Parse whatever needs to be parsed on connection
-
-	//JSONValue *value = new JSONValue(root);
-	//sendControl(value);
-	//delete value;
 	sendControl(root);
 }
 
@@ -99,29 +257,6 @@ void Gui::ws_disconnect()
  */
 void Gui::ws_onControlData(const char* data, unsigned int size)
 {
-	// printf("++++++control data %s\n", data);
-	// parse the data into a JSONValue
-	// JSONValue *value = JSON::Parse(data);
-	// if (value == NULL || !value->IsObject()){
-	// 	fprintf(stderr, "Could not parse JSON:\n%s\n", data);
-	// 	return;
-	// }
-	// // look for the "event" key
-	// JSONObject root = value->AsObject();
-	// if(customOnControlData && !customOnControlData(root, controlCallbackArg))
-	// {
-	// 	delete value;
-	// 	return;
-	// }
-	// if (root.find(L"event") != root.end() && root[L"event"]->IsString()){
-	// 	std::wstring event = root[L"event"]->AsString();
-	// 	if (event.compare(L"connection-reply") == 0){
-	// 		wsIsConnected = true;
-	// 	}
-	// }
-	// delete value;
-
-
 	try {
 		// parse data
 		nlohmann::json value = nlohmann::json::parse(data);
@@ -212,19 +347,17 @@ void Gui::cleanup()
 }
 
 int Gui::sendControl(nlohmann::json root) {
-    //std::wstring wide = JSON::Stringify(root);
 	std::string str = root.dump();
-    //std::string str(wide.begin(), wide.end());
 	//printf("************************send %s\n", str.c_str());
-    return web_server->sendNonRt(_addressControl.c_str(), str.c_str());
+    return web_server->send(_addressControl.c_str(), str.c_str());
 }
 
 int Gui::doSendBuffer(const char* type, unsigned int bufferId, const void* data, size_t size)
 {
 	std::string idTypeStr = std::to_string(bufferId) + "/" + std::string(type);
 	int ret;
-	if(0 == (ret = web_server->sendRt(_addressData.c_str(), idTypeStr.c_str())))
-                    if(0 == (ret = web_server->sendRt(_addressData.c_str(), (void*)data, size)))
+	if(0 == (ret = web_server->send(_addressData.c_str(), idTypeStr.c_str())))
+                    if(0 == (ret = web_server->send(_addressData.c_str(), (void*)data, size)))
                             return 0;
 	fprintf(stderr, "You are sending messages to the GUI too fast. Please slow down\n");
 	return ret;

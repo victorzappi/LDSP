@@ -1,3 +1,6 @@
+// This code is based on the code credited below, but it has been modified
+// further by Victor Zappi
+
 /*
  ____  _____ _        _
 | __ )| ____| |      / \
@@ -9,24 +12,24 @@ http://bela.io
 /**
 \example Gui/gui-to-bela/render.cpp
 
-Sending from the GUI to Bela
+Sending from the GUI to LDSP
 ============================
 
-This project is a minimal example on how to send data buffers from p5js to Bela.
-Bela (render.cpp) receives a buffer of data from p5js (sketch.js) containing three floats:
+This project is a minimal example on how to send data buffers from p5js to LDSP.
+LDSP (render.cpp) receives a buffer of data from p5js (sketch.js) containing three floats:
 two corresponding to slider values and the third one correponding to a button.
 These values are then mapped as parameters of an oscillator object. The mapping is:
 slider1-->pitch
 slider2-->amplitude
 button-->play/stop
 
-HOW TO RECEIVE A BUFFER IN BELA
+HOW TO RECEIVE A BUFFER IN LDSP
 ===============================
 
 In order to receive a buffer from the GUI, the type of the buffer and maximum number of values
 that it will hold need to be specified in setup:
 ```
-myGUi.setBuffer('f', 3);
+myGui.setBuffer('f', 3);
 ```
 In this case we are expecting to receive a buffer of floats with a maximum of 3 elements.
 This function will return the index of the buffer (which is given automatically based on the order
@@ -43,6 +46,7 @@ that it can be used safely from within a real-time context.
 And its contents retrieved in the desired format (floats in this case):
 	`float* data = buffer.getAsFloat();`
 */
+
 #include <LDSP.h>
 #include <libraries/Oscillator/Oscillator.h>
 #include <libraries/Gui/Gui.h>

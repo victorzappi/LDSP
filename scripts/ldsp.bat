@@ -274,9 +274,22 @@ rem End of :build
   rem now push the ldsp bin
   adb push bin\ldsp /sdcard/ldsp/projects/%project_name%/ldsp
 
-  rem push gui resources, but only if they are not on phone yet
+  rem push scripts, but only if they are not on phone yet
   rem Check if the folder exists on the Android device
-  adb shell "if [ ! -d '/data/ldsp/gui' ]; then echo 'not_exists'; else echo 'exists'; fi" > temp.txt
+  adb shell "if [ ! -d '/data/ldsp/scripts' ]; then echo 'not_exists'; else echo 'exists'; fi" > temp.txt
+  rem Read the result into a variable
+  set /p FOLDER_STATUS=<temp.txt
+  rem Check the folder status
+  if "%FOLDER_STATUS%"=="not_exists" (
+      adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" rem create temp folder on sdcard
+      adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/ rem  push scripts there
+  ) 
+  rem Clean up temporary file
+  del temp.txt
+
+  rem push resources, but only if they are not on phone yet
+  rem Check if the folder exists on the Android device
+  adb shell "if [ ! -d '/data/ldsp/resources' ]; then echo 'not_exists'; else echo 'exists'; fi" > temp.txt
   rem Read the result into a variable
   set /p FOLDER_STATUS=<temp.txt
   rem Check the folder status
@@ -318,18 +331,6 @@ rem End of :run
   exit /b 0
 rem End of :Stop
 
-:install_scripts
-  rem Install the LDSP scripts on the phone.
-
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" rem create temp folder on sdcard
-  adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/ rem  push scripts there
-  adb shell "su -c 'mkdir -p /data/ldsp/scripts'" rem create ldsp scripts folder
-  adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" rem copy scripts to ldsp scripts folder
-  adb shell "su -c 'rm -r /sdcard/ldsp'" rem remove temp folder from sd card
-
-  exit /b 0
-rem End of :install_scripts
-
 :clean
   rem Clean project.
 
@@ -340,8 +341,26 @@ rem End of :install_scripts
   exit /b 0
 rem End of :clean
 
-rem TODO split this into clean_phone ---> project and clean_ldsp ---> ldsp folder AND turn into ldsp script
 :clean_phone
+  rem Remove current project from directory from the device
+
+  rem Check if settings file exists
+  IF NOT EXIST "%settings_file%" (
+    echo "Cannot clean phone: project not configured. Please run ""ldsp.sh configure [settings]"" first."
+    exit /b 1
+  )
+
+  rem Retrieve variable from settings file
+  FOR /F "tokens=1* delims==" %%G IN (%settings_file%) DO (
+    IF "%%G"=="project_name" SET "project_name=%%H"
+  )
+
+  adb shell "su -c 'rm -r /data/ldsp/projects/%project_name%'" 
+
+  exit /b 0
+rem End of :clean_phone
+
+:clean_ldsp
   rem Remove the ldsp directory from the device.
 
   adb shell "su -c 'rm -r /data/ldsp/'" 
@@ -352,7 +371,6 @@ rem End of :clean_phone
 :help
   rem Print usage information.
   echo usage:
-  echo   ldsp.bat install_scripts
   echo   ldsp.bat configure [vendor] [model] [version] [project]
   echo   ldsp.bat build
   echo   ldsp.bat install
@@ -360,18 +378,20 @@ rem End of :clean_phone
   echo   ldsp.bat stop
   echo   ldsp.bat clean
   echo   ldsp.bat clean_phone
+  echo   ldsp.bat clean_ldsp
   echo.
   echo Description:
   echo   install_scripts    Install the LDSP scripts on the phone.
   echo   configure          Configure the LDSP build system for the specified phone (vendor and model), version and project.
   echo                      (The above settings are needed)
   echo   build              Build the configured user project.
-  echo   install            Install the configured user project, LDSP hardware config and resources to the phone.
+  echo   install            Install the configured user project, LDSP hardware config, scripts and resources to the phone.
   echo   run                Run the configured user project on the phone.
   echo                      (Any arguments passed after "run" within quotes are passed to the user project)
   echo   stop               Stop the currently-running user project on the phone.
   echo   clean              Clean the configured user project.
-  echo   clean_phone        Remove all LDSP files from phone.
+  echo   clean_phone        Remove all user project files from phone.
+  echo   clean_ldsp         Remove all LDSP files from phone.
   exit /b 0
 rem End of :help
 

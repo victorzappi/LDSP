@@ -12,9 +12,9 @@ Then, make sure that you have Developer Options enabled on the phone, then insid
 - - Asus ZenFone 2 Laser (ZE500KL - Z00ED)
 - - Asus ZenFone Go (ZB500KG - X00BD)
 - - Huawei P8 Lite (alice)
-- - Nexus G2 Mini (g2m)
-- - Nexus 4 (mako)
-- - Nexus 5 (bullhead)
+- - LG G2 Mini (g2m)
+- - LG Nexus 4 (mako)
+- - LG Nexus 5 (bullhead)
 - - Samsung Galaxy Tab 4 (SM-T237P)
 - - Xiaomi Mi8 Lite (platina)
 
@@ -71,10 +71,6 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
   ```console
   adb --version
   ```
-
-- **ADBD Insecure [optional]**: a lightweight Android app massively used by XDA developers that enables ADB shells to do way more things (it remounts the phone’s file system as r/w and automatically invokes root privileges for ADB shells). Highly recommended!
-We will install it on the phone. But, for now, just download the apk from here:
-[https://forum.xda-developers.com/t/2014-11-10-root-adbd-insecure-v2-00.1687590/](https://forum.xda-developers.com/t/2014-11-10-root-adbd-insecure-v2-00.1687590/)
 
 - **Pure Data “vanilla” [optional]**:  in case you want to code LDSP applications in Pd rather than C++: [https://puredata.info/downloads](https://puredata.info/downloads)
 

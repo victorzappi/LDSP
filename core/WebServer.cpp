@@ -2,153 +2,10 @@
 #include <seasocks/Server.h>
 #include <seasocks/PageHandler.h>
 #include <seasocks/IgnoringLogger.h>
-#include <seasocks/ResponseBuilder.h>
-#include <seasocks/StringUtil.h>
-#include <seasocks/Request.h>
-#include <seasocks/Response.h>
-
-#include <fstream>
 #include <array>
 #include <regex>
-#include <filesystem>
-namespace fs = std::__fs::filesystem;
 
 //#include <unistd.h>  // Include for close function
-
-//TODO add this from Gui.cpp
-class GuiPageHandler : public seasocks::PageHandler {
-public:
-    GuiPageHandler(std::string projectName) : _projectName(projectName) {}
-
-    std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) override {
-        const std::string uri = request.getRequestUri();
-
-        //printf("___________%s\n", uri.c_str());
-
-        // this is needed to pass web socket requests to the web socket handler
-        if (request.verb() == seasocks::Request::Verb::WebSocket) 
-            return seasocks::Response::unhandled();
-
-        // Function to check if a string ends with another string
-        auto endsWith = [](const std::string &fullString, const std::string &ending) {
-            if (fullString.length() >= ending.length()) {
-                return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
-            } else {
-                return false;
-            }
-        };
-
-        // Handling for css files in the /gui/js/ directory
-        if (uri.find("/gui/css/") == 0) {
-            std::string filePath = "/data/ldsp/resources" + uri; 
-            // printf("/gui/css/___________%s\n", filePath.c_str());
-            return serveFile(filePath, "text/css");
-        }
-
-        // Handling for js files in the /gui/js/ directory
-        if (uri.find("/gui/js/") == 0) {
-            std::string filePath = "/data/ldsp/resources" + uri; 
-            // printf("/gui/js/___________%s\n", filePath.c_str());
-            return serveFile(filePath, "application/javascript");
-        }
-
-        // Handling for js files in the /js/ directory
-        if (uri.find("/js/") == 0) {
-            std::string filePath = "/data/ldsp/resources" + uri;
-            // printf("/js/___________%s\n", filePath.c_str());
-            return serveFile(filePath, "application/javascript");
-        }
-        
-        // Handling for /gui/gui-template.html
-        if (uri == "/gui/gui-template.html") {
-            return serveFile("/data/ldsp/resources/gui/gui-template.html", "text/html");
-        }
-        
-        // Handling for /gui/p5-sketches/sketch.js
-        if (uri == "/gui/p5-sketches/sketch.js") {
-            return serveFile("/data/ldsp/resources/resources/gui/p5-sketches/sketch.js", "application/javascript");
-        }
-
-        // Handling for font files in the /fonts/ directory
-        if (uri.find("/fonts/") == 0) {
-            std::string filePath = "/data/ldsp/resources" + uri;
-
-            // Extract the file extension
-            std::string extension = uri.substr(uri.find_last_of(".") + 1);
-
-            // Determine the MIME type based on the file extension
-            std::string mimeType;
-            if (extension == "woff") {
-                mimeType = "font/woff";
-            } else if (extension == "woff2") {
-                mimeType = "font/woff2";
-            } else if (extension == "ttf")
-                mimeType = "font/ttf";
-
-            //printf("/font/___________%s\n", filePath.c_str());
-
-            return serveFile(filePath, mimeType);
-        }
-
-        
-        // Dynamic handling for project-specific files
-        if (uri.find("/projects/") == 0) {
-            std::string filePath;
-            if (endsWith(uri, "/main.html")) {
-                filePath = "/data/ldsp/projects/" + _projectName + "/main.html";
-            } else if (endsWith(uri, ".js")) {
-                filePath = "/data/ldsp/projects/" + _projectName + "/sketch.js";
-            }
-
-            //  printf("/projects/___________%s\n", filePath.c_str());
-
-            // Check if file exists
-            if (fs::exists(filePath)) {
-                return serveFile(filePath, endsWith(uri, ".js") ? "application/javascript" : "text/html");
-            } else {
-                // File not found handling
-                seasocks::ResponseBuilder builder(seasocks::ResponseCode::NotFound);
-                builder.withContentType("text/plain");
-                builder << "File not found";
-                return builder.build();
-            }
-        }
-
-        // Default case for serving the main HTML file
-        if (uri == "/" || uri == "/gui/index.html" || uri == "/gui/") {
-            // printf("/___________%s\n", uri.c_str());
-            // printf("/___________/data/ldsp/resources/gui/index.html\n");
-            return serveFile("/data/ldsp/resources/gui/index.html", "text/html");
-        }
-
-
-        // Default case for URIs that don't match any known patterns
-        seasocks::ResponseBuilder builder(seasocks::ResponseCode::NotFound);
-        builder.withContentType("text/plain");
-        builder << "Resource not found for URI: " << uri;
-        return builder.build();
-    }
-
-private:
-    std::shared_ptr<seasocks::Response> serveFile(const std::string& path, const std::string& mimeType) {
-    std::ifstream file(path, std::ios::binary);
-
-        if (file) {
-            seasocks::ResponseBuilder builder(seasocks::ResponseCode::Ok);
-            std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-            builder.withContentType(mimeType);
-            builder << content;
-            return builder.build();
-        } else {
-            seasocks::ResponseBuilder builder(seasocks::ResponseCode::NotFound);
-            builder.withContentType("text/plain");
-            builder << "File not found";
-            return builder.build();
-        }
-    }
-
-    std::string _projectName;
-};
 
 WebServer::WebServer() {}
 
@@ -169,18 +26,24 @@ void WebServer::setup(std::string projectName, unsigned int port) {
     _port = port;
     auto logger = std::make_shared<seasocks::IgnoringLogger>();
 	server = std::make_shared<seasocks::Server>(logger);
-    server->addPageHandler(std::make_shared<GuiPageHandler>(_projectName));
 
     // prepare client loop vars
     outputs_writePtr.store(-1);
 	outputs_readPtr = -1;
+}
 
+void WebServer::addPageHandler(std::__ndk1::shared_ptr<seasocks::PageHandler> handler) {
+    server->addPageHandler(handler);
+}
+
+void WebServer::run() {
     shouldStop = false;
 	pthread_create(&client_thread, NULL, client_func_static, this);
 	pthread_create(&serve_thread, NULL, serve_func_static, this);
 
-    printServerAddress();
+    printServerAddress();   
 }
+
 
 void* WebServer::serve_func()
 {

@@ -1,3 +1,24 @@
+// This code is based on the code credited below, but it has been modified
+// further by Victor Zappi
+
+ /*
+ ___  _____ _        _
+| __ )| ____| |      / \
+|  _ \|  _| | |     / _ \
+| |_) | |___| |___ / ___ \
+|____/|_____|_____/_/   \_\
+
+The platform for ultra-low latency audio and sensor processing
+
+http://bela.io
+
+A project of the Augmented Instruments Laboratory within the Centre for Digital Music at Queen Mary University of London. http://instrumentslab.org
+
+(c) 2016-2020 Augmented Instruments Laboratory: Andrew McPherson, Astrid Bin, Liam Donovan, Christian Heinrichs, Robert Jack, Giulio Moro, Laurel Pardue, Victor Zappi. All rights reserved.
+
+The Bela software is distributed under the GNU Lesser General Public License (LGPL 3.0), available here: https://www.gnu.org/licenses/lgpl-3.0.txt */
+
+
 #include "GuiController.h"
 #include <iostream>
 
@@ -14,20 +35,11 @@ int GuiController::setup(Gui* gui, std::string name)
 {
 	_gui = gui;
 	_name = name;
-	_wname = std::wstring(name.begin(), name.end());
 	_gui->setControlDataCallback(controlCallback, this);
 	int ret = sendController();
 	return ret;
 }
 
-// int GuiController::sendController()
-// {
-// 	JSONObject root;
-// 	root[L"event"] = new JSONValue(L"set-controller");
-// 	root[L"name"] = new JSONValue(_wname);
-// 	JSONValue json(root);
-// 	return _gui->sendControl(&json);
-// }
 int GuiController::sendController()
 {
     nlohmann::json root;
@@ -46,37 +58,6 @@ GuiController::~GuiController()
 	cleanup();
 }
 
-// bool GuiController::controlCallback(nlohmann::json &root, void* param)
-// {
-// 	GuiController* controller = (GuiController*)param;
-// 	if (root.find(L"event") != root.end() && root[L"event"]->IsString())
-// 	{
-// 		std::wstring event = root[L"event"]->AsString();
-// 		if (event.compare(L"connection-reply") == 0)
-// 		{
-// 			controller->sendController();
-// 			if(controller->getNumSliders() != 0)
-// 			{
-// 				for (auto& slider : controller->_sliders)
-// 					controller->sendSlider(slider);
-// 			}
-// 		}
-// 		else if (event.compare(L"slider") == 0)
-// 		{
-// 			int sliderIndex = -1;
-// 			float sliderValue = 0.0f;
-// 			if (root.find(L"slider") != root.end() && root[L"slider"]->IsNumber())
-// 				sliderIndex = (int)root[L"slider"]->AsNumber();
-// 			if (root.find(L"value") != root.end() && root[L"value"]->IsNumber())
-// 			{
-// 				sliderValue = (float)root[L"value"]->AsNumber();
-// 				controller->_sliders.at(sliderIndex).setValue(sliderValue);
-// 			}
-// 		}
-// 	}
-
-// 	return true;
-// }
 bool GuiController::controlCallback(nlohmann::json &root, void* param)
 {
 	GuiController* controller = static_cast<GuiController*>(param);
@@ -118,14 +99,6 @@ bool GuiController::controlCallback(nlohmann::json &root, void* param)
     return true;
 }
 
-// int GuiController::sendSlider(const GuiSlider& slider)
-// {
-// 	JSONObject root = slider.getParametersAsJSON();
-// 	root[L"event"] = new JSONValue(L"set-slider");
-// 	root[L"controller"] = new JSONValue(_wname);
-// 	JSONValue json(root);
-// 	return _gui->sendControl(&json);
-// }
 int GuiController::sendSlider(const GuiSlider& slider)
 {
     nlohmann::json root = slider.getParametersAsJSON();
@@ -133,18 +106,7 @@ int GuiController::sendSlider(const GuiSlider& slider)
     root["controller"] = _name;
     return _gui->sendControl(root);
 }
-// int GuiController::sendSliderValue(int sliderIndex)
-// {
-// 	auto& slider = _sliders.at(sliderIndex);
-// 	JSONObject root;
-// 	root[L"event"] = new JSONValue(L"set-slider-value");
-// 	root[L"controller"] = new JSONValue(_wname);
-// 	root[L"index"] = new JSONValue(slider.getIndex());
-// 	root[L"name"] = new JSONValue(slider.getNameW());
-// 	root[L"value"] = new JSONValue(slider.getValue());
-// 	JSONValue json = JSONValue(root);
-// 	return _gui->sendControl(&json);
-// }
+
 int GuiController::sendSliderValue(int sliderIndex)
 {
     auto& slider = _sliders.at(sliderIndex);

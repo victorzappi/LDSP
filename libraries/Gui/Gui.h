@@ -1,25 +1,41 @@
+// This code is based on the code credited below, but it has been modified
+// further by Victor Zappi
+
+ /*
+ ___  _____ _        _
+| __ )| ____| |      / \
+|  _ \|  _| | |     / _ \
+| |_) | |___| |___ / ___ \
+|____/|_____|_____/_/   \_\
+
+The platform for ultra-low latency audio and sensor processing
+
+http://bela.io
+
+A project of the Augmented Instruments Laboratory within the Centre for Digital Music at Queen Mary University of London. http://instrumentslab.org
+
+(c) 2016-2020 Augmented Instruments Laboratory: Andrew McPherson, Astrid Bin, Liam Donovan, Christian Heinrichs, Robert Jack, Giulio Moro, Laurel Pardue, Victor Zappi. All rights reserved.
+
+The Bela software is distributed under the GNU Lesser General Public License (LGPL 3.0), available here: https://www.gnu.org/licenses/lgpl-3.0.txt */
+
 #pragma once
 
 #include <vector>
 #include <string>
 #include <functional>
-//#include <JSON.h>
 #include "libraries/JSON/json.hpp"
 #include <typeinfo> // for types in templates
 #include <memory>
 #include "DataBuffer.h"
 
 // forward declaration
-//class WSServer;
 class WebServer;
 
 class Gui
 {
 	private:
 
-		std::vector<DataBuffer> _buffers;
-		//std::unique_ptr<WSServer> ws_server;
-		//VIC
+		std::vector<DataBuffer> _buffers;\
 		std::unique_ptr<WebServer> web_server;
 
 		bool wsIsConnected = false;
@@ -33,8 +49,7 @@ class Gui
 		unsigned int _port;
 		std::string _addressControl;
 		std::string _addressData;
-		std::wstring _projectName; //VIC what is this? it does not work went sent to JS scripts
-		std::string _projectName_str;
+		std::string _projectName;
 
 		// User defined functions
 		std::function<bool(/* JSONObject& */nlohmann::json&, void*)> customOnControlData;

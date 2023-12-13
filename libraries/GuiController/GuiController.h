@@ -1,10 +1,30 @@
+// This code is based on the code credited below, but it has been modified
+// further by Victor Zappi
+
+ /*
+ ___  _____ _        _
+| __ )| ____| |      / \
+|  _ \|  _| | |     / _ \
+| |_) | |___| |___ / ___ \
+|____/|_____|_____/_/   \_\
+
+The platform for ultra-low latency audio and sensor processing
+
+http://bela.io
+
+A project of the Augmented Instruments Laboratory within the Centre for Digital Music at Queen Mary University of London. http://instrumentslab.org
+
+(c) 2016-2020 Augmented Instruments Laboratory: Andrew McPherson, Astrid Bin, Liam Donovan, Christian Heinrichs, Robert Jack, Giulio Moro, Laurel Pardue, Victor Zappi. All rights reserved.
+
+The Bela software is distributed under the GNU Lesser General Public License (LGPL 3.0), available here: https://www.gnu.org/licenses/lgpl-3.0.txt */
+
+
 #pragma once
 
 #include <vector>
 #include <string>
 #include <libraries/Gui/Gui.h>
 #include "GuiSlider.h"
-//#include <JSON.h>
 #include "libraries/JSON/json.hpp"
 
 // Forward declarations
@@ -15,7 +35,6 @@ class GuiController {
 		std::vector<GuiSlider> _sliders;
 		Gui *_gui;
 		std::string _name;
-		std::wstring _wname;
 
 		int sendController();
 		int sendSlider(const GuiSlider& slider);

@@ -1,3 +1,6 @@
+// This code is based on the code credited below, but it has been modified
+// further by Victor Zappi
+
 /*
  ____  _____ _        _
 | __ )| ____| |      / \
@@ -9,15 +12,15 @@ http://bela.io
 /**
 \example Gui/bela-to-gui/render.cpp
 
-Sending from Bela to the GUI
+Sending from LDSP to the GUI
 ============================
 
-This project is a minimal example of how to send data buffers from Bela to p5.js.
+This project is a minimal example of how to send data buffers from LDSP to p5.js.
 You can find a sketch.js file which is a p5.js file that is rendered
 in a browser tab. Click the GUI button (next to the Scope button) in the IDE to see the rendering of this file.
-The p5.js file receives a buffer from Bela and displays the received data.
+The p5.js file receives a buffer from LDSP and displays the received data.
 
-This example sends a buffer of data from the Bela render to the browser via a web socket:
+This example sends a buffer of data from the LDSP render to the browser via a web socket:
 ```
 gui.sendBuffer(0, gNumber);
 ```

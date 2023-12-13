@@ -1,3 +1,7 @@
+# right now, we are using a stripped down [and slightly modified] verion of the tinyalsa source
+# used in Lineage OS 14.1: https://github.com/LineageOS/android_external_tinyalsa/tree/cm-14.1
+# up-to-date tinyalsa: https://github.com/tinyalsa/tinyalsa/tree/master
+# more info in core/tinyalsaAudio.cpp
 add_subdirectory(tinyalsa)
 
 # Configuration for libsndfile's provided CMakeLists.txt
@@ -11,6 +15,7 @@ set(INSTALL_PKGCONFIG_MODULE OFF CACHE BOOL "Generate and install pkg-config mod
 
 add_subdirectory(libsndfile)
 
+#VIC why not a submodule?
 # FFTW3
 # BUILD_SHARED_LIBS option will propogate to fftw3 as well
 set(BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
@@ -18,6 +23,8 @@ set(ENABLE_FLOAT ON CACHE BOOL "single-precision" FORCE)
 add_subdirectory(fftw3)
 
 # seasocks
+# We are using a custom version of seasocks that builds for Android
+# seasocks source: https://github.com/mattgodbolt/seasocks
 # Set the options for Seasocks
 set(SEASOCKS_SHARED OFF CACHE BOOL "Build seasocks as a shared library" FORCE)
 set(UNITTESTS OFF CACHE BOOL "Build unittests." FORCE)
@@ -26,11 +33,15 @@ set(SEASOCKS_EXAMPLE_APP OFF CACHE BOOL "Build the example applications." FORCE)
 set(DEFLATE_SUPPORT OFF CACHE BOOL "Include support for deflate (requires zlib)." FORCE)
 add_subdirectory(seasocks)
 
+# We are using a custom version of glob that builds for old Android
+# android glob source: https://cs.android.com/android/platform/superproject/+/master:bionic/libc/upstream-freebsd/lib/libc/gen/glob.c
 # Add the custom 'glob' directory to the beginning of the include path
 include_directories(BEFORE ./glob)
 
 add_subdirectory(glob)
 link_libraries(glob)
+# We are using a custom version of this serial lib: https://github.com/Christian-Prather/youtube-serail-tutorial/tree/main
+# that is in turn a stripped down version of this one: https://github.com/wjwwood/serial/tree/main
 add_subdirectory(serial)
 add_subdirectory(libpd)
 
