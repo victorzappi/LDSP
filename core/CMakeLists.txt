@@ -1,3 +1,6 @@
+# CMakeLists.txt in core directory
+
+
 project(ldsp)
 
 # https://stackoverflow.com/a/62085797

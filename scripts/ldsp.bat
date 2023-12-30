@@ -89,6 +89,18 @@ goto main
   exit /b 0
 rem End of :get_api_level
 
+:install_scripts
+  rem Install the LDSP scripts on the phone.
+
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" rem create temp folder on sdcard
+  adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/ rem  push scripts there
+  adb shell "su -c 'mkdir -p /data/ldsp/scripts'" rem create ldsp scripts folder
+  adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" rem copy scripts to ldsp scripts folder
+  adb shell "su -c 'rm -r /sdcard/ldsp'" rem remove temp folder from sd card
+
+  exit /b 0
+rem End of :install_scripts
+
 :configure
   rem Configure the LDSP build system to build for the given phone model, Android version, and project path.
 
@@ -371,6 +383,7 @@ rem End of :clean_phone
 :help
   rem Print usage information.
   echo usage:
+  echo   ldsp.bat install_scripts
   echo   ldsp.bat configure [vendor] [model] [version] [project]
   echo   ldsp.bat build
   echo   ldsp.bat install
@@ -398,8 +411,11 @@ rem End of :help
 :main
 
 rem Call the appropriate function based on the first argument.
-
-if "%1" == "configure" (
+if "%1" == "install_scripts" (
+  call :install_scripts
+  exit /b %ERRORLEVEL%
+)
+else if "%1" == "configure" (
   call :configure %2 %3 %4 %5
   exit /b %ERRORLEVEL%
 )

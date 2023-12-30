@@ -17,7 +17,7 @@ public:
     ~WebServer();
 
     void setup(unsigned int port);
-    void setup(std::string projectName, unsigned int port);
+    void setup(std::string projectName, std::string serverName, unsigned int port);
 
     void addPageHandler(std::__ndk1::shared_ptr<seasocks::PageHandler> handler);
 
@@ -25,6 +25,7 @@ public:
 
 private:
     std::string _projectName;
+    std::string _serverName;
 
     void printServerAddress();
 

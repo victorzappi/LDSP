@@ -10,19 +10,19 @@
 WebServer::WebServer() {}
 
 WebServer::WebServer(unsigned int port) {
-    setup("", port);
+    setup("", "", port);
 }
 
 WebServer::~WebServer() {
-    cleanup();
 }
 
 void WebServer::setup(unsigned int port) {
-    setup("", port);
+    setup("", "", port);
 }
 
-void WebServer::setup(std::string projectName, unsigned int port) {
+void WebServer::setup(std::string projectName, std::string serverName, unsigned int port) {
     _projectName = projectName;
+    _serverName = serverName;
     _port = port;
     auto logger = std::make_shared<seasocks::IgnoringLogger>();
 	server = std::make_shared<seasocks::Server>(logger);
@@ -50,7 +50,7 @@ void* WebServer::serve_func()
 	// no need to loop, Server::serve is looping already. 
 	// also, serve is killed via void WebServer::cleanup(), with server->terminate()
     server->serve("/dev/null", _port);
-    printf("GUI web server terminated!\n");
+    printf("%s web server terminated!\n", _serverName.c_str());
 	return (void *)0;
 }
 
@@ -94,7 +94,11 @@ void WebServer::printServerAddress() {
             }
         }
 
-        printf("GUI web server listening on: %s:%d\n", lastValidIPAddress.c_str(), _port);
+         // if none found, use default local host
+        if(lastValidIPAddress.empty())
+          lastValidIPAddress = "127.0.0.1";
+          
+        printf("%s web server listening on: %s:%d\n", _serverName.c_str(), lastValidIPAddress.c_str(), _port);
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }

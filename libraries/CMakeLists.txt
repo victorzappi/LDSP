@@ -1,3 +1,5 @@
+# CMakeLists.txt in libraries directory
+
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cpp *.c)
 
 add_library(libraries OBJECT ${SOURCES})
@@ -18,6 +20,7 @@ target_include_directories(libraries PUBLIC GuiController)
 target_include_directories(libraries PUBLIC Granular)
 target_include_directories(libraries PUBLIC JSON)
 target_include_directories(libraries PUBLIC LinInterpolator)
+target_include_directories(libraries PUBLIC Oscillator)
 target_include_directories(libraries PUBLIC OscReceiver)
 target_include_directories(libraries PUBLIC OscSender)
 target_include_directories(libraries PUBLIC UdpClient)

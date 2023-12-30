@@ -133,6 +133,15 @@ get_api_level () {
 	echo $level
 }
 
+# Install the LDSP scripts on the phone.
+install_scripts() {
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
+  adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
+  adb shell "su -c 'mkdir -p /data/ldsp/scripts'" # create ldsp scripts folder
+  adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" # copy scripts to ldsp scripts folder
+  adb shell "su -c 'rm -r /sdcard/ldsp'" # remove temp folder from sd card
+}
+
 # Configure the LDSP build system to build for the given phone model, Android version, and project path.
 configure () {
   if [[ $VENDOR == "" ]]; then
@@ -381,6 +390,7 @@ EOF
 # Print usage information.
 help () {
   echo -e "usage:"
+  echo -e "ldsp.sh install_scripts"
   echo -e "ldsp.sh configure [settings]"
   echo -e "ldsp.sh build"
   echo -e "ldsp.sh install"
@@ -395,6 +405,7 @@ help () {
   echo -e "  --project=PROJECT, -p PROJECT\tThe path to the user project to build."
   echo -e "  --version=VERSION, -a VERSION\tThe Android version to build for."
   echo -e "\nDescription:"
+  echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone."
   echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone (vendor and model), version and project."
   echo -e "  \t\t\t\t(The above settings are needed)"
   echo -e "  build\t\t\t\tBuild the configured user project."
@@ -479,6 +490,9 @@ fi
 
 for i in "${STEPS[@]}"; do
   case $i in
+    install_scripts)
+      install_scripts
+      ;;
     configure)
       configure
       ;;

@@ -1,3 +1,18 @@
+# CMakeLists.txt in dependencies directory
+
+# apply compiler and linker optimizations for dependencies only
+# remove unused code
+add_compile_options(-ffunction-sections -fdata-sections)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections")
+# strip debug symbols
+if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -s")
+endif()
+
+
+
 # right now, we are using a stripped down [and slightly modified] verion of the tinyalsa source
 # used in Lineage OS 14.1: https://github.com/LineageOS/android_external_tinyalsa/tree/cm-14.1
 # up-to-date tinyalsa: https://github.com/tinyalsa/tinyalsa/tree/master
@@ -12,7 +27,6 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "Build examples" FORCE)
 set(ENABLE_CPACK OFF CACHE BOOL "Enable CPack" FORCE)
 set(ENABLE_PACKAGE_CONFIG OFF CACHE BOOL "Generate and install package config file" FORCE)
 set(INSTALL_PKGCONFIG_MODULE OFF CACHE BOOL "Generate and install pkg-config module" FORCE)
-
 add_subdirectory(libsndfile)
 
 #VIC why not a submodule?

@@ -38,6 +38,7 @@ public:
 
     std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) override {
         const std::string uri = request.getRequestUri();
+        const std::string basePath = "/data/ldsp/";
 
         //printf("___________%s\n", uri.c_str());
 
@@ -56,38 +57,39 @@ public:
 
         // Handling for css files in the /gui/js/ directory
         if (uri.find("/gui/css/") == 0) {
-            std::string filePath = "/data/ldsp/resources" + uri; 
+            std::string filePath = basePath + "resources" + uri;
             // printf("/gui/css/___________%s\n", filePath.c_str());
             return serveFile(filePath, "text/css");
         }
 
         // Handling for js files in the /gui/js/ directory
         if (uri.find("/gui/js/") == 0) {
-            std::string filePath = "/data/ldsp/resources" + uri; 
+            std::string filePath = basePath + "resources" + uri; 
             // printf("/gui/js/___________%s\n", filePath.c_str());
             return serveFile(filePath, "application/javascript");
         }
 
         // Handling for js files in the /js/ directory
         if (uri.find("/js/") == 0) {
-            std::string filePath = "/data/ldsp/resources" + uri;
+            std::string filePath = basePath + "resources" + uri;
             // printf("/js/___________%s\n", filePath.c_str());
             return serveFile(filePath, "application/javascript");
         }
         
         // Handling for /gui/gui-template.html
         if (uri == "/gui/gui-template.html") {
-            return serveFile("/data/ldsp/resources/gui/gui-template.html", "text/html");
+            return serveFile( basePath + "resources/gui/gui-template.html", "text/html");
         }
         
         // Handling for /gui/p5-sketches/sketch.js
         if (uri == "/gui/p5-sketches/sketch.js") {
-            return serveFile("/data/ldsp/resources/resources/gui/p5-sketches/sketch.js", "application/javascript");
+            //return serveFile("/data/ldsp/resources/resources/gui/p5-sketches/sketch.js", "application/javascript");
+            return serveFile( basePath + "resources/gui/p5-sketches/sketch.js", "application/javascript");
         }
 
         // Handling for font files in the /fonts/ directory
         if (uri.find("/fonts/") == 0) {
-            std::string filePath = "/data/ldsp/resources" + uri;
+            std::string filePath = basePath + "resources" + uri;
 
             // Extract the file extension
             std::string extension = uri.substr(uri.find_last_of(".") + 1);
@@ -111,9 +113,9 @@ public:
         if (uri.find("/projects/") == 0) {
             std::string filePath;
             if (endsWith(uri, "/main.html")) {
-                filePath = "/data/ldsp/projects/" + _projectName + "/main.html";
+                filePath = basePath + "projects/" + _projectName + "/main.html";
             } else if (endsWith(uri, ".js")) {
-                filePath = "/data/ldsp/projects/" + _projectName + "/sketch.js";
+                filePath = basePath + "projects/" + _projectName + "/sketch.js";
             }
 
             //  printf("/projects/___________%s\n", filePath.c_str());
@@ -134,7 +136,7 @@ public:
         if (uri == "/" || uri == "/gui/index.html" || uri == "/gui/") {
             // printf("/___________%s\n", uri.c_str());
             // printf("/___________/data/ldsp/resources/gui/index.html\n");
-            return serveFile("/data/ldsp/resources/gui/index.html", "text/html");
+            return serveFile( basePath + "resources/gui/index.html", "text/html");
         }
 
 
@@ -183,8 +185,10 @@ int Gui::setup(unsigned int port, std::string address)
 	_addressControl = address+"_control";
 
 	// Set up the webserver
-	web_server = std::unique_ptr<WebServer>(new WebServer());
-	web_server->setup(_projectName, port);
+    if(web_server)
+        web_server.reset();
+    web_server = std::make_unique<WebServer>();
+	web_server->setup(_projectName, "GUI", port);
 
 	web_server->addPageHandler(std::make_shared<GuiPageHandler>(_projectName));
 
