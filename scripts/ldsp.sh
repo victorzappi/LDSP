@@ -124,14 +124,14 @@ get_api_level () {
 	echo $level
 }
 
+# retrieve the correct version of the onnxruntime library, based on Android version
 get_onnx_version () {
   major=$(echo "$1" | cut -d . -f 1)
-  # if [[ $major -ge 7 ]]; then 
-  #   onnx_version="above24_prebuilt"
-  # else 
-  #   onnx_version="below24"
-  # fi
-  onnx_version=$onnx
+  if [[ $major -ge 7 ]]; then 
+    onnx_version="above24"
+  else 
+    onnx_version="below24"
+  fi
 
   echo $onnx_version
 }
@@ -278,9 +278,7 @@ install () {
   onnx_version=$(get_onnx_version "$version")
   onnx_path="./dependencies/onnxruntime/$target_arch/$onnx_version/libonnxruntime.so"
 
-  # Push shared onnxruntime library to phone
-  # TODO: push version based on selected phone architecture
-  # - only push if library doesn't exist yet
+
   adb push $onnx_path /data/ldsp/onnxruntime/libonnxruntime.so
 	adb push bin/ldsp /data/ldsp/ldsp
   adb shell "su -c 'chmod 777 /data/ldsp/ldsp'"
