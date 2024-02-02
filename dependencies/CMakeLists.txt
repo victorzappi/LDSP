@@ -58,6 +58,7 @@ link_libraries(glob)
 # that is in turn a stripped down version of this one: https://github.com/wjwwood/serial/tree/main
 add_subdirectory(serial)
 add_subdirectory(libpd)
+add_subdirectory(RTNeural)
 
 #VIC we get some warnings from libpd and we cannot do anything about them
 # this line hides some of them [not sure why not all of them]

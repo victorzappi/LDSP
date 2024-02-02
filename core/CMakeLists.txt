@@ -11,7 +11,7 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cpp *.c)
 file(GLOB_RECURSE MAIN_SOURCES CONFIGURE_DEPENDS main.cpp)
 list(REMOVE_ITEM SOURCES ${MAIN_SOURCES})
 
-# Remove default pd render from sources, in case this is not a PD project 
+# Remove default pd render from sources, in case this is not a PD project
 file(GLOB_RECURSE DEFAULT_PD_SOURCES CONFIGURE_DEPENDS default_render_pd.cpp)
 list(REMOVE_ITEM SOURCES ${DEFAULT_PD_SOURCES})
 
@@ -35,7 +35,7 @@ endif()
 # By only passing the definition to main.cpp
 GET_FILENAME_COMPONENT(LDSP_PROJECT_NAME ${LDSP_PROJECT} NAME)
 set_property(
-  SOURCE ${CMAKE_CURRENT_LIST_DIR}/main.cpp 
+  SOURCE ${CMAKE_CURRENT_LIST_DIR}/main.cpp
   PROPERTY COMPILE_DEFINITIONS PROJECT_NAME="${LDSP_PROJECT_NAME}"
 )
 
@@ -44,10 +44,10 @@ add_executable(ldsp ${SOURCES})
 
 # All necessary headers for libpd
 set(LIBPD_DIR ../dependencies/libpd)
-set (LIBPD_INCLUDE_DIRS 
-  ${LIBPD_DIR}/libpd_wrapper 
-  ${LIBPD_DIR}/libpd_wrapper/util 
-  ${LIBPD_DIR}/pure-data/src 
+set (LIBPD_INCLUDE_DIRS
+  ${LIBPD_DIR}/libpd_wrapper
+  ${LIBPD_DIR}/libpd_wrapper/util
+  ${LIBPD_DIR}/pure-data/src
   ${LIBPD_DIR}/cpp
 )
 target_include_directories(ldsp
@@ -63,16 +63,16 @@ target_include_directories(ldsp
 # target_include_directories(ldsp PRIVATE ../dependencies/fftw3/api)
 #target_link_directories(ldsp PRIVATE ../dependencies/fftw3)
 
-
 target_link_libraries(ldsp
   PRIVATE libraries
   PRIVATE android
   PRIVATE tinyalsa
-  PRIVATE sndfile 
+  PRIVATE sndfile
   PRIVATE glob
   PRIVATE serial
   PRIVATE libpd_static
   PRIVATE fftw3f
   PRIVATE seasocks
+  PRIVATE RTNeural
 )
 
