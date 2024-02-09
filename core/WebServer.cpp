@@ -4,8 +4,8 @@
 #include <seasocks/IgnoringLogger.h>
 #include <array>
 #include <regex>
-
-//#include <unistd.h>  // Include for close function
+//#include <fstream>   // include to use system()
+//#include <unistd.h>  // include for close()
 
 WebServer::WebServer() {}
 
@@ -67,9 +67,34 @@ void* WebServer::serve_func_static(void* arg)
 }
 
 void WebServer::printServerAddress() {
-    try {
+        std::string command;
+        std::string lastValidIPAddress;
+
         // run ifconfig and parse output
-        std::string command = "ifconfig";
+        command = "ifconfig";
+        lastValidIPAddress = runIpCommand(command);
+        
+        // if ifconfig is not available
+        if(lastValidIPAddress.empty())
+        {
+            // run ip addr and parse output
+            command = "ip addr";
+            lastValidIPAddress = runIpCommand(command);
+        }
+        
+
+         // if none found, use default local host
+        if(lastValidIPAddress.empty())
+          lastValidIPAddress = "127.0.0.1";
+          
+        printf("%s web server listening on: %s:%d\n", _serverName.c_str(), lastValidIPAddress.c_str(), _port);
+
+}
+
+
+std::string WebServer::runIpCommand(std::string command)
+{
+    try {
         std::array<char, 128> buffer;
         std::string result;
         std::string lastValidIPAddress;
@@ -88,22 +113,60 @@ void WebServer::printServerAddress() {
             result = buffer.data();
             if (std::regex_search(result, ipMatch, ipRegex)) {
                 std::string ip = ipMatch[1];
-                if (ip.substr(0, 3) != "255" && ip.substr(ip.size() - 4) != ".255") {
+                if (ip.substr(0, 1) != "0" && ip.substr(0, 3) != "255" && ip.substr(ip.size() - 4) != ".255") {
                     lastValidIPAddress = ip;
                 }
             }
         }
 
-         // if none found, use default local host
-        if(lastValidIPAddress.empty())
-          lastValidIPAddress = "127.0.0.1";
-          
-        printf("%s web server listening on: %s:%d\n", _serverName.c_str(), lastValidIPAddress.c_str(), _port);
+        return lastValidIPAddress;
+
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
+        return "";
     }
 }
 
+//VIC this is equivalent, but popen() is preferred to system()
+/* std::string WebServer::runIpCommand(std::string command) {
+    try {
+        // Execute command and redirect output to a file
+        int ret = system((command + " > temp_output.txt").c_str());
+        if (ret != 0) {
+            std::cerr << "Command "<< command << " failed with return code: " << ret << std::endl;
+            return "";
+        }
+
+        // Read output from the file
+        std::ifstream file("temp_output.txt");
+        if (!file.is_open()) {
+            std::cerr << "Failed to open temp_output.txt" << std::endl;
+            return "";
+        }
+
+        std::string result, line, lastValidIPAddress;
+        std::regex ipRegex(R"((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}))");
+        std::smatch ipMatch;
+
+        while (std::getline(file, line)) {
+            if (std::regex_search(line, ipMatch, ipRegex)) {
+                std::string ip = ipMatch[1];
+                if (ip.substr(0, 1) != "0" && ip.substr(0, 3) != "255" && ip.substr(ip.size() - 4) != ".255") {
+                    lastValidIPAddress = ip;
+                }
+            }
+        }
+
+        // Close and delete the temporary file
+        file.close();
+        std::remove("temp_output.txt");
+
+        return lastValidIPAddress;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return "";
+    }
+} */
 
 
 

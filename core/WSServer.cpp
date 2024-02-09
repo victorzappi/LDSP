@@ -45,6 +45,7 @@ struct GuiWSHandler : seasocks::WebSocket::Handler {
 	bool binary;
 	void onConnect(seasocks::WebSocket *socket) override {
 		connections.insert(socket);
+		//std::cout << "Connection established" << std::endl;
 		if(on_connect)
 			on_connect(address);
 	}
@@ -56,6 +57,7 @@ struct GuiWSHandler : seasocks::WebSocket::Handler {
 	}
 	void onDisconnect(seasocks::WebSocket *socket) override {
 		connections.erase(socket);
+		//std::cout << "Connection closed" << std::endl;
 		if (on_disconnect)
 			on_disconnect(address);
 	}

@@ -35,7 +35,7 @@ class Gui
 {
 	private:
 
-		std::vector<DataBuffer> _buffers;\
+		std::vector<DataBuffer> _buffers;
 		std::unique_ptr<WebServer> web_server;
 
 		bool wsIsConnected = false;

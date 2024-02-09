@@ -131,6 +131,12 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 			case 'D':
 				settings->deviceInNum = atoi(opts.optarg);
 				break;
+			case 's':
+				settings->deviceOutId = opts.optarg;
+				break;
+			case 'S':
+				settings->deviceInId = opts.optarg;
+				break;
 			case 'p':
 				settings->periodSize = atoi(opts.optarg);
 				break;

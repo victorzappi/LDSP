@@ -82,7 +82,21 @@ void LDSP_cleanupSensors()
     {
         if(sensorsContext.sensors[i].present)
         {
-            //ASensorEventQueue_disableSensor(event_queue, sensorsContext.sensors[i].asensor); //VIC on some phones this causes a crash, but its absence does not have any effect
+            ASensorEventQueue_disableSensor(event_queue, sensorsContext.sensors[i].asensor); //VIC on some phones this causes a crash, but its absence does not have any effect
+            // the problem is that if we don't call it, on the same phones sometimes in the next run we cannot activate sensors... and we need to reboot
+            // can be done more quickly via: 
+            // adb shell am broadcast -a android.intent.action.BOOT_COMPLETED
+            // we may as well keep it here and reboot sometimes
+
+            // the following check does the same
+            /* LDSP_sensor sensor_type = (LDSP_sensor::_enum)LDSP_sensor::_from_index(i);
+            if(ASensorEventQueue_disableSensor(event_queue, sensorsContext.sensors[i].asensor) == 0) 
+            {
+                if(sensorsVerbose)
+                    printf("\t %s disabled!\n", sensor_type._to_string());
+            }
+            else
+                printf("\t Warning! Could not disable the following sensor: %s\n", sensor_type._to_string()); */
             delete[] sensorsContext.sensors[i].channels;
         }
     }
@@ -166,8 +180,8 @@ void initSensors()
         
             ASensorEventQueue_enableSensor(event_queue, sensor);
             // we don't set a rate for sensors that report on new event only, otherwise on some phones we may get crashes
-             if(minDelay != 0) 
-                 ASensorEventQueue_setEventRate(event_queue, sensor, 100); // symbolic 100 us sampling period... to make sure we request max rate
+            if(minDelay != 0) 
+                ASensorEventQueue_setEventRate(event_queue, sensor, 100); // symbolic 100 us sampling period... to make sure we request max rate
             //VIC there is an android API function that is supposed to return the min period supported, ASensor_getMinDelay()
             // but the doc says its value is often an underestimation: https://developer.android.com/ndk/reference/group/sensor#asensoreventqueue_seteventrate
         }        

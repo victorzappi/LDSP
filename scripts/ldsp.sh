@@ -359,7 +359,7 @@ run () {
   # Run adb shell in a subshell, so that it doesn't receive the SIGINT signal
   (
     trap "" INT
-    adb shell "su -c 'cd /data/ldsp/projects/$project_name && ./ldsp $@'" # we invoke su before running the bin, needed on some phones: https://stackoverflow.com/a/27274416
+    adb shell "su -c 'cd /data/ldsp/projects/$project_name && ./ldsp $@'" # we invoke su before running the bin
   ) &
 
 

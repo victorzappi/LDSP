@@ -28,6 +28,7 @@ private:
     std::string _serverName;
 
     void printServerAddress();
+    std::string runIpCommand(std::string command);
 
 	void* serve_func();
     static void* serve_func_static(void* arg);
