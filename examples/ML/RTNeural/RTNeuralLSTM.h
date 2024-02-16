@@ -2,6 +2,10 @@
 
 #include <RTNeural/RTNeural.h>
 
+/**
+ * Adapted from https://github.com/GuitarML/NeuralPi
+ */
+
 class RT_LSTM
 {
 public:

@@ -1,5 +1,9 @@
 #include "RTNeuralLSTM.h"
 
+/**
+ * Adapted from https://github.com/GuitarML/NeuralPi
+ */
+
 using Vec2d = std::vector<std::vector<float>>;
 
 Vec2d transpose(const Vec2d& x)
