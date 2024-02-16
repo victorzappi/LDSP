@@ -23,10 +23,8 @@ void render(LDSPcontext *context, void *userData)
         float output[] = { 0 };
         model.process(input, output, 1);
 
-        audioWrite(context, n, 0, original);
+        audioWrite(context, n, 0, output[0]);
         audioWrite(context, n, 1, output[0]);
-
-        // std::cout << "model: " << input[0] << " -> " << output << std::endl;
 	}
 }
 
