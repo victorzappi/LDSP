@@ -23,6 +23,9 @@
 #include"LDSP.h"
 
 #include <tinyalsa/asoundlib.h>
+#include <arm_neon.h>
+#include <stdlib.h>
+#include <assert.h>
 #include "enums.h"
 
 // wraps tinyalsa pmc_config
@@ -65,6 +68,7 @@ struct audio_struct {
 	int fd;
 	void *rawBuffer;
 	float *audioBuffer;
+    float32x4_t factorVec alignas(16);
 	unsigned int formatBits;
 	unsigned int scaleVal;
 	unsigned int bps;

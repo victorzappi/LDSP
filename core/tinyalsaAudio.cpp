@@ -34,6 +34,7 @@
 #include <unordered_map> // unordered_map
 #include <thread> // number of cpus
 #include <dirent.h> // browse dirs
+#include <stdlib.h>
 
 #include "LDSP.h"
 #include "tinyalsaAudio.h"
@@ -111,6 +112,7 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
     if(!settings)
 		return -1;
     
+	// Copying values from settings over for ease of reading, and better naming
 	fullDuplex = !settings->outputOnly;
     audioVerbose = settings->verbose;
 	perfModeOff = settings->perfModeOff;
@@ -123,6 +125,8 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
         printf("\nLDSP_initAudio()\n");
 
 	//TODO deactivate audio server
+
+	// Initialize connection with playback and capture devices
 
     initAudioParams(settings, &pcmContext.playback, true);
     initAudioParams(settings, &pcmContext.capture, false);
@@ -230,6 +234,7 @@ int checkAllCardParams(audio_struct *audioStruct);
 
 void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, bool is_playback)
 {
+	// Audio struct is totally empty on call, this function allocates memory for it, and then populates it
     *audioStruct = (audio_struct*) malloc(sizeof(audio_struct));
     
     (*audioStruct)->card = settings->card;
@@ -466,7 +471,24 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		return -1;
 	}
 
-	audio_struct->audioBuffer = (float*)malloc(sizeof(float)*audio_struct->numOfSamples);
+	// AudioBuffer is set here, so this is where we want to ByteAlign
+	assert(audio_struct->numOfSamples % 4 == 0); // Assert that numSamples is a multiple of 4L
+
+	// audio_struct->audioBuffer = (float*)malloc(sizeof(float)*audio_struct->numOfSamples);
+
+	// Allocate ByteAligned array
+
+	// This was failing as aligned_alloc couldn't be recognized - Are we in C++17 or later?
+	// audio_struct->audioBuffer = (float*)std::aligned_alloc(16, sizeof(float)*audio_struct->numOfSamples);
+
+
+	// Question: Should alignment be 16? or 4? Or set in Config?
+	if (posix_memalign((void**)&audio_struct->audioBuffer, 16, audio_struct->numOfSamples * sizeof(float)) != 0) {
+        perror("posix_memalign failed");
+        return -1;
+    }
+
+
 	if(!audio_struct->audioBuffer)
 	{
 		fprintf(stderr, "Could not allocate audioBuffer\n");
@@ -476,7 +498,7 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 
 	// finish audio initialization
 	//formatBits = LDSP_pcm_format_to_bits((int)audio_struct->config.format); // replaces/implements pcm_format_to_bits(), that is missing from old tinyalsa
-	formatBits = pcm_format_to_bits(audio_struct->config.format);
+	formatBits = pcm_format_to_bits(audio_struct->config.format); // pcm_format_to_bits doesn't handle 8bit case
 	audio_struct->formatBits = formatBits;
 	audio_struct->scaleVal = (1 << (formatBits - 1)) - 1;
 	audio_struct->physBps = formatBits / 8;  // size in bytes of the format var type used to store sample
@@ -485,6 +507,12 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		audio_struct->bps = audio_struct->physBps;
 	else
 		audio_struct->bps = 3;
+
+	// if (posix_memalign((void**)&audio_struct->factorVec, 16, 4 * sizeof(float)) != 0) {
+    //     perror("posix_memalign failed");
+    //     return -1;
+    // }
+	// audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal); // Causes a bus error?
 
 	// this is used for capture only
 	// we compute the mask necessary to complete the two's complment of received raw samples
@@ -568,8 +596,12 @@ void fromRawToFloat_int(audio_struct *audio_struct)
 			// we have to manually complete the 2's complement 
 			if(res>audio_struct->scaleVal)
 				res |= audio_struct->mask;
+
+			// printf("%d", res);
+
 			audio_struct->audioBuffer[n] = res/((float)(audio_struct->scaleVal)); // turn int sample into full scale normalized float
 
+			// printf("%f", audio_struct->audioBuffer[n]);
 			sampleBytes += audio_struct->bps; // jump to next sample
 	}
 }
@@ -586,8 +618,12 @@ void fromRawToFloat_float32(audio_struct *audio_struct)
 	{
 		int res = byteCombine(sampleBytes, audio_struct); // function pointer, gets sample value by combining the consecutive bytes, organized in either little or big endian
 
+		// printf("%d", res);
+
 		fval.i = res; // safe
 		audio_struct->audioBuffer[n] = fval.f; // interpret as float
+
+		// printf("%f", audio_struct->audioBuffer[n]);
 
 		sampleBytes += audio_struct->bps; // jump to next sample
 	}
@@ -595,21 +631,128 @@ void fromRawToFloat_float32(audio_struct *audio_struct)
 
 //TODO optimize: loop unrolling and, when possible, NEON
 //VIC on android, it seems that interleaved is the only way to go
+// Original
+// void fromFloatToRaw_int(audio_struct *audio_struct)
+// {
+// 	auto start = std::chrono::high_resolution_clock::now();
+
+// 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+// 	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+// 	{
+// 		int res = audio_struct->scaleVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
+		
+// 		byteSplit(sampleBytes, res, audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+
+// 		sampleBytes += audio_struct->bps; // jump to next sample
+// 	}
+// 	// clean up buffer for next period
+// 	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+
+// 	auto end = std::chrono::high_resolution_clock::now();
+// 	std::chrono::duration<double, std::milli> elapsed = end - start;
+// 	std::cout << "Execution time: " << elapsed.count() << " ms\n";
+// }
+
+
+// Loop unrolled:
+// void fromFloatToRaw_int(audio_struct *audio_struct)
+// {
+// 	auto start = std::chrono::high_resolution_clock::now();
+
+// 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+// 	for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
+// 	{	
+// 		int res[4];
+// 		res[0] = audio_struct->scaleVal * audio_struct->audioBuffer[0 + n]; // get actual int sample out of normalized full scale float
+// 		res[1] = audio_struct->scaleVal * audio_struct->audioBuffer[1 + n];
+// 		res[2] = audio_struct->scaleVal * audio_struct->audioBuffer[2 + n];
+// 		res[3] = audio_struct->scaleVal * audio_struct->audioBuffer[3 + n];
+
+// 		byteSplit(sampleBytes, res[0], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+// 		sampleBytes += audio_struct->bps; // jump to next sample
+
+// 		byteSplit(sampleBytes, res[1], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+// 		sampleBytes += audio_struct->bps; // jump to next sample
+
+// 		byteSplit(sampleBytes, res[2], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+// 		sampleBytes += audio_struct->bps; // jump to next sample
+
+// 		byteSplit(sampleBytes, res[3], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+// 		sampleBytes += audio_struct->bps; // jump to next sample
+// 	}
+// 	// clean up buffer for next period
+// 	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+
+// 	auto end = std::chrono::high_resolution_clock::now();
+// 	std::chrono::duration<double, std::milli> elapsed = end - start;
+// 	std::cout << "Execution time: " << elapsed.count() << " ms\n";
+// }
+
+// NEON
 void fromFloatToRaw_int(audio_struct *audio_struct)
 {
+	auto start = std::chrono::high_resolution_clock::now();      
+	// YOUR CODE (Full content of body of the function) 
+         
+	// Will move this to be instantiated in init, and be a field of audio_struct
+	float32x4_t factorVec = vdupq_n_f32(audio_struct->scaleVal);
+
 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
-	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
-	{
-		int res = audio_struct->scaleVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
-		
-		byteSplit(sampleBytes, res, audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+	for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
+	{	
+		// Get next 4 samples in an array **** - Because it's a pointer will it take all 4? Since vl1dq_f32 is expecting 4?
+		float32_t* inputs = audio_struct->audioBuffer + n;
+		// memcpy(inputs, existingArray, sizeof(float) * 4);
 
+		// Load the four floating-point inputs into a NEON vector
+    	float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
+		float32x4_t resultVec = vmulq_f32(inputVec, factorVec);
+
+		// Convert the 4 scaled ints to be used in C
+
+
+		// This function would convert float32x4_t output to float*, which we could then convert to int in C?
+		// Likely wouldn't be faster than using NEON intrinsics to convert to int, but we can test runtimes
+		// Does vst1q_f32 Have to output to a NEON type? (float32x4_t)
+		// float32x4_t outputs; // Do I need to allocate memory for this here
+		// vst1q_f32(outputs, resultVec);
+
+		// Need to convert from float32_t* to int[] before byte splitting probably
+		int res[4];
+
+		// Truncates float type to int type
+		int32x4_t intValues = vcvtq_s32_f32(resultVec); // Would truncate the floats to convert to int
+		// int32x4_t intValues = vcvtnq_s32_f32(resultVec); // Round to nearest
+		// int32x4_t intValues = vcvtmq_s32_f32(resultVec); // Round to floor
+
+
+		// Moves intValues to res
+		vst1q_s32(res, intValues);
+
+		byteSplit(sampleBytes, res[0], audio_struct);
+		sampleBytes += audio_struct->bps; // jump to next sample ** COnfirm I need to jump here?
+
+		byteSplit(sampleBytes, res[1], audio_struct);
+		sampleBytes += audio_struct->bps; // jump to next sample
+
+		byteSplit(sampleBytes, res[2], audio_struct);
+		sampleBytes += audio_struct->bps; // jump to next sample
+
+		byteSplit(sampleBytes, res[3], audio_struct);
 		sampleBytes += audio_struct->bps; // jump to next sample
 	}
 	// clean up buffer for next period
 	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> elapsed = end - start;
+	std::cout << "Execution time: " << elapsed.count() << " ms\n";
 }
+
+
 
 void fromFloatToRaw_float32(audio_struct *audio_struct)
 {
@@ -622,9 +765,12 @@ void fromFloatToRaw_float32(audio_struct *audio_struct)
 
 	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 	{
+		// printf("%f", audio_struct->audioBuffer[n]);
 		fval.f = audio_struct->audioBuffer[n]; // safe, cos float is at least 32 bits
 		int res = fval.i; // interpret as int
 		
+		// printf("%d", res);
+
 		byteSplit(sampleBytes, res, audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
 
 		sampleBytes += audio_struct->bps; // jump to next sample
