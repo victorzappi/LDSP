@@ -52,6 +52,9 @@ cmake_install.cmake
 build.ninja
 rules.ninja
 build.ninja.tmp*
+# these started showing up since RTNeural build
+cmake/
+cpm-package-lock.cmake
 
 # OS specific files
 # -macOS
@@ -61,5 +64,5 @@ build.ninja.tmp*
 ldsp_settings.conf
 
 
-# Temporary local projects
+# LDSP team - Temporary local projects
 _projects/
