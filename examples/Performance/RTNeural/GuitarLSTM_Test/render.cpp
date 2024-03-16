@@ -49,10 +49,10 @@ void render(LDSPcontext *context, void *userData)
         audioWrite(context, n, 0, input[inputSize-1]);
         audioWrite(context, n, 1, input[inputSize-1]);
 
-    if(++readPointer >= circBuffLength)
-        readPointer = 0;
-    if(++writePointer >= circBuffLength)
-        writePointer = 0;	
+        if(++readPointer >= circBuffLength)
+            readPointer = 0;
+        if(++writePointer >= circBuffLength)
+            writePointer = 0;	
     }
 }
 

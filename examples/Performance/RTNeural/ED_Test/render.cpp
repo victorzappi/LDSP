@@ -68,6 +68,7 @@ void render(LDSPcontext *context, void *userData)
             if( readPointer >= circBuffLength)
                 readPointer -= circBuffLength;
         }
+        
         if(++writePointer >= circBuffLength)
             writePointer = 0;
 	}
