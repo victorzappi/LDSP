@@ -4,7 +4,7 @@
 OrtModel model;
 
 std::string modelType = "onnx";
-std::string modelName = "AutoGuitarAmp";
+std::string modelName = "GuitarLSTM";
 
 float *input;
 float output[1] = {0};

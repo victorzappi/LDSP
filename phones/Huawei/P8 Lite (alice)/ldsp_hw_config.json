@@ -8,7 +8,7 @@
 		"mixer volumes xml file": "/system/etc/audio/hissc/mixer_volumes_ALICEPA_normal.xml",
 		"playback path names":
 		{ 
-			"headphones": "media-headphone",
+			"line-out": "media-headphone",
 			"speaker": "media-speaker",
 			"handset": "media-earpiece"
 		},

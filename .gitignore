@@ -52,6 +52,15 @@ cmake_install.cmake
 .ninja_log
 build.ninja
 rules.ninja
+build.ninja.tmp*
 
-# Temporary local projects
+# OS specific files
+# -macOS
+.DS_Store
+
+# current LDSP project settings
+ldsp_settings.conf
+
+
+# LDSP team - Temporary local projects
 _projects/

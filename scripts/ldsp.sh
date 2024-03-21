@@ -2,6 +2,15 @@
 # This script controls configuring the LDSP build system, building a project
 # using LDSP, and running the resulting binary on a phone.
 
+
+# Global variable for project settings
+project_dir=""
+project_name=""
+vendor=""
+model=""
+
+settings_file="ldsp_settings.conf"
+
 # Convert a human-readable Android version (e.g. 13, 6.0.1, 4.4) into an API level.
 get_api_level () {
 	version_full=$1
@@ -136,6 +145,15 @@ get_onnx_version () {
   echo $onnx_version
 }
 
+# Install the LDSP scripts on the phone.
+install_scripts() {
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
+  adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
+  adb shell "su -c 'mkdir -p /data/ldsp/scripts'" # create ldsp scripts folder
+  adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" # copy scripts to ldsp scripts folder
+  adb shell "su -c 'rm -r /sdcard/ldsp'" # remove temp folder from sd card
+}
+
 # Configure the LDSP build system to build for the given phone model, Android version, and project path.
 configure () {
   if [[ $VENDOR == "" ]]; then
@@ -143,19 +161,21 @@ configure () {
     echo "Please specify a phone vendor with --vendor"
     exit 1
   fi
+  vendor=$VENDOR
 
   if [[ $MODEL == "" ]]; then
     echo "Cannot configure: Model not specified"
     echo "Please specify a phone model with --model"
     exit 1
   fi
+  model=$MODEL
 
   # path to hardware config
-  hw_config="./phones/$VENDOR/$MODEL/ldsp_hw_config.json"
+  hw_config="./phones/$vendor/$model/ldsp_hw_config.json"
 
   if [[ ! -f "$hw_config" ]]; then
     echo "Cannot configure: Hardware config file not found"
-    echo "Please ensure that an ldsp_hw_config.json file exists for \"$VENDOR/$MODEL\""
+    echo "Please ensure that an ldsp_hw_config.json file exists for \"$vendor/$model\""
     exit 1
   fi
 
@@ -177,8 +197,6 @@ configure () {
   # target Android version
   api_level=$(get_api_level "$VERSION")
   exit_code=$?
-
-  api_define="-DAPI=$api_level"
 
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: Unknown Android version: $version_full"
@@ -202,16 +220,25 @@ configure () {
   fi
 
   if [[ $PROJECT == "" ]]; then
-    echo "Cannot configure: Project path not specified"
+    echo "Cannot configure: project path not specified"
     echo "Please specify a project path with --project"
     exit 1
   fi
 
   if [[ ! -d "$PROJECT" ]]; then
-    echo "Cannot configure: Project directory does not exist"
+    echo "Cannot configure: project directory does not exist"
     echo "Please specify a valid project path with --project"
     exit 1
   fi
+  project_dir=$PROJECT 
+  project_name=$(basename "$project_dir")
+
+  # store settings
+  echo "project_dir=\"$project_dir\"" > $settings_file
+  echo "project_name=\"$project_name\"" >> $settings_file
+  echo "vendor=\"$vendor\"" >> $settings_file
+  echo "model=\"$model\"" >> $settings_file
+
 
   if [[ ! -d "$NDK" ]]; then
     echo "Cannot configure: NDK not found"
@@ -222,7 +249,7 @@ configure () {
 
   onnx_version=$(get_onnx_version "$version")
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon $api_define "-DLDSP_PROJECT=$PROJECT" "-DONNX_VERSION=$onnx_version" -G Ninja .
+  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" -G Ninja .
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: CMake failed"
@@ -232,6 +259,10 @@ configure () {
 
 # Build the user project.
 build () {
+  if ! [[ -f $settings_file ]]; then
+    echo "Cannot build: project not configured. Please run \"ldsp.sh configure [settings] first.\""
+  fi
+
   ninja
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
@@ -243,6 +274,26 @@ build () {
 # Clean the built files.
 clean () {
   ninja clean
+  rm $settings_file
+}
+
+# Remove current project from directory from the device
+clean_phone () {
+  if ! [[ -f $settings_file ]]; then
+    echo "Cannot clean phone: project not configured. Please run \"ldsp.sh configure [settings] first.\""
+  fi
+
+  # Retrieve variables from settings file
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
+
+  adb shell "su -c 'rm -r /data/ldsp/projects/$project_name'" 
+}
+
+# Remove the ldsp directory from the device
+clean_ldsp () {
+  adb shell "su -c 'rm -r /data/ldsp/'" 
 }
 
 # Install the user project, LDSP hardware config and resources to the phone.
@@ -252,78 +303,55 @@ install () {
     exit 1
   fi
 
-  hw_config="./phones/$VENDOR/$MODEL/ldsp_hw_config.json"
-
-  adb shell "mkdir -p /data/ldsp"
-
-  if [[ ! -f "$hw_config" ]]; then
-    echo "WARNING: Hardware config file not found, skipping..."
-  else
-    adb push "$hw_config" /data/ldsp/ldsp_hw_config.json
+  # Retrieve variables from settings file
+  if [[ -f $settings_file ]]; then
+      source $settings_file
   fi
 
-  #TODO switch to project folders on phone
-  # then change name of bin to project name
-  # add remove function to delete project folder from phone
-
-  # Install all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
-  # first folders
-  find "$PROJECT"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /data/ldsp/
-  # then files
-  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -exec adb push {} /data/ldsp/ \;
+  hw_config="./phones/$vendor/$model/ldsp_hw_config.json"
+  adb push "$hw_config" /sdcard/ldsp/projects/$project_name/ldsp_hw_config.json
 
   # Push the onnxruntime library that matches the phones' architecture
+  #TODO make it like resources, global to all projects and change LD_LIBRARY_PATH in run ()
   target_arch=$(grep -o '"target architecture": "[^"]*' "$hw_config" | grep -o '[^"]*$')
-
   onnx_version=$(get_onnx_version "$version")
   onnx_path="./dependencies/onnxruntime/$target_arch/$onnx_version/libonnxruntime.so"
+  adb push "$onnx_path" /sdcard/ldsp/projects/$project_name/onnxruntime/libonnxruntime.so
 
 
-  adb push $onnx_path /data/ldsp/onnxruntime/libonnxruntime.so
-	adb push bin/ldsp /data/ldsp/ldsp
-  adb shell "su -c 'chmod 777 /data/ldsp/ldsp'"
-}
-
-# Push the user project, LDSP hardware config and resources to phone's SD card, for manual installation.
-push_sdcard () {
-  if [[ ! -f bin/ldsp ]]; then
-    echo "Cannot push: No ldsp executable found. Please run \"ldsp build\" first."
-    exit 1
-  fi
-
-  hw_config="./phones/$VENDOR/$MODEL/ldsp_hw_config.json"
-  proj="$PROJECT"
-
-
-  adb root
-  adb shell "su -c 'mkdir -p /sdcard/ldsp'"
-
-  if [[ ! -f "$hw_config" ]]; then
-    echo "WARNING: Hardware config file not found, skipping..."
-  else
-    adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
-  fi
-
-  # Push all project resources, including Pd files in Pd projects, but excluding C/C++ files and folders that contain those files
+  # Push all project resources, including Pd files in Pd projects, but excluding C/C++, assembly files and folders that contain those files
   # first folders
-  find "$PROJECT"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /sdcard/ldsp/
+  find "$project_dir"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp "{}"/*.S "{}"/*.s 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /sdcard/ldsp/projects/$project_name
   # then files
-  find "$PROJECT" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -exec adb push {} /sdcard/ldsp/ \; | xargs -I{} adb push {} /sdcard/ldsp/
+  find "$project_dir" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} /sdcard/ldsp/projects/$project_name \;
 
-	adb push bin/ldsp /sdcard/ldsp/ldsp
-  adb shell "su -c 'chmod 777 /sdcard/ldsp/ldsp'"
-}
+  # now the ldsp bin
+	adb push bin/ldsp /sdcard/ldsp/projects/$project_name/ldsp
 
-# Install the LDSP scripts on the phone.
-install_scripts() {
-  adb shell "su -c 'mkdir -p /data/ldsp/scripts'"
-  adb push ./scripts/ldsp_* /data/ldsp/scripts/
-}
 
-# Push the LDSP scripts to the phone's SD card, for manual installation.
-push_scripts_sdcard() {
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
-  adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/
+  # Get the list of directories in /data/ldsp
+  adb shell 'su -c "ls /data/ldsp"' > dirs.txt
+  # Check if the directory 'scripts' is in the list
+  if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "scripts"; then
+    adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
+    adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
+  fi
+  #TODO do this if at least one source file includes gui
+  # whne gui extended to pd, gui will always be included in pd main, so the check will add "!pd" and then an extra check will be added:
+  # if pd and any patch has a gui send of or receive
+  # push gui resources, but only if they are not on phone yet
+  # Check if the directory 'resources' is in the list
+  if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "resources"; then
+    adb push resources /sdcard/ldsp/resources/
+  fi
+  # Clean up
+  rm dirs.txt
+  
+  adb shell "su -c 'mkdir -p /data/ldsp/projects/$project_name'" # create ldsp and project folders
+  adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" # cp all files from sd card temp folder to project folder
+  adb shell "su -c 'chmod 777 /data/ldsp/projects/$project_name/ldsp'" # add exe flag to ldsp bin
+  
+  adb shell "su -c 'rm -r /sdcard/ldsp'" # remove the temp /sdcard/ldsp directory from the device
 }
 
 # Stop the currently-running user project on the phone.
@@ -341,10 +369,15 @@ handle_stop() {
 
 # Run the user project on the phone.
 run () {
+  # Retrieve variables from settings file
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
+
   # Run adb shell in a subshell, so that it doesn't receive the SIGINT signal
   (
     trap "" INT
-    adb shell " su -c 'cd /data/ldsp/ && export LD_LIBRARY_PATH="./onnxruntime/" && ./ldsp $@'" # we invoke su before running the bin, needed on some phones: https://stackoverflow.com/a/27274416
+    adb shell "su -c 'cd /data/ldsp/projects/$project_name && export LD_LIBRARY_PATH="./onnxruntime/" && ./ldsp $@'" # we invoke su before running the bin
   ) &
 
 
@@ -358,31 +391,50 @@ run () {
 
 # Run the user project on the phone in the background.
 run_persistent () {
+  # Retrieve variables from settings file
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
+
   cat <<EOF | adb shell > /dev/null 2>&1
-  cd /data/ldsp/
+  su -c '
+  cd /data/ldsp/projects/$project_name
+  export LD_LIBRARY_PATH="./onnxruntime/"
   nohup ./ldsp $@ > /dev/null 2>&1 &
+  '
   exit
 EOF
 }
 
 # Print usage information.
 help () {
-  echo -e "usage: ldsp [options] [steps] [run args]"
-  echo -e "options:"
+  echo -e "usage:"
+  echo -e "ldsp.sh install_scripts"
+  echo -e "ldsp.sh configure [settings]"
+  echo -e "ldsp.sh build"
+  echo -e "ldsp.sh install"
+  echo -e "ldsp.sh run \"[list of arguments]\""
+  echo -e "ldsp.sh stop"
+  echo -e "ldsp.sh clean"
+  echo -e "ldsp.sh clean_phone"
+  echo -e "ldsp.sh clean_ldsp"
+  echo -e "\nSettings (used with the 'configure' step):"
   echo -e "  --vendor=VENDOR, -v VENDOR\tThe vendor of the phone to build for."
   echo -e "  --model=MODEL, -m MODEL\tThe model of the phone to build for."
   echo -e "  --project=PROJECT, -p PROJECT\tThe path to the user project to build."
   echo -e "  --version=VERSION, -a VERSION\tThe Android version to build for."
-  echo -e "steps:"
-  echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone, version, and project."
-  echo -e "  build\t\t\t\tBuild the user project."
-  echo -e "  install\t\t\t\tInstall the user project, LDSP hardware config and resources to the phone."
-  echo -e "  push_sdcard\t\t\tPush the user project, LDSP hardware config and resources to the phone's SD card, for manual installation."
-  echo -e "  run\t\t\t\tRun the user project on the phone."
-  echo -e "  \t\t\t\t(Any arguments passed after \"run\" are passed to the user project.)"
-  echo -e "  stop\t\t\t\tStop the currently-running user project on the phone."
+  echo -e "\nDescription:"
   echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone."
-  echo -e "  push_scripts_sdcard\t\tPush the LDSP scripts to the phone's SD card, for manual installation."
+  echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone (vendor and model), version and project."
+  echo -e "  \t\t\t\t(The above settings are needed)"
+  echo -e "  build\t\t\t\tBuild the configured user project."
+  echo -e "  install\t\t\t\tInstall the configured user project, LDSP hardware config, scripts and resources to the phone."
+  echo -e "  run\t\t\t\tRun the configured user project on the phone."
+  echo -e "  \t\t\t\t(Any arguments passed after \"run\" within quotes are passed to the user project)"
+  echo -e "  stop\t\t\t\tStop the currently-running user project on the phone."
+  echo -e "  clean\t\t\t\tClean the configured user project."
+  echo -e "  clean_phone\t\t\tRemove all user project files from phone."
+  echo -e "  clean_ldsp\t\t\tRemove all LDSP files from phone."
 }
 
 STEPS=()
@@ -438,6 +490,11 @@ while [[ $# -gt 0 ]]; do
       STEPS+=("run")
       break
       ;;
+      run_persistent)
+      # any arguments passed to "run_persistent" are passed to the user project
+      STEPS+=("run_persistent")
+      break
+      ;;
     *)
       STEPS+=("$1")
       shift
@@ -452,6 +509,9 @@ fi
 
 for i in "${STEPS[@]}"; do
   case $i in
+    install_scripts)
+      install_scripts
+      ;;
     configure)
       configure
       ;;
@@ -461,17 +521,14 @@ for i in "${STEPS[@]}"; do
     clean)
       clean
       ;;
+    clean_phone)
+      clean_phone
+      ;;
     install)
       install
       ;;
-    push_sdcard)
-      push_sdcard
-      ;;
     install_scripts)
       install_scripts
-      ;;
-    push_scripts_sdcard)
-      push_scripts_sdcard
       ;;
     run)
       run "${@:2}"
@@ -486,7 +543,8 @@ for i in "${STEPS[@]}"; do
       help
       ;;
     *)
-      echo "Unknown step $i"
+      echo "Unknown command $i"
+      help
       exit 1
       ;;
   esac
