@@ -198,6 +198,8 @@ configure () {
   api_level=$(get_api_level "$VERSION")
   exit_code=$?
 
+  api_define="-DAPI=$api_level"
+
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: Unknown Android version: $version_full"
     exit $exit_code
@@ -249,7 +251,7 @@ configure () {
 
   onnx_version=$(get_onnx_version "$version")
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" -G Ninja .
+  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level $api_define "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" -G Ninja .
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: CMake failed"
