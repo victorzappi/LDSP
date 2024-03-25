@@ -81,8 +81,8 @@ void render(LDSPcontext *context, void *userData)
             for(int out=0; out<outputSize; out++)
             {
                 // passthrough test, because the model may not be trained
-                audioWrite(context, n-outputSize+1+out, 0, input[outputSize+out]);
-                audioWrite(context, n-outputSize+1+out, 1, input[outputSize+out]);
+                audioWrite(context, n-outputSize+1+out, 0, input[out]);
+                audioWrite(context, n-outputSize+1+out, 1, input[out]);
             }
 
             readPointer += outputSize;
