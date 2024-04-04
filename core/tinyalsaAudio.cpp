@@ -34,6 +34,7 @@
 #include <unordered_map> // unordered_map
 #include <thread> // number of cpus
 #include <dirent.h> // browse dirs
+#include <unistd.h> // getpid()
 
 #include "LDSP.h"
 #include "tinyalsaAudio.h"
@@ -104,6 +105,7 @@ void cleanupLowLevelAudioStruct(LDSPpcmContext *pcmContext);
 void setGovernorMode();
 void resetGovernorMode();
 void *audioLoop(void*); 
+void setTaskToForeground();
 
 
 int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
@@ -519,6 +521,10 @@ void *audioLoop(void*)
 	// set thread priority
 	set_priority(LDSPprioOrder_audio, audioVerbose);
 
+
+	setTaskToForeground();
+
+
 	while(!gShouldStop)
 	{
 		if(fullDuplex)
@@ -834,6 +840,37 @@ void resetGovernorMode()
 	
 		freqFile.close();
 	}
+}
+
+
+void setTaskToForeground() 
+{
+
+	auto pid = getpid();
+    std::string pidStr = std::to_string(pid);
+
+    // Paths to the CPU set and scheduling group files
+    std::string cpuSetPath = "/dev/cpuset/foreground/tasks";
+    std::string schedGroupPath = "/dev/stune/foreground/tasks";
+
+    // Write the PID to the CPU set file
+    std::ofstream cpuSetFile(cpuSetPath, std::ios::out);
+    if (cpuSetFile.is_open()) 
+	{
+        cpuSetFile << pidStr;
+        cpuSetFile.close();
+    } else if(audioVerbose)
+        printf("Could not set audio thread to foreground in cpuset scheduling\n");
+
+    // Write the PID to the scheduling group file
+    std::ofstream schedGroupFile(schedGroupPath, std::ios::out);
+    if (schedGroupFile.is_open()) 
+	{
+        schedGroupFile << pidStr;
+        schedGroupFile.close();
+    } else if(audioVerbose)
+        printf("Could not set audio thread to foreground in group scheduling\n");
+
 }
 
 

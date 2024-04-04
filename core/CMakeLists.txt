@@ -53,7 +53,7 @@ set (LIBPD_INCLUDE_DIRS
 target_include_directories(ldsp
   PRIVATE ../include
   PRIVATE ..
-  PRIVATE ${LIBPD_INCLUDE_DIRS},
+  PRIVATE ${LIBPD_INCLUDE_DIRS}
   # PRIVATE ../dependencies/libsndfile/include,
   # PRIVATE ../dependencies/seasocks/src/main/c,
   # PRIVATE ../dependencies/fftw3/api

@@ -9,7 +9,7 @@
 		"playback path names":
 		{ 
 			"speaker": "media-speaker",
-			"headphones": "media-headphone",
+			"line-out": "media-headphone",
 			"handset": "media-earpiece"
 		},
 		"capture path names":
