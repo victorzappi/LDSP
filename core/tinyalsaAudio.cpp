@@ -89,8 +89,9 @@ void byteSplit_littleEndian(unsigned char*, int, audio_struct*);
 void byteSplit_bigEndian(unsigned char*, int, audio_struct*);
 
 // NEON byteSplit
-void byteSplit_littleEndian_NEON(unsigned char*, int32x4_t, audio_struct*);
-void byteSplit_littleEndian_unrolled(unsigned char*, int[4], audio_struct*);
+void byteSplit_littleEndian_NEON(unsigned char**, int32x4_t, audio_struct*);
+void byteSplit_littleEndian_unrolled(unsigned char**, int[4], audio_struct*);
+void byteSplit_bigEndian_NEON(unsigned char**, int32x4_t, audio_struct*);
 
 void (*fromFloatToRaw)(audio_struct*);
 void fromFloatToRaw_int(audio_struct*);
@@ -754,17 +755,18 @@ void fromFloatToRaw_int(audio_struct *audio_struct)
 		vst1q_s32(res, intValues);
 
 		// Will be changed to be ByteSplit()
-		// byteSplit_littleEndian_unrolled(sampleBytes, res, audio_struct);
-		byteSplit_littleEndian_NEON(sampleBytes, intValues, audio_struct);
+		// byteSplit_littleEndian_unrolled(&sampleBytes, res, audio_struct);
+		// byteSplit_littleEndian_NEON(&sampleBytes, intValues, audio_struct);
+		byteSplit_bigEndian_NEON(&sampleBytes, intValues, audio_struct);
 
 		// byteSplit(sampleBytes, res[0], audio_struct);
-		// sampleBytes += audio_struct->physBps; // jump to next sample ** COnfirm I need to jump here?
+		// // sampleBytes += audio_struct->physBps; // jump to next sample ** COnfirm I need to jump here?
 
 		// byteSplit(sampleBytes, res[1], audio_struct);
-		// sampleBytes += audio_struct->physBps; // jump to next sample
+		// // sampleBytes += audio_struct->physBps; // jump to next sample
 
 		// byteSplit(sampleBytes, res[2], audio_struct);
-		// sampleBytes += audio_struct->physBps; // jump to next sample
+		// // sampleBytes += audio_struct->physBps; // jump to next sample
 
 		// byteSplit(sampleBytes, res[3], audio_struct);
 		// sampleBytes += audio_struct->physBps; // jump to next sample
@@ -1062,32 +1064,48 @@ inline void byteSplit_littleEndian(unsigned char* sampleBytes, int value, struct
 		
 }
 
-inline void byteSplit_littleEndian_unrolled(unsigned char* sampleBytes, int res[4], struct audio_struct* audio_struct)
+inline void byteSplit_littleEndian_unrolled(unsigned char** sampleBytes, int res[4], struct audio_struct* audio_struct)
 {
-	for (int i = 0; i < audio_struct->bps; i++) {
-		*(sampleBytes + i) = (res[0] >>  i * 8) & 0xff; // ff is a byte	
-	}
-	sampleBytes += audio_struct->physBps;
+	// int value = res[0];
+	// for (int i = 0; i < audio_struct->bps; i++) {
+	// 	*(*sampleBytes + i) = (value >>  i * 8) & 0xff;
+	// }
+	// *sampleBytes += audio_struct->physBps;
 
-	for (int i = 0; i < audio_struct->bps; i++) {
-		*(sampleBytes + i) = (res[1] >>  i * 8) & 0xff; // ff is a byte	
-	}
-	sampleBytes += audio_struct->physBps;
+	// value = res[1];
+	// for (int i = 0; i < audio_struct->bps; i++) {
+	// 	*(*sampleBytes + i) = (value >>  i * 8) & 0xff;
+	// }
+	// *sampleBytes += audio_struct->physBps;
 
-	for (int i = 0; i < audio_struct->bps; i++) {
-		*(sampleBytes + i) = (res[2] >>  i * 8) & 0xff; // ff is a byte	
-	}
-	sampleBytes += audio_struct->physBps;
+	// value = res[2];
+	// for (int i = 0; i < audio_struct->bps; i++) {
+	// 	*(*sampleBytes + i) = (value >>  i * 8) & 0xff;
+	// }
+	// *sampleBytes += audio_struct->physBps;
 
-	for (int i = 0; i < audio_struct->bps; i++) {
-		*(sampleBytes + i) = (res[3] >>  i * 8) & 0xff; // ff is a byte	
-	}
-	sampleBytes += audio_struct->physBps;
-	
+	// value = res[3];
+	// for (int i = 0; i < audio_struct->bps; i++) {
+	// 	*(*sampleBytes + i) = (value >>  i * 8) & 0xff;
+	// }
+	// *sampleBytes += audio_struct->physBps;
+
+	int bps = audio_struct->bps;
+	for(int i = 0; i < audio_struct->bps; i++) {
+        *(*sampleBytes + i) = (res[0] >>  i * 8) & 0xff;
+        
+        *(*sampleBytes + 1 * bps + i) = (res[1] >>  i * 8) & 0xff;
+
+        *(*sampleBytes + 2 * bps + i) = (res[2] >>  i * 8) & 0xff;
+
+        *(*sampleBytes + 3 * bps + i) = (res[3] >>  i * 8) & 0xff;
+    }
+	*sampleBytes += (4 *audio_struct->physBps);
+
 }
 
 // NEON Version
-inline void byteSplit_littleEndian_NEON(unsigned char* sampleBytes, int32x4_t values, struct audio_struct* audio_struct)
+inline void byteSplit_littleEndian_NEON(unsigned char** sampleBytes, int32x4_t values, struct audio_struct* audio_struct)
 {
 		/**
 	 * Vectorizing Byte Split:
@@ -1121,80 +1139,37 @@ inline void byteSplit_littleEndian_NEON(unsigned char* sampleBytes, int32x4_t va
 	 
 	 * 
 	 */
-	for (int i = 0; i < audio_struct->bps; i++) {
-	// for (int i = 0; i < audio_struct->bps; i+=4) {
+
+	int32x4_t maskVec = vdupq_n_s32(0xff); // Make MaskVec somewhere else instead of in here 
+	int bps = audio_struct->bps;
+	for (int i = 0; i < bps; i++) {
 		
-
-
 		// NEON Right shift requires int to be a compile-time constant, so need to left shift by negative
 		int32x4_t shiftAmountVec = vdupq_n_s32(-i*8); // Should be created elsehwere
 		int32x4_t shifted_values = vshlq_s32(values, shiftAmountVec);
 
 		int res[4];
 
-
-		// int res[4];
-		// vst1q_s32(res, values);
-
-		// int intermediate_input[4];
-
-		// intermediate_input[0] = (temp_input[0] >>  i * 8);
-		// intermediate_input[1] = (temp_input[1] >>  i * 8);
-		// intermediate_input[2] = (temp_input[2] >>  i * 8);
-		// intermediate_input[3] = (temp_input[3] >>  i * 8);
-
-		// int32x4_t shifted_values = vld1q_s32(intermediate_input);
-
-		
-		// res[0] = intermediate_input[0] & 0xff;
-		// res[1] = intermediate_input[1] & 0xff;
-		// res[2] = intermediate_input[2] & 0xff;
-		// res[3] = intermediate_input[3] & 0xff;
-
-
-
-		int32x4_t maskVec = vdupq_n_s32(0xff); // Make MaskVec somewhere else instead of in here 
-		// // uint32x4_t maskVec = vdupq_n_u32(0xff);
-		// int32x4_t maskVec = {0xff, 0xff, 0xff, 0xff};
-
 		// uint32x4_t maskedValues = vandq_u32((uint32x4_t)shifted_values, maskVec);
 		int32x4_t maskedValues = vandq_s32(shifted_values, maskVec);
 
-		
 	 	vst1q_s32(res, maskedValues);
 
-
 		// Can this part be vectorized?
-		*(sampleBytes + i) = res[0];
-	    sampleBytes += audio_struct->physBps;
+		*(*sampleBytes + i) = res[0];
 
-		*(sampleBytes + i) = res[1];
-	    sampleBytes += audio_struct->physBps;
+		*(*sampleBytes + 1 * bps + i) = res[1];
 
-		*(sampleBytes + i) = res[2];
-	    sampleBytes += audio_struct->physBps;
+		*(*sampleBytes + 2 * bps + i) = res[2];
 
-		*(sampleBytes + i) = res[3];
-	    sampleBytes += audio_struct->physBps;
-
-		// *(sampleBytes + i) = (res[0] >>  i * 8) & 0xff;
-	    // sampleBytes += audio_struct->physBps;
-
-		// *(sampleBytes + i + 1) = (res[1] >>  (i+1) * 8) & 0xff;
-	    // sampleBytes += audio_struct->physBps;
-
-		// *(sampleBytes + i + 2) = (res[2] >>  (i+2) * 8) & 0xff;
-	    // sampleBytes += audio_struct->physBps;
-
-		// *(sampleBytes + i + 3) = (res[3] >>  (i+3) * 8) & 0xff;
-	    // sampleBytes += audio_struct->physBps;
+		*(*sampleBytes + 3 * bps + i) = res[3];
 	}
+	*sampleBytes += (4 *audio_struct->physBps);
 
 }
 
 // little endian -> byte_n-1, byte_n-2, ..., byte_0
 inline void byteSplit_bigEndian(unsigned char *sampleBytes, int value, struct audio_struct* audio_struct) 
-
 /**
  * ABC -> A,B,C
  * 	Try bigEndian -> but confusion we had about physBps
@@ -1205,4 +1180,40 @@ inline void byteSplit_bigEndian(unsigned char *sampleBytes, int value, struct au
 {
 	for (int i = 0; i <audio_struct->bps; i++)
 		*(sampleBytes + audio_struct->physBps - 1 - i) = (value >> i * 8) & 0xff; 
+}
+
+inline void byteSplit_bigEndian_NEON(unsigned char **sampleBytes, int32x4_t values, struct audio_struct* audio_struct) 
+/**
+ * ABC -> A,B,C
+ * 	Try bigEndian -> but confusion we had about physBps
+ * 	Phone I have is LE, (though mayeb it also supports BE, I can try)
+ * 	Run with -v, list formats that are supported - Might also support BE
+ * 
+*/
+{
+	int32x4_t maskVec = vdupq_n_s32(0xff); // Make MaskVec somewhere else instead of in here 
+	int bps = audio_struct->bps;
+	for (int i = 0; i < bps; i++) {
+		
+		// NEON Right shift requires int to be a compile-time constant, so need to left shift by negative
+		int32x4_t shiftAmountVec = vdupq_n_s32(-i*8); // Should be created elsehwere
+		int32x4_t shifted_values = vshlq_s32(values, shiftAmountVec);
+
+		int res[4];
+
+		int32x4_t maskedValues = vandq_s32(shifted_values, maskVec);
+
+	 	vst1q_s32(res, maskedValues);
+
+		// Can this part be vectorized?
+		int physBps = audio_struct->physBps;
+		*(*sampleBytes + physBps - 1 - i) = res[0];
+
+		*(*sampleBytes + physBps - 1 + 1 * bps - i) = res[1];
+
+		*(*sampleBytes + physBps - 1 + 2 * bps - i) = res[2];
+
+		*(*sampleBytes + physBps - 1 + 3 * bps - i) = res[3];
+	}
+	*sampleBytes += (4 * audio_struct->physBps);
 }
