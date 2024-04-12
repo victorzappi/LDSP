@@ -240,7 +240,24 @@ int checkAllCardParams(audio_struct *audioStruct);
 void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, bool is_playback)
 {
 	// Audio struct is totally empty on call, this function allocates memory for it, and then populates it
-    *audioStruct = (audio_struct*) malloc(sizeof(audio_struct));
+
+	/*
+	 * audioStruct might need to be byteAligned so that NEON values can be stored in it
+	*/
+    // *audioStruct = (audio_struct*) malloc(sizeof(audio_struct));
+
+	// audio_struct* audioStruct = NULL; // Not entirely sure why + if this line is needed
+	if (posix_memalign((void**)*&audioStruct, 16, sizeof(audio_struct)) != 0) {
+        perror("posix_memalign failed");
+    }
+
+	
+
+	// audio_struct->audioBuffer = (float*)malloc(sizeof(float)*audio_struct->numOfSamples);
+	// if (posix_memalign((void**)&audio_struct->audioBuffer, 16, audio_struct->numOfSamples * sizeof(float)) != 0) {
+    //     perror("posix_memalign failed");
+    //     return -1;
+    // }
     
     (*audioStruct)->card = settings->card;
     if(is_playback)
@@ -477,16 +494,9 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	}
 
 	// AudioBuffer is set here, so this is where we want to ByteAlign
-	assert(audio_struct->numOfSamples % 4 == 0); // Assert that numSamples is a multiple of 4L
-
-	// audio_struct->audioBuffer = (float*)malloc(sizeof(float)*audio_struct->numOfSamples);
+	assert(audio_struct->numOfSamples % 4 == 0); // Assert that numSamples is a multiple of 4
 
 	// Allocate ByteAligned array
-
-	// This was failing as aligned_alloc couldn't be recognized - Are we in C++17 or later?
-	// audio_struct->audioBuffer = (float*)aligned_alloc(16, sizeof(float)*audio_struct->numOfSamples);
-
-
 	// Question: Should alignment be 16? or 4? Or set in Config?
 	// 16 Should be good to stay
 	if (posix_memalign((void**)&audio_struct->audioBuffer, 16, audio_struct->numOfSamples * sizeof(float)) != 0) {
@@ -540,7 +550,7 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
     //     perror("posix_memalign failed");
     //     return -1;
     // }
-	// audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal); // Causes a bus error?
+	audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal);
 
 	// this is used for capture only
 	// we compute the mask necessary to complete the two's complment of received raw samples
@@ -725,7 +735,7 @@ void fromFloatToRaw_int(audio_struct *audio_struct)
 	// YOUR CODE (Full content of body of the function) 
          
 	// Will move this to be instantiated in init, and be a field of audio_struct
-	float32x4_t factorVec = vdupq_n_f32(audio_struct->scaleVal);
+	// float32x4_t factorVec = vdupq_n_f32(audio_struct->scaleVal);
 
 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
@@ -737,7 +747,7 @@ void fromFloatToRaw_int(audio_struct *audio_struct)
 
 		// Load the four floating-point inputs into a NEON vector
     	float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
-		float32x4_t resultVec = vmulq_f32(inputVec, factorVec);
+		float32x4_t resultVec = vmulq_f32(inputVec, audio_struct->factorVec);
 
 		// Convert the 4 scaled ints to be used in C
 
@@ -756,8 +766,8 @@ void fromFloatToRaw_int(audio_struct *audio_struct)
 
 		// Will be changed to be ByteSplit()
 		// byteSplit_littleEndian_unrolled(&sampleBytes, res, audio_struct);
-		// byteSplit_littleEndian_NEON(&sampleBytes, intValues, audio_struct);
-		byteSplit_bigEndian_NEON(&sampleBytes, intValues, audio_struct);
+		byteSplit_littleEndian_NEON(&sampleBytes, intValues, audio_struct);
+		// byteSplit_bigEndian_NEON(&sampleBytes, intValues, audio_struct);
 
 		// byteSplit(sampleBytes, res[0], audio_struct);
 		// // sampleBytes += audio_struct->physBps; // jump to next sample ** COnfirm I need to jump here?
