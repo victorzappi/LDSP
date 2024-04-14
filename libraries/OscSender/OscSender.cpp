@@ -110,12 +110,13 @@ void OscSender::sendNow(const oscpkt::Message& extMsg){
 
 void *OscSender::send_thread_func(void* ptr){
 	OscSender *instance = (OscSender*)ptr;
+    
+	// set thread priority
+	set_priority(instance->prioOrder, false);
 
 	// set minimum thread niceness
  	set_niceness(-20, false);
 
-    // set thread priority
-	set_priority(instance->prioOrder, false);
 
     while(!instance->stop){
         instance->empty_queue();

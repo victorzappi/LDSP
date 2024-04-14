@@ -184,11 +184,11 @@ void* Arduino::readLoop(void*)
     vector<unsigned int> values;
     values.resize(_numOfInputs);
 
-    // set minimum thread niceness
- 	set_niceness(-20, false);
-
     // set thread priority
     set_priority(LDSPprioOrder_arduinoRead, false);
+
+    // set minimum thread niceness
+ 	set_niceness(-20, false);
 
     while(!shouldStop)
     {
@@ -271,11 +271,11 @@ void* Arduino::readLoop(void*)
 
 void* Arduino::writeLoop(void*)
 {
-    // set minimum thread niceness
- 	set_niceness(-20, false);
-
     // set thread priority
     set_priority(LDSPprioOrder_arduinoRead, false);
+
+    // set minimum thread niceness
+ 	set_niceness(-20, false);
 
     while(!shouldStop)
     {

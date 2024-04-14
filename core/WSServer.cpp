@@ -144,11 +144,11 @@ void* WSServer::serve_func()
 
 void* WSServer::serve_func_static(void* arg)
 {
-	// set minimum thread niceness
- 	set_niceness(-20, false);
-
     // set thread priority
 	set_priority(LDSPprioOrder_wserverServe, false);
+
+	// set minimum thread niceness
+ 	set_niceness(-20, false);
 
 	WSServer* wsServer = static_cast<WSServer*>(arg);    
     return wsServer->serve_func();
@@ -212,11 +212,11 @@ void* WSServer::client_func()
 
 void* WSServer::client_func_static(void* arg)
 {
-	// set minimum thread niceness
- 	set_niceness(-20, false);
-
     // set thread priority
     set_priority(LDSPprioOrder_wserverClient, false);
+
+	// set minimum thread niceness
+ 	set_niceness(-20, false);
 
 	WSServer* weServer = static_cast<WSServer*>(arg);    
     return weServer->client_func();

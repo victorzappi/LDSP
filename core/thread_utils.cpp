@@ -35,12 +35,47 @@
 #include <string>
 
 
+
+void set_cpu_affinity(int cpuIndex, bool verbose)
+{
+	cpu_set_t cpuset;
+    CPU_ZERO(&cpuset); // initialize the CPU set
+    CPU_SET(cpuIndex, &cpuset); // add CPU to the set... 
+	// on Android phones CPU 0 is the most performative one
+
+    // Get the thread's PID
+    pid_t tid = gettid();
+
+	if(verbose)
+		printf("*\n");
+
+	if(verbose)
+		printf("Trying to set CPU %d affinity for thread %d \n", cpuIndex, tid);
+
+    // Set the affinity to ensure the thread runs on CPU 0
+    if(sched_setaffinity(tid, sizeof(cpu_set_t), &cpuset) != 0) 
+	{
+		// Print the error
+		printf("Unsuccessful in setting CPU affinity for thread\n");
+		if(verbose)
+			printf("*\n");
+		return;
+    }
+
+    // Print thread scheduling priority
+    if(verbose)
+    	printf("Set CPU %d affinity for thread %d \n", cpuIndex, tid);
+
+    if(verbose)
+    	printf("*\n");
+}
+
+//-----------------------------------------------------------------------------------------------------------
+
 // adapted from here:
 // http://www.yonch.com/tech/82-linux-thread-priority
 
-//-----------------------------------------------------------------------------------------------------------
-// set priority to this thread
-//-----------------------------------------------------------------------------------------------------------
+// set priority of this thread
 void set_priority(int order, bool verbose) 
 {
 	if(verbose)
@@ -62,7 +97,7 @@ void set_priority(int order, bool verbose)
 	// Attempt to set thread real-time priority to the SCHED_FIFO policy
 	if (pthread_setschedparam(this_thread, SCHED_FIFO, &params) != 0) {
 		// Print the error
-		printf("Unsuccessful in setting thread realtime prio\n");
+		printf("Unsuccessful in setting thread prio\n");
 		if(verbose)
 			printf("*\n");
 		return;
@@ -93,6 +128,7 @@ void set_priority(int order, bool verbose)
     	printf("*\n");
 }
 
+// set niceness of this thread
 void set_niceness(int niceness, bool verbose) 
 {
 	if(verbose)
@@ -104,16 +140,16 @@ void set_niceness(int niceness, bool verbose)
 	 int which = PRIO_PROCESS;
 	 id_t pid = getpid();
 
-	 if(setpriority(which, pid, -20)!=0) {
+	 if(setpriority(which, pid, -20)!=0) 
+	 {
 		 printf("Unsuccessful in setting thread niceness\n");
 		 if(verbose)
 			 printf("*\n");
 		 return;
 	 }
 
-	if(verbose) {
-		printf("Thread niceness is %d", getpriority(which, pid));
-	}
+	if(verbose)
+		printf("Thread niceness is %d\n", getpriority(which, pid));
 
 	if(verbose)
 		printf("*\n");

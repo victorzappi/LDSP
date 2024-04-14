@@ -56,11 +56,11 @@ void* WebServer::serve_func()
 
 void* WebServer::serve_func_static(void* arg)
 {
-	// set minimum thread niceness
- 	set_niceness(-20, false);
-
     // set thread priority
 	set_priority(LDSPprioOrder_wserverServe, false);
+
+    // set minimum thread niceness
+ 	set_niceness(-20, false);
 
 	WebServer* webServer = static_cast<WebServer*>(arg);    
     return webServer->serve_func();

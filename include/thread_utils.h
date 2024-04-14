@@ -55,6 +55,7 @@ constexpr unsigned int LDSPprioOrder_wserverClient = 20;
 //-----------------------------------------------------------------------------------------------------------
 // set maximum priority to this thread
 //-----------------------------------------------------------------------------------------------------------
+void set_cpu_affinity(int cpuIndex, bool verbose); // to make sure that a thread runs on a specific cpu [recommended for audio thread]
 void set_priority(int order, bool verbose); // 0 is max prio, cos at front end we do not know what's the highest prio
 void set_niceness(int niceness, bool verbose); // -20 is highest prio niceness, it's a known standard
 

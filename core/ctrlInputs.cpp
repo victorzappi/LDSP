@@ -124,12 +124,12 @@ void* ctrlInputs_loop(void* arg)
     struct input_event event;
     int slot = 0;
     unordered_map<unsigned short, unordered_map<int, int> > &event_map = ctrlInputsContext.ctrlInputsEvent_channel;
-    
-    // set minimum thread niceness
- 	set_niceness(-20, false);
 
     // set thread priority
     set_priority(LDSPprioOrder_ctrlInputs, false);
+
+    // set minimum thread niceness
+ 	set_niceness(-20, false);
 
     while(!gShouldStop) 
     {

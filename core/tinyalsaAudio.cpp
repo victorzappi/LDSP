@@ -515,14 +515,17 @@ void cleanupLowLevelAudioStruct(LDSPpcmContext *pcmContext)
 
 void *audioLoop(void*)
 {
-	// set minimum thread niceness
- 	set_niceness(-20, audioVerbose); // only necessary if not real-time, but just in case...
+
+    // Set the affinity to ensure the thread runs on CPU 0
+	set_cpu_affinity(0, audioVerbose);
 
 	// set thread priority
 	set_priority(LDSPprioOrder_audio, audioVerbose);
 
-
 	setTaskToForeground();
+
+	// set minimum thread niceness
+ 	set_niceness(-20, audioVerbose); // only necessary if not real-time, but just in case...
 
 
 	while(!gShouldStop)
@@ -530,9 +533,8 @@ void *audioLoop(void*)
 		if(fullDuplex)
 		{
 			if(pcm_read(pcmContext.capture->pcm, pcmContext.capture->rawBuffer, pcmContext.capture->frameBytes)!=0)
-			{
 				fprintf(stderr, "\nCapture error, aborting...\n");
-			}
+
 
 			fromRawToFloat(pcmContext.capture);
 		}
@@ -547,9 +549,7 @@ void *audioLoop(void*)
 		fromFloatToRaw(pcmContext.playback);
 
 		if(pcm_write(pcmContext.playback->pcm, pcmContext.playback->rawBuffer, pcmContext.playback->frameBytes)!=0)
-		{
 			fprintf(stderr, "\nPlayback error, aborting...\n");
-		}
 
 		if(!ctrlOutputsOff_)
 			writeCtrlOutputs();
