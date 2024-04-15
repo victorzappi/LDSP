@@ -18,6 +18,39 @@ endif()
 
 add_compile_options(-fdiagnostics-color=always)
 
+
+
+
+# Dynamic dependency build/inlcusion
+
+# Check if this is a libpd project
+# and whether or not to add libpd dependency
+if (EXISTS ${LDSP_PROJECT}/_main.pd)
+  set(ADD_LIBPD TRUE)
+else()
+  set(ADD_LIBPD FALSE)
+endif()
+
+# Check whether or not to add other large dependencies
+# Define the variable names and corresponding strings to search for
+set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFTW3")
+# designed to work with two strings per dependency, one specific to ldsp and one to the dependency
+set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "fft.h;fftw3")
+# Initialize global cache variables based on VARIABLE_NAMES
+foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
+    set(${VAR_NAME} FALSE CACHE BOOL "Initially, ${VAR_NAME} is not found" FORCE)
+endforeach()
+# Include the script that checks for strings
+include("${CMAKE_CURRENT_LIST_DIR}/check_dependencies_inclusion.cmake")
+# Print the results
+# foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
+#     message(STATUS "================State of ${VAR_NAME}: ${${VAR_NAME}}")
+# endforeach()
+
+
+
+
+
 add_subdirectory(core)
 add_subdirectory(libraries)
 add_subdirectory(dependencies)

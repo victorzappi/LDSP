@@ -21,7 +21,7 @@ file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS ${LDSP_PROJECT}/*.cpp ${LDSP
 list(APPEND SOURCES ${PROJECT_SOURCES})
 
 # Use the LDSP default_render_pd.cpp if the user doesn't provide their own for a PD project
-if (NOT EXISTS ${LDSP_PROJECT}/render.cpp AND EXISTS ${LDSP_PROJECT}/_main.pd)
+if (ADD_LIBPD AND NOT EXISTS ${LDSP_PROJECT}/render.cpp)
   list(APPEND SOURCES default_render_pd.cpp)
 endif()
 
@@ -42,28 +42,51 @@ set_property(
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin/)
 add_executable(ldsp ${SOURCES})
 
-# All necessary headers for libpd
-set(LIBPD_DIR ../dependencies/libpd)
-set (LIBPD_INCLUDE_DIRS 
-  ${LIBPD_DIR}/libpd_wrapper 
-  ${LIBPD_DIR}/libpd_wrapper/util 
-  ${LIBPD_DIR}/pure-data/src 
-  ${LIBPD_DIR}/cpp
-)
+
 target_include_directories(ldsp
   PRIVATE ../include
   PRIVATE ..
-  PRIVATE ${LIBPD_INCLUDE_DIRS}
-  # PRIVATE ../dependencies/libsndfile/include,
-  # PRIVATE ../dependencies/seasocks/src/main/c,
-  # PRIVATE ../dependencies/fftw3/api
 )
 
-# All necessary headers for fftw
-# target_include_directories(ldsp PRIVATE ../dependencies/fftw3/api)
-#target_link_directories(ldsp PRIVATE ../dependencies/fftw3)
+
+# Check if we should add libpd
+if(ADD_LIBPD)
+    # All necessary headers for libpd
+    set(LIBPD_DIR ../dependencies/libpd)
+    set(LIBPD_INCLUDE_DIRS 
+      ${LIBPD_DIR}/libpd_wrapper 
+      ${LIBPD_DIR}/libpd_wrapper/util 
+      ${LIBPD_DIR}/pure-data/src 
+      ${LIBPD_DIR}/cpp
+    )
+    
+    # Adding libpd to the target include directories
+    target_include_directories(ldsp
+      PRIVATE ${LIBPD_INCLUDE_DIRS}
+    )
+
+    # Linking libpd static library
+    target_link_libraries(ldsp
+      PRIVATE libpd_static
+    )
+endif()
+
+# Check if we should add fftw3
+if(ADD_FFTW3)
+  target_link_libraries(ldsp
+    PRIVATE fftw3f
+  )
+endif()
+
+# Check if we should add seasocks
+if(ADD_SEASOCKS)
+  target_link_libraries(ldsp
+    PRIVATE seasocks
+  )
+endif()
 
 
+# These are mandatory/lightweight
 target_link_libraries(ldsp
   PRIVATE libraries
   PRIVATE android
@@ -71,8 +94,5 @@ target_link_libraries(ldsp
   PRIVATE sndfile 
   PRIVATE glob
   PRIVATE serial
-  PRIVATE libpd_static
-  PRIVATE fftw3f
-  PRIVATE seasocks
 )
 

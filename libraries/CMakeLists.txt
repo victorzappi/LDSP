@@ -1,5 +1,6 @@
 # CMakeLists.txt in libraries directory
 
+
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cpp *.c)
 
 add_library(libraries OBJECT ${SOURCES})
@@ -14,7 +15,7 @@ target_include_directories(libraries PUBLIC Arduino)
 target_include_directories(libraries PUBLIC ../dependencies/libsndfile/include) # needed by AudioFile
 target_include_directories(libraries PUBLIC AudioFile)
 target_include_directories(libraries PUBLIC Biquad)
-target_include_directories(libraries PUBLIC ../dependencies/seasocks/src/main/c) # needed by Gui
+target_include_directories(libraries PUBLIC ../dependencies/seasocks/src/main/c) # needed by Gui and core/WSServer
 target_include_directories(libraries PUBLIC Gui)
 target_include_directories(libraries PUBLIC GuiController)
 target_include_directories(libraries PUBLIC Granular)
@@ -27,10 +28,6 @@ target_include_directories(libraries PUBLIC UdpClient)
 target_include_directories(libraries PUBLIC UdpServer)
 target_include_directories(libraries PUBLIC XML)
 target_include_directories(libraries PUBLIC ../dependencies/fftw3/api)  # needed by FFT
-# include_directories(../dependencies/fftw3/api)
-# link_directories(../dependencies/fftw3)
 target_include_directories(libraries PUBLIC FFT)
 
-# target_link_libraries(libraries PUBLIC sndfile)
-# target_link_libraries(libraries PUBLIC serial)
 
