@@ -145,10 +145,10 @@ void* WSServer::serve_func()
 void* WSServer::serve_func_static(void* arg)
 {
     // set thread priority
-	set_priority(LDSPprioOrder_wserverServe, false);
+	set_priority(LDSPprioOrder_wserverServe, "WebSocketServe", false);
 
 	// set minimum thread niceness
- 	set_niceness(-20, false);
+ 	set_niceness(-20, "WebSocketServe", false);
 
 	WSServer* wsServer = static_cast<WSServer*>(arg);    
     return wsServer->serve_func();
@@ -213,10 +213,10 @@ void* WSServer::client_func()
 void* WSServer::client_func_static(void* arg)
 {
     // set thread priority
-    set_priority(LDSPprioOrder_wserverClient, false);
+    set_priority(LDSPprioOrder_wserverClient, "WebSocketClient", false);
 
 	// set minimum thread niceness
- 	set_niceness(-20, false);
+ 	set_niceness(-20, "WebSocketClient", false);
 
 	WSServer* weServer = static_cast<WSServer*>(arg);    
     return weServer->client_func();

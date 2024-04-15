@@ -28,6 +28,7 @@
 #define PRIORITY_UTILS_H_
 
 #include <pthread.h>
+#include <string>
 
 // main threads ordered by priority [order 0 is max priority]
 constexpr unsigned int LDSPprioOrder_audio = 0;
@@ -55,10 +56,10 @@ constexpr unsigned int LDSPprioOrder_wserverClient = 20;
 //-----------------------------------------------------------------------------------------------------------
 // set maximum priority to this thread
 //-----------------------------------------------------------------------------------------------------------
-void set_cpu_affinity(int cpuIndex, bool verbose); // to make sure that a thread runs on a specific cpu [recommended for audio thread]
-void set_priority(int order, bool verbose); // 0 is max prio, cos at front end we do not know what's the highest prio
-void set_niceness(int niceness, bool verbose); // -20 is highest prio niceness, it's a known standard
-
+void set_cpu_affinity(int cpuIndex, std::string name, bool verbose); // to make sure that a thread runs on a specific cpu
+void set_priority(int order, std::string name, bool verbose); // 0 is max prio, cos at front end we do not know what's the highest prio
+void set_niceness(int niceness, std::string name, bool verbose); // -20 is highest prio niceness, it's a known standard
+void set_to_foreground(std::string name, bool verbose); 
 
 
 #endif /* PRIORITY_UTILS_H_ */

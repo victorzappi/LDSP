@@ -167,10 +167,10 @@ void Midi::enableParser(bool enable){
 
 void *Midi::midiInputLoop(void*){
     // set thread priority
-	set_priority(prioOrderReadThrd, false);
+	set_priority(prioOrderReadThrd, "MidiInput", false);
 
 	// set minimum thread niceness
- 	set_niceness(-20, false);
+ 	set_niceness(-20, "MidiInput", false);
 	
 	for(unsigned int n = 0; n < objAddrs[kMidiInput].size(); n++){
 		objAddrs[kMidiInput][n] -> readInputLoop();
@@ -180,10 +180,10 @@ void *Midi::midiInputLoop(void*){
 
 void *Midi::midiOutputLoop(void*){
     // set thread priority
-	set_priority(prioOrderWriteThrd, false);
+	set_priority(prioOrderWriteThrd, "MidiOutput", false);
 
 	// set minimum thread niceness
- 	set_niceness(-20, false);
+ 	set_niceness(-20, "MidiOutput", false);
 
 	for(unsigned int n = 0; n < objAddrs[kMidiOutput].size(); n++){
 		objAddrs[kMidiOutput][n] -> writeOutputLoop();

@@ -43,7 +43,7 @@ void LDSP_usage(const char *argv)
     fprintf(stderr, "-D | --input-device-num <device number>\t\tCard's capture device number\n");
 	fprintf(stderr, "-s | --output-device-id <id>\t\t\tCard's playback device id (name)\n");
     fprintf(stderr, "-S | --input-device-id <id>\t\t\tCard's capture device id (name)\n");
-	fprintf(stderr, "-p | --period-size <size>\t\t\tNumber of frames per each audio block [256]\n");
+	fprintf(stderr, "-p | --period-size <size>\t\t\t(aka audio frames) Number of frames per each audio block [256]\n");
 	fprintf(stderr, "-b | --period-count <count>\t\t\tNumber of audio blocks the audio ring buffer can contain [2]\n");
 	fprintf(stderr, "-n | --output-channels <count>\t\t\tNumber of playback audio channels [2]\n");
 	fprintf(stderr, "-N | --input-channels <count>\t\t\tNumber of capture audio channels [1]\n");
@@ -63,6 +63,7 @@ void LDSP_usage(const char *argv)
 	fprintf(stderr, "-Q | --ctrl-inputs-off\t\t\t\tDisables control inputs [control inputs enabled]\n");
 	fprintf(stderr, "-R | --ctrl-outputs-off\t\t\t\tDisables control outputs [control outputs enabled]\n");
 	fprintf(stderr, "-A | --perf-mode-off\t\t\t\tDisables CPU's governor peformance mode [performance mode enabled]\n");
+	fprintf(stderr, "-C | --cpu-affinity <cpu index>\t\t\t\tSets CPU affinity for the audio thread\n");
 	fprintf(stderr, "-v | --verbose\t\t\t\t\tPrints all phone's info, current settings main function calls [off]\n");
 	fprintf(stderr, "-h | --help\t\t\t\t\tPrints this and exits [off]\n");
 }
@@ -72,9 +73,8 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 {
  	// Create a map that associates each argument with its original position
     unordered_map<char*, int> orig_pos;
-    for (int i = 0; i < argc; i++) {
+    for (int i = 0; i < argc; i++)
         orig_pos[argv[i]] = i;
-    }
 
 
 
@@ -109,8 +109,9 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 		{ "ctrl-inputs-off",    'Q', OPTPARSE_NONE },
 		{ "ctrl-outputs-off",   'R', OPTPARSE_NONE },
 		{ "perf-mode-off",      'A', OPTPARSE_NONE },
-		{ "verbose",         	'v', OPTPARSE_NONE     },
-		{ "help",         		'h', OPTPARSE_NONE     },
+		{ "cpu-affinity",      	'C', OPTPARSE_REQUIRED },
+		{ "verbose",         	'v', OPTPARSE_NONE },
+		{ "help",         		'h', OPTPARSE_NONE },
 		{ 0, 0, OPTPARSE_NONE }
 	};
 
@@ -177,6 +178,9 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 			 	break;
 			case 'v':
 				settings->verbose = 1;
+			 	break;
+			case 'C':
+				settings->cpuIndex = atoi(opts.optarg);
 			 	break;
 			case 'h': 
 			//case '?': // we want extra arguments to be accepted and possibly managed by user

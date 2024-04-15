@@ -112,10 +112,10 @@ void *OscSender::send_thread_func(void* ptr){
 	OscSender *instance = (OscSender*)ptr;
     
 	// set thread priority
-	set_priority(instance->prioOrder, false);
+	set_priority(instance->prioOrder, "OSCsender", false);
 
 	// set minimum thread niceness
- 	set_niceness(-20, false);
+ 	set_niceness(-20, "OSCsender", false);
 
 
     while(!instance->stop){

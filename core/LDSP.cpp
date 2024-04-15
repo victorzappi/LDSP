@@ -54,4 +54,5 @@ void LDSP_defaultSettings(LDSPinitSettings *settings)
     settings->verbose = 0; // shut up by default
     settings->deviceOutId = ""; // if not specified, extracted at run-time //VIC! remove 
     settings->deviceInId = ""; // if not specified, extracted at run-time 
+    settings->cpuIndex = -1; // if not specified, no cpu affinity for audio thread, hence thread can run on any cpu
 }

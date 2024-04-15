@@ -185,10 +185,10 @@ void* Arduino::readLoop(void*)
     values.resize(_numOfInputs);
 
     // set thread priority
-    set_priority(LDSPprioOrder_arduinoRead, false);
+    set_priority(LDSPprioOrder_arduinoRead, "ArduinoRead", false);
 
     // set minimum thread niceness
- 	set_niceness(-20, false);
+ 	set_niceness(-20, "ArduinoRead", false);
 
     while(!shouldStop)
     {
@@ -272,10 +272,10 @@ void* Arduino::readLoop(void*)
 void* Arduino::writeLoop(void*)
 {
     // set thread priority
-    set_priority(LDSPprioOrder_arduinoRead, false);
+    set_priority(LDSPprioOrder_arduinoRead, "ArduinoWrite", false);
 
     // set minimum thread niceness
- 	set_niceness(-20, false);
+ 	set_niceness(-20, "ArduinoWrite", false);
 
     while(!shouldStop)
     {

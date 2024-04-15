@@ -567,10 +567,10 @@ void* screenCtrl_loop(void* arg)
     static const unsigned int tapInterval = 20; // as a multiple of sleep time [sleep cycles]!
     
     // set thread priority    
-    set_priority(LDSPprioOrder_screenCtl, false);
+    set_priority(LDSPprioOrder_screenCtl, "controlOutputs", false);
 
     // set minimum thread niceness
- 	set_niceness(-20, false);
+ 	set_niceness(-20, "controlOutputs", false);
     
     bool tapActive = false;
     unsigned int tapCounter = 0;

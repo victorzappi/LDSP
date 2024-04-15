@@ -48,6 +48,7 @@ struct LDSPinitSettings {
     string deviceOutId;
     string deviceInId;
     string projectName;
+    int cpuIndex;
 };
 
 /* enum digitalOuput {

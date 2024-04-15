@@ -39,7 +39,7 @@
 #include "LDSP.h"
 #include "tinyalsaAudio.h"
 #include "mixer.h"
-// /#include "tinyAlsaExtension.h"
+// #include "tinyAlsaExtension.h"
 #include "thread_utils.h"
 #include "sensors.h"
 #include "ctrlInputs.h"
@@ -71,6 +71,8 @@ bool perfModeOff = false;
 bool sensorsOff_ = false;
 bool ctrlInputsOff_ = false;
 bool ctrlOutputsOff_ = false;
+
+int cpuIndex = -1;
 
 
 // function pointers set up in initFormatFunctions()
@@ -119,6 +121,7 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 	sensorsOff_ = settings->sensorsOff;
 	ctrlInputsOff_ = settings->ctrlInputsOff;
 	ctrlOutputsOff_ = settings->ctrlOutputsOff;
+	cpuIndex = settings->cpuIndex;
 	
 
     if(audioVerbose)
@@ -289,6 +292,8 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
         printf("\tRate: %d\n", (*audioStruct)->config.rate);
         printf("\tFormat: %s\n", settings->pcmFormatString.c_str());
         printf("\n");
+
+		//TODO add actual params query
     }
 }
 
@@ -516,16 +521,17 @@ void cleanupLowLevelAudioStruct(LDSPpcmContext *pcmContext)
 void *audioLoop(void*)
 {
 
-    // Set the affinity to ensure the thread runs on CPU 0
-	set_cpu_affinity(0, audioVerbose);
+    // set the affinity to ensure the thread runs on chosen CPU
+	if(cpuIndex > -1)
+		set_cpu_affinity(cpuIndex, "audio", audioVerbose);
 
 	// set thread priority
-	set_priority(LDSPprioOrder_audio, audioVerbose);
+	set_priority(LDSPprioOrder_audio, "audio",audioVerbose);
 
-	setTaskToForeground();
+	set_to_foreground("audio", audioVerbose);
 
 	// set minimum thread niceness
- 	set_niceness(-20, audioVerbose); // only necessary if not real-time, but just in case...
+ 	set_niceness(-20, "audio",audioVerbose); // only necessary if not real-time, but just in case...
 
 
 	while(!gShouldStop)
@@ -534,7 +540,6 @@ void *audioLoop(void*)
 		{
 			if(pcm_read(pcmContext.capture->pcm, pcmContext.capture->rawBuffer, pcmContext.capture->frameBytes)!=0)
 				fprintf(stderr, "\nCapture error, aborting...\n");
-
 
 			fromRawToFloat(pcmContext.capture);
 		}
@@ -841,38 +846,6 @@ void resetGovernorMode()
 		freqFile.close();
 	}
 }
-
-
-void setTaskToForeground() 
-{
-
-	auto pid = getpid();
-    std::string pidStr = std::to_string(pid);
-
-    // Paths to the CPU set and scheduling group files
-    std::string cpuSetPath = "/dev/cpuset/foreground/tasks";
-    std::string schedGroupPath = "/dev/stune/foreground/tasks";
-
-    // Write the PID to the CPU set file
-    std::ofstream cpuSetFile(cpuSetPath, std::ios::out);
-    if (cpuSetFile.is_open()) 
-	{
-        cpuSetFile << pidStr;
-        cpuSetFile.close();
-    } else if(audioVerbose)
-        printf("Could not set audio thread to foreground in cpuset scheduling\n");
-
-    // Write the PID to the scheduling group file
-    std::ofstream schedGroupFile(schedGroupPath, std::ios::out);
-    if (schedGroupFile.is_open()) 
-	{
-        schedGroupFile << pidStr;
-        schedGroupFile.close();
-    } else if(audioVerbose)
-        printf("Could not set audio thread to foreground in group scheduling\n");
-
-}
-
 
 
 

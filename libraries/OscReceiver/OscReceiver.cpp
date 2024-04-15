@@ -47,10 +47,10 @@ void *OscReceiver::receive_thread_func(void *ptr){
 	OscReceiver* instance = (OscReceiver*)ptr;
 
     // set thread priority
-	set_priority(instance->prioOrder, false);
+	set_priority(instance->prioOrder, "OSCreceiver", false);
 
 	// set minimum thread niceness
- 	set_niceness(-20, false);
+ 	set_niceness(-20, "OSCreceiver", false);
 
 	while(!instance->lShouldStop){
 		int ret = instance->waitForMessage(OscReceiverBlockReadUs / 1000);
