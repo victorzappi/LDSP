@@ -32,7 +32,7 @@
 /* #undef FC_DUMMY_MAIN_EQ_F77 */
 
 /* C compiler name and flags */
-#define FFTW_CC "/home/vic/Documents/Boston/Northeastern/research/lineageDSP/ndks/android-ndk-r25-linux/android-ndk-r25/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+#define FFTW_CC "/opt/homebrew/Caskroom/android-ndk/26c/AndroidNDK11394342.app/Contents/NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang"
 
 /* Define to enable extra FFTW debugging code. */
 /* #undef FFTW_DEBUG */
