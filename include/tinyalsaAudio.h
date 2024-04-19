@@ -64,16 +64,20 @@ struct audio_struct {
     /* LDSP_ */pcm_config config;
     unsigned int frameBytes;
     unsigned int numOfSamples;
+    unsigned int numOfSamples4Multiple;
     pcm *pcm;
 	int fd;
-	void *rawBuffer;
-	float *audioBuffer;
-    float32x4_t factorVec alignas(16);
+	void *rawBuffer; // Must be mult of 4 for NEON
+	float *audioBuffer; // Must be mult of 4 for NEON
+    float32x4_t factorVec; // This must be byteAligned by byteAligning full audioStruct
+    float32x4_t factorVecReciprocal;
+    int32x4_t byteSplit_maskVec; // This must be byteAligned by byteAligning full audioStruct
+    int32x4_t capture_maskVec;
 	unsigned int formatBits;
 	unsigned int scaleVal;
 	unsigned int bps;
 	unsigned int physBps;
-    int mask; // used for capture only
+    int capture_mask; // used for capture only
 };
 
 struct LDSPpcmContext {
