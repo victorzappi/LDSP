@@ -78,10 +78,13 @@ bool ctrlOutputsOff_ = false;
 int (*byteCombine)(unsigned char*, audio_struct*);
 int byteCombine_littleEndian(unsigned char*, audio_struct*);
 int byteCombine_bigEndian(unsigned char*, audio_struct*);
+int32x4_t byteCombine_littleEndian_NEON(unsigned char**, audio_struct*);
+
 // playback
 void (*fromRawToFloat)(audio_struct*);
 void fromRawToFloat_int(audio_struct*);
 void fromRawToFloat_float32(audio_struct*);
+void fromRawToFloat_int_NEON(audio_struct*);
 
 
 void (*byteSplit)(unsigned char*, int, audio_struct*);
@@ -331,7 +334,7 @@ int initFormatFunctions(string format)
     	case LDSP_pcm_format::S24_3LE:
 			byteCombine = byteCombine_littleEndian;
     		byteSplit = byteSplit_littleEndian;
-			fromRawToFloat = fromRawToFloat_int;
+			fromRawToFloat = fromRawToFloat_int_NEON;
     		fromFloatToRaw = fromFloatToRaw_int_NEON; // Set to only be NEON if supported
     		break;
     	case LDSP_pcm_format::S16_BE:
@@ -567,14 +570,18 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	*/
 
 	audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal);
-	audio_struct->maskVec = vdupq_n_s32(0xff);
+
+	audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->scaleVal);
+
+	audio_struct->byteSplit_maskVec = vdupq_n_s32(0xff);
+	
 
 	// this is used for capture only
 	// we compute the mask necessary to complete the two's complment of received raw samples
-	audio_struct->mask = 0x00000000;
+	audio_struct->capture_mask = 0x00000000;
 	for (int i = 0; i<sizeof(int)-audio_struct->bps; i++)
-		audio_struct->mask |= (0xFF000000 >> i*8);
-			
+		audio_struct->capture_mask |= (0xFF000000 >> i*8);
+	audio_struct->capture_maskVec = vdupq_n_s32(audio_struct->capture_mask);
 	return 0;
 }
 
@@ -642,6 +649,7 @@ void *audioLoop(void*)
 //VIC on android, it seems that interleaved is the only way to go
 void fromRawToFloat_int(audio_struct *audio_struct) 
 {
+	auto start = std::chrono::high_resolution_clock::now();
 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
 	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
@@ -650,7 +658,7 @@ void fromRawToFloat_int(audio_struct *audio_struct)
 			// if retrieved value is greater than maximum value allowed within current format
 			// we have to manually complete the 2's complement 
 			if(res>audio_struct->scaleVal)
-				res |= audio_struct->mask;
+				res |= audio_struct->capture_mask;
 
 			// printf("%d", res);
 
@@ -659,7 +667,54 @@ void fromRawToFloat_int(audio_struct *audio_struct)
 			// printf("%f", audio_struct->audioBuffer[n]);
 			sampleBytes += audio_struct->bps; // jump to next sample
 	}
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> elapsed = end - start;
+	std::cout << "Execution time: " << elapsed.count() << " ms\n";
 }
+
+// NEON
+void fromRawToFloat_int_NEON(audio_struct *audio_struct) 
+{
+	// auto start = std::chrono::high_resolution_clock::now();
+	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+ 
+	for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
+	{
+			// int res = byteCombine(sampleBytes, audio_struct); // function pointer, gets sample value by combining the consecutive bytes, organized in either little or big endian
+
+
+			int32x4_t res = byteCombine_littleEndian_NEON(&sampleBytes, audio_struct);
+			// Perform the comparison (res > scaleVal)
+   			uint32x4_t greaterThanMask = vcgtq_s32(res, audio_struct->factorVec);
+
+			// Prepare the mask by ANDing it with the captureMask
+			int32x4_t maskedValues = vandq_s32((int32x4_t)greaterThanMask, audio_struct->capture_maskVec);
+
+			// Apply the mask using OR operation
+    		int32x4_t masked_result = vorrq_s32(res, maskedValues);
+
+			// Extract the results to an array for output
+    		// int32_t resultArray[4];
+   	 		// vst1q_s32(resultArray, result);
+
+
+			// int32x4_t intVec = vld1q_s32(res);
+			float32x4_t floatVec = vcvtq_f32_s32(masked_result);
+
+			float32x4_t result = vmulq_f32(floatVec, audio_struct->factorVecReciprocal);
+
+			audio_struct->audioBuffer[n] = result[0];
+			audio_struct->audioBuffer[n + 1] = result[1];
+			audio_struct->audioBuffer[n + 2] = result[2];
+			audio_struct->audioBuffer[n + 3] = result[3];		
+	}
+	// auto end = std::chrono::high_resolution_clock::now();
+	// std::chrono::duration<double, std::milli> elapsed = end - start;
+	// std::cout << "Execution time: " << elapsed.count() << " ms\n";
+}
+
+
 void fromRawToFloat_float32(audio_struct *audio_struct) 
 {
 	union {
@@ -748,7 +803,7 @@ void fromFloatToRaw_int(audio_struct *audio_struct)
 // NEON
 void fromFloatToRaw_int_NEON(audio_struct *audio_struct)
 {
-	auto start = std::chrono::high_resolution_clock::now();      
+	// auto start = std::chrono::high_resolution_clock::now();      
 	// YOUR CODE (Full content of body of the function) 
 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
@@ -785,9 +840,9 @@ void fromFloatToRaw_int_NEON(audio_struct *audio_struct)
 	// clean up buffer for next period
 	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 
-	auto end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double, std::milli> elapsed = end - start;
-	std::cout << "Execution time: " << elapsed.count() << " ms\n";
+	// auto end = std::chrono::high_resolution_clock::now();
+	// std::chrono::duration<double, std::milli> elapsed = end - start;
+	// std::cout << "Execution time: " << elapsed.count() << " ms\n";
 }
 
 
@@ -1035,6 +1090,35 @@ inline int byteCombine_littleEndian(unsigned char *sampleBytes, struct audio_str
 		
 	return value;
 }
+
+// combine all the bytes [1 or more, according to format] of a sample into an integer
+// little endian -> byte_0, byte_1, ..., byte_n-1 [more common format]
+int32x4_t byteCombine_littleEndian_NEON(unsigned char** sampleBytes, audio_struct* audio_struct)
+{
+	int32x4_t values = vdupq_n_s32(0);
+
+	int32x4_t rawValues;
+	
+	int bps = audio_struct->bps;
+	for (int i = 0; i<audio_struct->bps; i++) {
+		rawValues[0] = *(*sampleBytes + i);
+		rawValues[1] = *(*sampleBytes + 1 * bps + i);
+		rawValues[2] = *(*sampleBytes + 2 * bps + i);
+		rawValues[3] = *(*sampleBytes + 3 * bps + i);
+
+		int32x4_t shiftAmountVec = vdupq_n_s32(i*8);
+		int32x4_t shiftedValues = vshlq_s32(rawValues, shiftAmountVec);
+
+		values = vaddq_s32(values, shiftedValues);
+	}
+	*sampleBytes += (4 *audio_struct->physBps);
+	return values;
+
+
+
+
+}
+
 // little endian -> byte_n-1, byte_n-2, ..., byte_0
 inline int byteCombine_bigEndian(unsigned char *sampleBytes, struct audio_struct* audio_struct) {
 	int value = 0;
@@ -1070,17 +1154,12 @@ inline void byteSplit_littleEndian_unrolled(unsigned char** sampleBytes, int res
 // NEON Version
 inline void byteSplit_littleEndian_NEON(unsigned char** sampleBytes, int32x4_t values, struct audio_struct* audio_struct)
 {
-
 	int bps = audio_struct->bps;
 	for (int i = 0; i < bps; i++) {
 		int32x4_t shiftAmountVec = vdupq_n_s32(-i*8); // Cannot be created elsewhere because it uses i
 		int32x4_t shifted_values = vshlq_s32(values, shiftAmountVec);
 
-		int res[4];
-
-		int32x4_t maskedValues = vandq_s32(shifted_values, audio_struct->maskVec);
-
-	 	vst1q_s32(res, maskedValues);
+		int32x4_t res = vandq_s32(shifted_values, audio_struct->byteSplit_maskVec);
 
 		*(*sampleBytes + i) = res[0];
 
@@ -1121,7 +1200,7 @@ inline void byteSplit_bigEndian_NEON(unsigned char **sampleBytes, int32x4_t valu
 
 		int res[4];
 
-		int32x4_t maskedValues = vandq_s32(shifted_values, audio_struct->maskVec);
+		int32x4_t maskedValues = vandq_s32(shifted_values, audio_struct->byteSplit_maskVec);
 
 	 	vst1q_s32(res, maskedValues);
 
