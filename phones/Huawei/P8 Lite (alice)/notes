@@ -4,7 +4,7 @@ input channel count = 2
 Command line arguments:
 -p 960 -N 2
 
-Speaker and handset mixer paths do not work
+Speaker and handset mixer paths do not work, power amp is somehow activated by HAL
 
 Handset mic seems to be the same as regular mic
 

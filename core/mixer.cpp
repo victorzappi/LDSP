@@ -420,7 +420,7 @@ int setDefaultMixerPath(mixer *mx, xml_document *xml)
 // first completes device activation control string and then activates device
 int activateDevice(mixer *mx, string &deviceActivationCtl, string device_id, LDSPhwConfig *hwconfig)
 {
-	// make sure that there no spaces in the name
+	// make sure that there are no spaces in the name
 	// in case, get rid of everything after the first space
 	size_t pos = device_id.find(" ");
 	string dev_id = device_id.substr(0, pos);

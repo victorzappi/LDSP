@@ -1,0 +1,27 @@
+{
+	"device": "Huawei P10",
+	"target architecture": "aarch64",
+	"supports neon floating point unit": "true",
+	"mixer settings":
+	{
+		"mixer paths xml file": "/odm/etc/audio/hi6403/mixer_paths_VICTORIA.xml",
+		"mixer volumes xml file": "",
+		"playback path names":
+		{ 
+			"speaker": "media-speaker",
+			"line-out": "media-headphone",
+			"handset": "media-earpiece"
+		},
+		"capture path names":
+		{
+			"mic": "media-main-mic",
+			"line-in": "media-headset-mic",
+		   	"handset": "media-main-mic"
+		},
+		"default playback device number": 0,
+		"default capture device number": 0
+	},
+	"control outputs":
+	{
+	}
+}

@@ -1,0 +1,8 @@
+#N canvas 48 87 1920 988 12;
+#X obj 127 203 dac~;
+#X obj 126 79 osc~ 440;
+#X obj 127 141 *~ 0.3;
+#X text 43 37 Sinusoidal oscillator... noe everything is downhill;
+#X connect 1 0 2 0;
+#X connect 2 0 0 0;
+#X connect 2 0 0 1;

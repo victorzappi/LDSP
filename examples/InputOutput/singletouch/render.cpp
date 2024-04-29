@@ -51,8 +51,13 @@ bool setup(LDSPcontext *context, void *userData)
 
 void render(LDSPcontext *context, void *userData)
 {
-	// the slot is given an actual index only when a touch is detected
-	bool touch = (multiTouchRead(context, chn_mt_id, 0) != -1); // some phones support anyTouch input, that checks all slots automatically
+	// check if we have touch
+	bool touch; 
+	if(context->mtInfo->anyTouchSupported)
+		touch = (multiTouchRead(context, chn_mt_anyTouch)); // not all phones support anyTouch input, that checks all slots automatically
+	else
+		touch = (multiTouchRead(context, chn_mt_id, 0) != -1); // on most phones the slot is given an actual index only when a touch is detected
+
 	if(touch)
 	{
 		float touchX = multiTouchRead(context, chn_mt_x, 0)/maxTouchX;

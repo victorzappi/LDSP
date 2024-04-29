@@ -1,8 +1,24 @@
 #!/bin/bash
 #
-# This script retrieves the phone's architecture, to fill in the hw config file
+# This script retrieves the phone's code name, android version and architecture
+# to fill in the hw config file and use ldsp.sh correctly
 # usage:
-# sh ldsp_architecture.sh
+# sh ldsp_phoneDetails.sh
+
+
+
+# get mode code name
+MODEL_NAME=$(getprop ro.product.model)
+echo "Phone code name (model): $MODEL_NAME"
+
+
+# get android version
+ANDROID_VERSION=$(getprop ro.build.version.release)
+echo "Android version: $ANDROID_VERSION"
+
+
+
+#-----------------------------------------------------------
 
 # returns info about processor, as a list of words
 arch=( $(cat /proc/cpuinfo | grep Processor) )
