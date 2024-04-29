@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# Searches for mixer paths file in the path passed via command line
-# if not path is passed, searches /etc/ and /vendor/etc
+# Searches for mixer paths file in the directory (path) passed via command line
+# if no directory is passed, searches /etc/ and /vendor/etc
 # usage:
-# sh ldsp_mixerPaths.sh /path/to/search
+# sh ldsp_mixerPaths.sh /directory/to/search
 
 
 search_path()
