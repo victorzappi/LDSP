@@ -5,7 +5,7 @@
 	"mixer settings":
 	{
 		"mixer paths xml file": "/etc/mixer_paths.xml",
-		"mixer volumes xml file": "",
+		"[mixer volumes xml file]": "",
 		"playback path names":
 		{ 
 			"speaker": "speaker",
@@ -18,14 +18,17 @@
 			"line-in": "headset-mic",
 		   	"handset": "handset-mic"
 		},
-		"default playback device number": 14, 
-		"default capture device number": 0,
-		"mixer playback device activation": "SLIMBUS_0_RX Audio Mixer DEVICE_ID",
-		"mixer capture device activation": "DEVICE_ID Mixer SLIM_0_TX",
-		"mixer playback device secondary activation": "",
-		"mixer capture device secondary activation": ""
+		"[mixer playback device activation]": "SLIMBUS_0_RX Audio Mixer DEVICE_ID",
+		"[mixer capture device activation]": "DEVICE_ID Mixer SLIM_0_TX",
+		"[mixer playback device secondary activation]": "",
+		"[mixer capture device secondary activation]": ""
 	},
-	"control outputs":
+	"[default audio parameters]":
+	{
+		"playback device number": 14,
+		"capture device number": 0
+	},
+	"[control outputs]":
 	{
 		
 	}

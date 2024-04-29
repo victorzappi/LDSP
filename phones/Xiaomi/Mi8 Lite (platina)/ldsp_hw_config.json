@@ -5,7 +5,7 @@
 	"mixer settings":
 	{
 		"mixer paths xml file": "/vendor/etc/mixer_paths.xml",
-		"mixer volumes xml file": "",
+		"[mixer volumes xml file]": "",
 		"playback path names":
 		{ 
 			"speaker": "vi-feedback",
@@ -18,14 +18,17 @@
 			"line-in": "headset-mic",
 		   	"handset": "handset-mic"
 		},
-		"default playback device number": 13,
-		"default capture device number": 0,
-		"mixer playback device activation": "SEC_MI2S_RX Audio Mixer DEVICE_ID",
-		"mixer capture device activation": "DEVICE_ID Mixer INT3_MI2S_TX",
-		"mixer playback device secondary activation": "",
-		"mixer capture device secondary activation": ""
+		"[mixer playback device activation]": "SEC_MI2S_RX Audio Mixer DEVICE_ID",
+		"[mixer capture device activation]": "DEVICE_ID Mixer INT3_MI2S_TX",
+		"[mixer playback device secondary activation]": "",
+		"[mixer capture device secondary activation]": ""
 	},
-	"control outputs":
+	"[default audio parameters]":
+	{
+		"playback device number": 13,
+		"capture device number": 0
+	},
+	"[control outputs]":
 	{
 	}
 }

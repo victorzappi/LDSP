@@ -38,7 +38,7 @@ struct LDSPinitSettings {
     string pcmFormatString;
     string pathOut;
     string pathIn;
-    int outputOnly;
+    int captureOff;
     int sensorsOff;
     int ctrlInputsOff;
     int ctrlOutputsOff;

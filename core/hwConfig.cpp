@@ -38,6 +38,7 @@ bool hwconfigVerbose = false;
 
 
 void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig);
+void parseDefaultAudioParams(ordered_json *config, LDSPhwConfig *hwconfig);
 void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig);
 
 
@@ -48,14 +49,19 @@ LDSPhwConfig* LDSP_HwConfig_alloc()
     // these are the only parts of the config that need defaults
     hwconfig->hw_confg_file = HW_CONFIG_FILE;
     hwconfig->device_id_placeholder = DEV_ID_PLCHLDR_STR;
-    hwconfig->default_dev_p = 0;
-    hwconfig->default_dev_c = 0;
-	hwconfig->deviceActivationCtl_p = "";
-    hwconfig->deviceActivationCtl_c = "";
-	hwconfig->devActCtl2_p = "";
-	hwconfig->devActCtl2_c = "";
-    hwconfig->ctrlOutputs[DEVICE_CTRL_FILE] = new string[chn_cout_count];
-	hwconfig->ctrlOutputs[DEVICE_SCALE] = new string[chn_cout_count];
+    hwconfig->default_dev_num_p = 0; // device 0 is the most common across devices
+    hwconfig->default_dev_num_c = 0;
+	hwconfig->default_dev_id_p = ""; // the fallback for these is the device numbers
+    hwconfig->default_dev_id_c = "";
+	hwconfig->default_period_size = 256; // somewhat big, to make it easy for most devices
+	hwconfig->default_chn_num_p = 2; // stereo output is common, line-out is stereo
+    hwconfig->default_chn_num_c = 1; // mono input is common, line-in is mono and many phones have built-in mono mic
+	hwconfig->dev_activation_ctl_p = "";
+    hwconfig->dev_activation_ctl_c = "";
+	hwconfig->dev_activation_ctl2_p = "";
+	hwconfig->dev_activation_ctl2_c = "";
+    hwconfig->ctrl_outputs[DEVICE_CTRL_FILE] = new string[chn_cout_count];
+	hwconfig->ctrl_outputs[DEVICE_SCALE] = new string[chn_cout_count];
 
     return hwconfig;
 }
@@ -63,8 +69,8 @@ LDSPhwConfig* LDSP_HwConfig_alloc()
 
 void LDSP_HwConfig_free(LDSPhwConfig* hwconfig)
 {
-	delete[] hwconfig->ctrlOutputs[DEVICE_CTRL_FILE];
-	delete[] hwconfig->ctrlOutputs[DEVICE_SCALE];
+	delete[] hwconfig->ctrl_outputs[DEVICE_CTRL_FILE];
+	delete[] hwconfig->ctrl_outputs[DEVICE_SCALE];
 	delete hwconfig;
 }
 
@@ -93,6 +99,7 @@ int LDSP_parseHwConfigFile(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 
     // parse specific settings
 	parseMixerSettings(&config, hwconfig);
+	parseDefaultAudioParams(&config, hwconfig);
 	parseCtrlOutputs(&config, hwconfig);
 
     // done parsing config file
@@ -118,7 +125,7 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
 	// mixer paths file
 	hwconfig->xml_paths_file = mixer["mixer paths xml file"];
 	// optional mixer volumes file
-	json optional = mixer["mixer volumes xml file"];
+	json optional = mixer["[mixer volumes xml file]"];
 	if(optional.is_string())
     {
         string s = optional;
@@ -147,47 +154,82 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
 	}
 
 	// optional entries
-    optional = mixer["default playback device number"];
+    optional = mixer["playback device number"];
 	if(optional.is_number_integer())
-		hwconfig->default_dev_p = optional;
-
-	optional = mixer["default capture device number"];
+		hwconfig->default_dev_num_p = optional;
+	optional = mixer["capture device number"];
 	if(optional.is_number_integer())
-		hwconfig->default_dev_c = optional;
+		hwconfig->default_dev_num_c = optional;
 
-	optional = mixer["mixer playback device activation"];
+	optional = mixer["[mixer playback device activation]"];
 	if(optional.is_string())
     {
         string s = optional;
         if(s.compare("") != 0)
-		    hwconfig->deviceActivationCtl_p = optional;
+		    hwconfig->dev_activation_ctl_p = optional;
     }
-	
-	optional = mixer["mixer playback device secondary activation"];
+	optional = mixer["[mixer playback device secondary activation]"];
 	if(optional.is_string())
     {
         string s = optional;
         if(s.compare("") != 0)
-		    hwconfig->devActCtl2_p = optional;
+		    hwconfig->dev_activation_ctl2_p = optional;
     }
 
 
-	optional = mixer["mixer capture device activation"];
+	optional = mixer["[mixer capture device activation]"];
 	if(optional.is_string())
     {
         string s = optional;
         if(s.compare("") != 0)
-		    hwconfig->deviceActivationCtl_c = optional;
+		    hwconfig->dev_activation_ctl_c = optional;
     }
-	
-	optional = mixer["mixer capture device secondary activation"];
+	optional = mixer["[mixer capture device secondary activation]"];
 	if(optional.is_string())
     {
         string s = optional;
         if(s.compare("") != 0)
-		    hwconfig->devActCtl2_c = optional;
+		    hwconfig->dev_activation_ctl2_c = optional;
     }
 }
+
+void parseDefaultAudioParams(ordered_json *config, LDSPhwConfig *hwconfig)
+{
+	if(hwconfigVerbose)
+        printf("Parsing default audio parameters...\n");
+
+	 // parse mixer settings container
+    ordered_json config_ = *(config);
+	ordered_json mixer = config_["[default audio parameters]"];
+
+	// all optional
+	json optional = mixer["playback device id"];
+	if(optional.is_string())
+	{
+		string s = optional;
+        if(s.compare("") != 0)
+			hwconfig->default_dev_id_p = optional;
+	}
+	optional = mixer["capture device id"];
+	if(optional.is_string())
+	{
+		string s = optional;
+        if(s.compare("") != 0)
+			hwconfig->default_dev_id_c = optional;
+	}
+
+	optional = mixer["period size"];
+	if(optional.is_number_integer())
+		hwconfig->default_period_size = optional;
+
+	optional = mixer["playback channels"];
+	if(optional.is_number_integer())
+		hwconfig->default_chn_num_p = optional;
+	optional = mixer["capture channels"];
+	if(optional.is_number_integer())
+		hwconfig->default_chn_num_c = optional;
+}
+
 
 void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 {
@@ -205,7 +247,7 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 
 	// these are all optional
 	// parse control outputs
-	ordered_json ctrlOutputs = config_["control outputs"];
+	ordered_json ctrlOutputs = config_["[control outputs]"];
 	for(auto &it : ctrlOutputs.items())
 	{
 		int ctrlOut;
@@ -226,7 +268,7 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 
 			// assign control file
 			ctrlOut = ctrlOut_indices[key];
-			hwconfig->ctrlOutputs[DEVICE_CTRL_FILE][ctrlOut] = ctrl;
+			hwconfig->ctrl_outputs[DEVICE_CTRL_FILE][ctrlOut] = ctrl;
 
 
 			// max file/max value
@@ -234,7 +276,7 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 			if(ctrlOut==chn_cout_vibration)
 			{
 				// alway assigne default max value!
-				hwconfig->ctrlOutputs[DEVICE_SCALE][ctrlOut_indices[key]] = "1"; // default is no scale!
+				hwconfig->ctrl_outputs[DEVICE_SCALE][ctrlOut_indices[key]] = "1"; // default is no scale!
 				continue;
 			}
 			// other control outputs
@@ -242,11 +284,11 @@ void parseCtrlOutputs(ordered_json *config, LDSPhwConfig *hwconfig)
 			json max = ctrlOutput["max value"];
 			// assign max file
 			if(max.is_string())
-				hwconfig->ctrlOutputs[DEVICE_SCALE][ctrlOut_indices[key]] = max;
+				hwconfig->ctrl_outputs[DEVICE_SCALE][ctrlOut_indices[key]] = max;
 			else if(max.is_number_integer())
-				hwconfig->ctrlOutputs[DEVICE_SCALE][ctrlOut_indices[key]] = to_string(max); // can be a number, but still needs to be stringified
+				hwconfig->ctrl_outputs[DEVICE_SCALE][ctrlOut_indices[key]] = to_string(max); // can be a number, but still needs to be stringified
 			else
-				hwconfig->ctrlOutputs[DEVICE_SCALE][ctrlOut_indices[key]] = ""; // default! will be tenatively auto filled
+				hwconfig->ctrl_outputs[DEVICE_SCALE][ctrlOut_indices[key]] = ""; // default! will be tenatively auto filled
 		}
 	}
 }

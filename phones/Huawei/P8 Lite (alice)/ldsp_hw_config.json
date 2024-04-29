@@ -5,7 +5,7 @@
 	"mixer settings":
 	{
 		"mixer paths xml file": "/system/etc/audio/hissc/mixer_paths_ALICEPA.xml",
-		"mixer volumes xml file": "/system/etc/audio/hissc/mixer_volumes_ALICEPA_normal.xml",
+		"[mixer volumes xml file]": "/system/etc/audio/hissc/mixer_volumes_ALICEPA_normal.xml",
 		"playback path names":
 		{ 
 			"speaker": "media-speaker",
@@ -18,14 +18,18 @@
 			"line-in": "communication-headset-mic",
 		   	"handset": "communication-mic"
 		},
-		"default playback device number": 0,
-		"default capture device number": 0,
-		"mixer playback device activation": "",
-		"mixer capture device activation": "",
-		"mixer playback device secondary activation": "",
-		"mixer capture device secondary activation": ""
+		"[mixer playback device activation]": "",
+		"[mixer capture device activation]": "",
+		"[mixer playback device secondary activation]": "",
+		"[mixer capture device secondary activation]": ""
 	},
-	"control outputs":
+	"[default audio parameters]":
+	{
+		"period size": 960,
+		"playback channels": 2,
+		"capture channels": 2
+	},
+	"[control outputs]":
 	{
 		"flashlight":
 		{

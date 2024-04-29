@@ -69,9 +69,22 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 		printf("\nLDSP_setMixerPaths()\n");
 
 
-	// populate device's numbers and ids
+	// populate devices' numbers and ids
 	if(setupDevicesNumAndId(settings, hwconfig)!=0)
 		return -2;
+
+	// populate devices' main audio settings 
+	if(settings->periodSize == -1)
+		settings->periodSize = hwconfig->default_period_size;
+	
+	if(settings->numAudioOutChannels == -1)
+		settings->numAudioOutChannels = hwconfig->default_chn_num_p;
+	
+	if(!settings->captureOff)
+	{
+		if(settings->numAudioInChannels == -1)
+			settings->numAudioInChannels = hwconfig->default_chn_num_c;
+	}
 
 
 	if(skipMixerPaths)
@@ -116,19 +129,19 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	
 	// if necessary, activate devices
 	// i.e., when in config file device activation path is given, but secondary device activation path is empty
-	if(!hwconfig->deviceActivationCtl_p.empty() && hwconfig->devActCtl2_p.empty())
+	if(!hwconfig->dev_activation_ctl_p.empty() && hwconfig->dev_activation_ctl2_p.empty())
 	{
-		if(activateDevice(mix, hwconfig->deviceActivationCtl_p , settings->deviceOutId, hwconfig) < 0)
+		if(activateDevice(mix, hwconfig->dev_activation_ctl_p , settings->deviceOutId, hwconfig) < 0)
 		{
 			LDSP_resetMixerPaths(hwconfig);
 			return -5;
 		}
 	}
-	if(!settings->outputOnly)
+	if(!settings->captureOff)
 	{
-		if(!hwconfig->deviceActivationCtl_c.empty() && hwconfig->devActCtl2_c.empty())
+		if(!hwconfig->dev_activation_ctl_c.empty() && hwconfig->dev_activation_ctl2_c.empty())
 		{
-			if(activateDevice(mix, hwconfig->deviceActivationCtl_c , settings->deviceInId, hwconfig) < 0)
+			if(activateDevice(mix, hwconfig->dev_activation_ctl_c , settings->deviceInId, hwconfig) < 0)
 			{
 				LDSP_resetMixerPaths(hwconfig);
 				return -5;
@@ -149,7 +162,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	if(mixerVerbose)
 		printf("Playback path loaded: \"%s\"\n", pathAlias.c_str());
 
-	if(!settings->outputOnly)
+	if(!settings->captureOff)
 	{
 		pathAlias = settings->pathIn;
 		paths = &hwconfig->paths_c;
@@ -236,9 +249,18 @@ int findDeviceInfo(vector<string> deviceInfoPath, string match_a, string name, s
 	return 0;
 }
 
-int setupDeviceNumAndId(vector<string> deviceInfoPath, int &deviceNum, int defaultNum, string &deviceId)
+int setupDeviceNumAndId(vector<string> deviceInfoPath, int &deviceNum, int defaultNum, string &deviceId, string defaultId)
 {
-	// if device is set by name...
+	// device id has priority!
+	// but device number is always set, at least as a default value
+
+	if(deviceId.empty())
+		deviceId = defaultId; // the config file may not include a default id, in which case the value remains empty
+	
+	if(deviceNum == -1)
+		deviceNum = defaultNum; // the config file may not include a default id, in which case the value is set to 0 [check LDSP_HwConfig_alloc()]
+
+	// if device is set by id, adjust number accordingly
 	if(deviceId!="")
 	{
 		// look for device number in info files 
@@ -248,11 +270,8 @@ int setupDeviceNumAndId(vector<string> deviceInfoPath, int &deviceNum, int defau
 			return -1;
 		deviceNum = stoi(num);
 	}
-	else
+	else // otherwise, adjust id from number, which always have a value
 	{
-		// if device number is not set, set default using values from config file
-		if(deviceNum == -1)
-			deviceNum = defaultNum;
 		// look for device id in info files 
 		string id;
 		int ret = findDeviceInfo(deviceInfoPath, "device: ", to_string(deviceNum), "id: ", id);
@@ -268,6 +287,7 @@ int setupDeviceNumAndId(vector<string> deviceInfoPath, int &deviceNum, int defau
 	return 0;
 }
 
+
 int setupDevicesNumAndId(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 {
 	vector<string> deviceInfoPath_p;
@@ -277,13 +297,13 @@ int setupDevicesNumAndId(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	getDeviceInfoPaths(settings->card, "info", deviceInfoPath_p, deviceInfoPath_c);
 
 	// playback
-	if(setupDeviceNumAndId(deviceInfoPath_p, settings->deviceOutNum, hwconfig->default_dev_p, settings->deviceOutId)!=0)
+	if(setupDeviceNumAndId(deviceInfoPath_p, settings->deviceOutNum, hwconfig->default_dev_num_p, settings->deviceOutId, hwconfig->default_dev_id_p)!=0)
 		return -1;
 
-	if(!settings->outputOnly)
+	if(!settings->captureOff)
 	{
 		// capture
-		if(setupDeviceNumAndId(deviceInfoPath_c, settings->deviceInNum, hwconfig->default_dev_c, settings->deviceInId)!=0)
+		if(setupDeviceNumAndId(deviceInfoPath_c, settings->deviceInNum, hwconfig->default_dev_num_c, settings->deviceInId, hwconfig->default_dev_id_c)!=0)
 			return -1;
 	}
 
@@ -514,14 +534,14 @@ int loadPath(mixer *mx, xml_document *xml, unordered_map<string, string> *paths,
 	if(!isCapture)
 	{
 		device = settings->deviceOutId;
-		devActCtl = hwconfig->deviceActivationCtl_p;
-		devActCtl2 = hwconfig->devActCtl2_p;
+		devActCtl = hwconfig->dev_activation_ctl_p;
+		devActCtl2 = hwconfig->dev_activation_ctl2_p;
 	}
 	else
 	{
 		device = settings->deviceInId;
-		devActCtl = hwconfig->deviceActivationCtl_c;
-		devActCtl2 = hwconfig->devActCtl2_c;
+		devActCtl = hwconfig->dev_activation_ctl_c;
+		devActCtl2 = hwconfig->dev_activation_ctl2_c;
 	}
 	if(lateDeviceActivation(mx, pathName, secondPath, device, devActCtl, devActCtl2, hwconfig)!=0)
 		return -5;

@@ -64,7 +64,7 @@ void LDSP_initSensors(LDSPinitSettings *settings)
         usleep(200000); // 200 ms
         readSensors();
         // if non full duplex engine, we need to read an extra time, becuase initAudio() will take less time
-        if(settings->outputOnly)
+        if(settings->captureOff)
         {
             usleep(200000); // 200 ms
             readSensors();

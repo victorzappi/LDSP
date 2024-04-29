@@ -117,7 +117,7 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
     if(!settings)
 		return -1;
     
-	fullDuplex = !settings->outputOnly;
+	fullDuplex = !settings->captureOff;
     audioVerbose = settings->verbose;
 	perfModeOff = settings->perfModeOff;
 	sensorsOff_ = settings->sensorsOff;
@@ -150,7 +150,8 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 	// once the pcm device is open, we can check if the requested params have been set
 	// and update our variables according to the actual params
     updateAudioParams(settings, &pcmContext.playback, true);
-    updateAudioParams(settings, &pcmContext.capture, false);
+	if(fullDuplex)
+    	updateAudioParams(settings, &pcmContext.capture, false);
 
     if(initLowLevelAudioStruct(pcmContext.playback)<0)
     {
@@ -342,7 +343,7 @@ void updateAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, b
 				printf("\nPlayback ");    
 			else
 				printf("\nCapture ");    
-		printf("actual params:\n");
+		printf("assigned params:\n");
         printf("\tPeriod size (Audio frames): %d\n", (*audioStruct)->config.period_size);
         printf("\tPeriod count: %d\n", (*audioStruct)->config.period_count);
         printf("\tChannels: %d\n", (*audioStruct)->config.channels);

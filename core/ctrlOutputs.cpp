@@ -81,7 +81,7 @@ int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
     // if control outputs are off, we don't init them!
     if(!ctrlOutputsOff)
     {
-        int retVal = initCtrlOutputs(hwconfig->ctrlOutputs);
+        int retVal = initCtrlOutputs(hwconfig->ctrl_outputs);
         if(retVal!=0)
             return retVal;
     }

@@ -39,13 +39,18 @@ struct LDSPhwConfig {
     vector<string> paths_p_order;
     unordered_map<string, string> paths_c;
     vector<string> paths_c_order;
-    int default_dev_p;
-    int default_dev_c;
-    string deviceActivationCtl_p;
-    string deviceActivationCtl_c;
-    string devActCtl2_p; // secondary playback device activation control, mostly used for line-out
-    string devActCtl2_c; // secondary capture device activation control, mostly used for line-in
-    string *ctrlOutputs[2]; // control file and max value (or max file)
+    int default_dev_num_p;
+    int default_dev_num_c;
+    string default_dev_id_p;
+    string default_dev_id_c;
+    int default_period_size;
+    int default_chn_num_p;
+    int default_chn_num_c;
+    string dev_activation_ctl_p;
+    string dev_activation_ctl_c;
+    string dev_activation_ctl2_p; // secondary playback device activation control, mostly used for line-out
+    string dev_activation_ctl2_c; // secondary capture device activation control, mostly used for line-in
+    string *ctrl_outputs[2]; // control file and max value (or max file)
 };
 
 

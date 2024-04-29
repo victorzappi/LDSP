@@ -5,7 +5,7 @@
 	"mixer settings":
 	{
 		"mixer paths xml file": "/system/etc/mixer_paths_qrd_skuhf.xml",
-		"mixer volumes xml file": "",
+		"[mixer volumes xml file]": "",
 		"playback path names":
 		{ 
 			"speaker": "speaker",
@@ -18,14 +18,17 @@
 			"line-in": "headset-mic",
 		   	"handset": "adc3"
 		},
-		"default playback device number": 12,
-		"default capture device number": 0,
-		"mixer playback device activation": "PRI_MI2S_RX Audio Mixer DEVICE_ID",
-		"mixer capture device activation": "DEVICE_ID Mixer TERT_MI2S_TX", 
-		"mixer playback device secondary activation": "",
-		"mixer capture device secondary activation": ""
+		"[mixer playback device activation]": "PRI_MI2S_RX Audio Mixer DEVICE_ID",
+		"[mixer capture device activation]": "DEVICE_ID Mixer TERT_MI2S_TX", 
+		"[mixer playback device secondary activation]": "",
+		"[mixer capture device secondary activation]": ""
 	},
-	"control outputs":
+	"[default audio parameters]":
+	{
+		"playback device number": 15,
+		"capture device number": 0
+	},
+	"[control outputs]":
 	{
 	}
 }
