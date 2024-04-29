@@ -26,21 +26,15 @@
 
 #include <iostream>
 #include <cstdio> // fprintf
-#include <fstream> // files
-#include <sstream> // ostringstream
-#include <filesystem> // directory_iterator
-#include <vector>
 
 #include <tinyalsa/asoundlib.h>
 
 #include "mixer.h"
+#include "audioDeviceInfo.h"
 #include "libraries/XML/pugixml.hpp"
-
 
 using std::string;
 using std::to_string;
-using std::stringstream;
-using std::ifstream;
 using namespace pugi;
 
 bool mixerVerbose = false;
@@ -192,56 +186,6 @@ void LDSP_resetMixerPaths(LDSPhwConfig *hwconfig)
 
 //----------------------------------------------------------------------------------
 
-
-void getDeviceInfoPaths(int card, vector<string> &infoPath_p, vector<string> &infoPath_c)
-{
-	// adapted from: https://stackoverflow.com/a/612176
-	string cardPath = "/proc/asound/card"+to_string(card);
-	for(const auto &entry : std::__fs::filesystem::directory_iterator(cardPath))
-	{
-		string devicePath = entry.path();
-		string deviceFolder = entry.path().filename();
-
-		// all device folders end with a digit [part of the device num] and either 'p' [for playback] or 'c' [for capture]
-		char last = deviceFolder.back();
-		char secondLast = deviceFolder[deviceFolder.length()-2];
-		if(isdigit(secondLast))
-		{
-			stringstream pathstream;
-			pathstream << cardPath << "/" << deviceFolder << "/info"; // assemble info file path
-			if(last=='p')
-				infoPath_p.push_back(pathstream.str());
-			else if(last=='c')
-				infoPath_c.push_back(pathstream.str());
-			else // not a device folder, least likely case
-				continue;
-		}
-	}
-}
-
-int getDeviceInfo(string infoFilePath, string infoString, string &info)
-{
-	// open file
-	ifstream infoFile;
-	infoFile.open(infoFilePath);
-	if( !infoFile.is_open() )
-		return -1;
-
-	string line;
-	// let's look for infoString, line by line
-	while(infoFile) 
-	{
-		getline(infoFile, line);
-		size_t pos = line.find(infoString);
-		if(pos!= string::npos)
-		{
-			info = line.substr(pos+infoString.length()); // remove substring	
-			return 0;
-		}
-	}
-	return -2;
-}
-
 int findDeviceInfo(vector<string> deviceInfoPath, string match_a, string name, string match_b, string &value)
 {
 	// iterate all info files of all devices, cos we don't know which one belongs to current device
@@ -330,7 +274,7 @@ int setupDevicesNumAndId(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	vector<string> deviceInfoPath_c;
 
 	// get the paths to the info files of all devices 
-	getDeviceInfoPaths(settings->card, deviceInfoPath_p, deviceInfoPath_c);
+	getDeviceInfoPaths(settings->card, "info", deviceInfoPath_p, deviceInfoPath_c);
 
 	// playback
 	if(setupDeviceNumAndId(deviceInfoPath_p, settings->deviceOutNum, hwconfig->default_dev_p, settings->deviceOutId)!=0)
@@ -422,8 +366,9 @@ int activateDevice(mixer *mx, string &deviceActivationCtl, string device_id, LDS
 {
 	// make sure that there are no spaces in the name
 	// in case, get rid of everything after the first space
-	size_t pos = device_id.find(" ");
-	string dev_id = device_id.substr(0, pos);
+	// size_t pos = device_id.find(" ");
+	// string dev_id = device_id.substr(0, pos);
+	size_t pos = trimDeviceInfo(device_id);
 	
 	// swap placeholder string with actual device id
 	string placeholder = hwconfig->device_id_placeholder;
@@ -434,7 +379,7 @@ int activateDevice(mixer *mx, string &deviceActivationCtl, string device_id, LDS
 		return -1;
 	}
 	// update activation control
-	deviceActivationCtl.replace(pos, placeholder.length(), dev_id);
+	deviceActivationCtl.replace(pos, placeholder.length(), /* dev_id */device_id);
 
 	// use it to activate device!
 	mixerCtl_setInt(mx, deviceActivationCtl.c_str(), 1);

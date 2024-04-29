@@ -39,6 +39,7 @@
 #include "LDSP.h"
 #include "tinyalsaAudio.h"
 #include "mixer.h"
+#include "audioDeviceInfo.h"
 // #include "tinyAlsaExtension.h"
 #include "thread_utils.h"
 #include "sensors.h"
@@ -97,6 +98,7 @@ void fromFloatToRaw_float32(audio_struct*);
 
 // non-exposed functions
 void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, bool is_playback);
+void updateAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, bool is_playback);
 void cleanupAudioParams(LDSPpcmContext *pcmContext);
 int initFormatFunctions(string format);
 int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c);
@@ -144,6 +146,12 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
         cleanupAudioParams(&pcmContext);
         return  -2;
     }
+
+	// once the pcm device is open, we can check if the requested params have been set
+	// and update our variables according to the actual params
+    updateAudioParams(settings, &pcmContext.playback, true);
+    updateAudioParams(settings, &pcmContext.capture, false);
+
     if(initLowLevelAudioStruct(pcmContext.playback)<0)
     {
         // try partial deallocation
@@ -232,6 +240,7 @@ void LDSP_requestStop()
 
 //------------------------------------------------------------------------------------
 int checkAllCardParams(audio_struct *audioStruct);
+int readCardParam(string info_path, string param_match, string &param);
 
 void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, bool is_playback)
 {
@@ -269,13 +278,12 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
     (*audioStruct)->fd = (int)NULL; // needs C's NULL
 
     if( audioVerbose && 
-		( is_playback || (!is_playback && fullDuplex) )
-	)
+		( is_playback || (!is_playback && fullDuplex) ) )
     {
         if(is_playback)
-            printf("Playback");    
+	       printf("Playback");    
         else
-            printf("Capture");    
+			printf("Capture");    
         printf(" card %d, device %d\n", (*audioStruct)->card, (*audioStruct)->device);
         if(is_playback)
             printf("\tid: %s\n", settings->deviceOutId.c_str());   
@@ -286,15 +294,61 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
 		checkAllCardParams((*audioStruct));
 
         printf("Requested params:\n");
-        printf("\tPeriod size: %d\n", (*audioStruct)->config.period_size);
+        printf("\tPeriod size (Audio frames): %d\n", (*audioStruct)->config.period_size);
         printf("\tPeriod count: %d\n", (*audioStruct)->config.period_count);
         printf("\tChannels: %d\n", (*audioStruct)->config.channels);
         printf("\tRate: %d\n", (*audioStruct)->config.rate);
         printf("\tFormat: %s\n", settings->pcmFormatString.c_str());
         printf("\n");
-
-		//TODO add actual params query
     }
+}
+
+void updateAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, bool is_playback)
+{
+		string match;
+		string value;
+		string deviceHwParamsPath = getDeviceInfoPath((*audioStruct)->card, (*audioStruct)->device, "sub0/hw_params", is_playback);		
+		
+		match = "period_size: ";
+		int ret = readCardParam(deviceHwParamsPath, match, value);
+		if(ret==0)
+			(*audioStruct)->config.period_size = atoi(value.c_str());
+
+		match = "buffer_size: ";
+		ret = readCardParam(deviceHwParamsPath, match, value);
+		if(ret==0)
+			(*audioStruct)->config.period_count = atoi(value.c_str()) / (*audioStruct)->config.period_size;
+
+		match = "channels: ";
+		ret = readCardParam(deviceHwParamsPath, match, value);
+		if(ret==0)
+			(*audioStruct)->config.channels = atoi(value.c_str());
+		
+		match = "rate: ";
+		ret = readCardParam(deviceHwParamsPath, match, value);
+		if(ret==0)
+			(*audioStruct)->config.rate = atoi(value.c_str());
+		
+		match = "format: ";
+		ret = readCardParam(deviceHwParamsPath, match, value);
+		if(ret==0)
+			settings->pcmFormatString = value;
+
+
+		if( audioVerbose && 
+			( is_playback || (!is_playback && fullDuplex) ) )
+		{
+			if(is_playback)
+				printf("\nPlayback ");    
+			else
+				printf("\nCapture ");    
+		printf("actual params:\n");
+        printf("\tPeriod size (Audio frames): %d\n", (*audioStruct)->config.period_size);
+        printf("\tPeriod count: %d\n", (*audioStruct)->config.period_count);
+        printf("\tChannels: %d\n", (*audioStruct)->config.channels);
+        printf("\tRate: %d\n", (*audioStruct)->config.rate);
+        printf("\tFormat: %s\n", settings->pcmFormatString.c_str());
+	}
 }
 
 void cleanupAudioParams(LDSPpcmContext *pcmContext)
@@ -675,16 +729,37 @@ int checkCardFormats(struct pcm_params *params, unsigned int value)
 
 	return 0;
 }
+
+
+
+int readCardParam(string info_path, string param_match, string &param)
+{
+	int ret = getDeviceInfo(info_path, param_match, param);
+	
+	if(ret==-1)
+	{
+		printf("Warning! Could not open \"%s\" to retrieve device's \"%s\"\n", info_path.c_str(), param_match.c_str());
+		return ret;
+	}
+	else if(ret==-2)
+	{
+		printf("Warning! Could not find \"%s\" in \"%s\"\n", param_match.c_str(), info_path.c_str());
+		return ret;
+	}
+
+	trimDeviceInfo(param); // some params may have extra info separated by space
+	return 0;
+}
+
+
 // adapted from here:
 // https://github.com/intel/bat/blob/master/bat/tinyalsa.c
-int checkCardParam(/*LDSP_*/pcm_params *params, /*LDSP_*/pcm_param param, unsigned int value, string param_name, string param_unit)
+int checkCardParam(pcm_params *params, pcm_param param, unsigned int value, string param_name, string param_unit)
 {
 	unsigned int min;
 	unsigned int max;
 	int ret = 0;
 
-	// min = LDSP_pcm_params_get_min(params, param);
-	// max = LDSP_pcm_params_get_max(params, param);
 	min = pcm_params_get_min(params, param);
 	max = pcm_params_get_max(params, param);
 
@@ -708,7 +783,6 @@ int checkCardParam(/*LDSP_*/pcm_params *params, /*LDSP_*/pcm_param param, unsign
 
 int checkAllCardParams(audio_struct *audioStruct)
 {
-	//LDSP_pcm_params *params;
 	pcm_params *params;
 	int err = 0;
 
@@ -721,19 +795,18 @@ int checkAllCardParams(audio_struct *audioStruct)
 
     printf("\nSupported params:\n");
 
-	err = checkCardParam(params, /* LDSP_ */PCM_PARAM_PERIOD_SIZE, audioStruct->config.period_size, "Period size", "Hz");
+	err = checkCardParam(params, PCM_PARAM_PERIOD_SIZE, audioStruct->config.period_size, "Period size", "Hz");
 	if(err==0)
-		err = checkCardParam(params, /* LDSP_ */PCM_PARAM_PERIODS, audioStruct->config.period_count, "Period count", "");
+		err = checkCardParam(params, PCM_PARAM_PERIODS, audioStruct->config.period_count, "Period count", "");
 	if(err==0)
-		err = checkCardParam(params, /* LDSP_ */PCM_PARAM_CHANNELS, audioStruct->config.channels, "Channels", "channels");
+		err = checkCardParam(params, PCM_PARAM_CHANNELS, audioStruct->config.channels, "Channels", "channels");
 	if(err==0)
-		err = checkCardParam(params, /* LDSP_ */PCM_PARAM_RATE, audioStruct->config.rate, "Sample rate", "Hz");
+		err = checkCardParam(params, PCM_PARAM_RATE, audioStruct->config.rate, "Sample rate", "Hz");
 	if(err==0)
 	 	err = checkCardFormats(params, audioStruct->config.format);
 
 	printf("\n");
 
-	//LDSP_pcm_params_free(params);
 	pcm_params_free(params);
 
 	return err;
