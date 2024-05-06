@@ -1,18 +1,23 @@
 #include "onnxruntime_cxx_api.h"
+#include <string>
+
+using std::string;
 
 class OrtModel {
 public:
 
     OrtModel() {}
+    OrtModel(bool _verbose) :  verbose(_verbose) {}
     ~OrtModel() {}
 
-    bool setup(const char * _sessionName, const char * _modelPath, bool _multiThreading = false);
+    bool setup(string _sessionName, string _modelPath, bool _multiThreading=false);
     void cleanup();
-    void run(float ** inputs, float * output);
-    void run(float * input, float * output);
-    void run(float * input, float * params, float * output);
+    void run(float** inputs, float* output); // multiple input nodes
+    void run(float* input, float* output); // single input note
+    void run(float* input, float* params, float* output); // single input node + cond params
 
 private: 
+    bool verbose = false;
 
     // Holds onnx runtime session object, everything needed to interface with model
     Ort::Env * env;
@@ -41,7 +46,7 @@ private:
     // Aggregated tensor size for each output
     std::vector<size_t> outputTensorSizes;
 
-
+    // Tensors
     std::vector<std::vector<float>> inputTensorValues;
     std::vector<std::vector<float>> outputTensorValues;
     std::vector<Ort::Value> inputTensors;

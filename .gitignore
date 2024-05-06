@@ -61,6 +61,8 @@ build.ninja.tmp*
 # current LDSP project settings
 ldsp_settings.conf
 
+# additionla LDSP project repos
+**/LDSP-ONNX/
 
 # LDSP team - Temporary local projects
 _projects/

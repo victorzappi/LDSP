@@ -57,13 +57,13 @@ target_include_directories(ldsp
 target_include_directories(ldsp PRIVATE ../dependencies/fftw3/api)
 target_link_directories(ldsp PRIVATE ../dependencies/fftw3)
 
-# All neccessary headers for onnxruntime
-set(ONNXRUNTIME_PATH ../dependencies/onnxruntime)
-if (${DEVICE_ARCH} STREQUAL "aarch64")
-  target_include_directories(ldsp PRIVATE "${ONNXRUNTIME_PATH}/include/headers" PRIVATE)
-else ()
-  target_include_directories(ldsp PRIVATE "${ONNXRUNTIME_PATH}/include/onnxruntime/core/session" PRIVATE)
-endif()
+# All neccessary headers for onnxruntime ---> moved to libraries
+# set(ONNXRUNTIME_PATH ../dependencies/onnxruntime)
+# if (${DEVICE_ARCH} STREQUAL "aarch64")
+#   target_include_directories(ldsp PRIVATE "${ONNXRUNTIME_PATH}/include/headers" PRIVATE)
+# else ()
+#   target_include_directories(ldsp PRIVATE "${ONNXRUNTIME_PATH}/include/onnxruntime/core/session" PRIVATE)
+# endif()
 
 
 
