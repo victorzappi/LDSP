@@ -154,13 +154,6 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
 	}
 
 	// optional entries
-    optional = mixer["playback device number"];
-	if(optional.is_number_integer())
-		hwconfig->default_dev_num_p = optional;
-	optional = mixer["capture device number"];
-	if(optional.is_number_integer())
-		hwconfig->default_dev_num_c = optional;
-
 	optional = mixer["[mixer playback device activation]"];
 	if(optional.is_string())
     {
@@ -217,6 +210,13 @@ void parseDefaultAudioParams(ordered_json *config, LDSPhwConfig *hwconfig)
         if(s.compare("") != 0)
 			hwconfig->default_dev_id_c = optional;
 	}
+
+	optional = mixer["playback device number"];
+	if(optional.is_number_integer())
+		hwconfig->default_dev_num_p = optional;
+	optional = mixer["capture device number"];
+	if(optional.is_number_integer())
+		hwconfig->default_dev_num_c = optional;
 
 	optional = mixer["period size"];
 	if(optional.is_number_integer())

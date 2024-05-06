@@ -73,4 +73,8 @@ endif()
 
 
 
+add_subdirectory(onnxruntime)
+
+
+
 

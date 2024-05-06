@@ -133,6 +133,18 @@ get_api_level () {
 	echo $level
 }
 
+# Retrieve the correct version of the onnxruntime library, based on Android version
+get_onnx_version () {
+  major=$(echo "$1" | cut -d . -f 1)
+  if [[ $major -ge 7 ]]; then 
+    onnx_version="above24"
+  else 
+    onnx_version="below24"
+  fi
+
+  echo $onnx_version
+}
+
 # Install the LDSP scripts on the phone.
 install_scripts() {
   adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
@@ -235,8 +247,9 @@ configure () {
     exit 1
   fi
 
+  onnx_version=$(get_onnx_version "$version")
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$project_dir" -G Ninja .
+  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" -G Ninja .
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: CMake failed"
@@ -284,6 +297,28 @@ clean_ldsp () {
 }
 
 
+# Function to push scripts
+push_scripts() {
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
+  adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
+}
+
+# Function to push resources
+push_resources() {
+  adb push resources /sdcard/ldsp/resources/
+}
+
+# Function to push ONNX runtime
+push_onnxruntime() {
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'" # create temp folder on sdcard
+  target_arch=$(grep -o '"target architecture": "[^"]*' "$hw_config" | grep -o '[^"]*$')
+  onnx_version=$(get_onnx_version "$version")
+  onnx_path="./dependencies/onnxruntime/$target_arch/$onnx_version/libonnxruntime.so"
+  adb push $onnx_path /sdcard/ldsp/onnxruntime/libonnxruntime.so
+}
+
+
+
 # Install the user project, LDSP hardware config and resources to the phone.
 install () {
   if [[ ! -f bin/ldsp ]]; then
@@ -310,27 +345,44 @@ install () {
   # now the ldsp bin
 	adb push bin/ldsp /sdcard/ldsp/projects/$project_name/ldsp
 
+  # now all resources that do not need to be updated
+  # first check if /data/ldsp exists
+  if ! adb shell 'su -c "test -d /data/ldsp"'; then
+    # If /data/ldsp does not exist, create it
+    adb shell 'su -c "mkdir -p /data/ldsp"'
+    echo "/data/ldsp created. Pushing all necessary directories and files."
 
-  # Get the list of directories in /data/ldsp
-  adb shell 'su -c "ls /data/ldsp"' > dirs.txt
-  # Check if the directory 'scripts' is in the list
-  if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "scripts"; then
-    adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
-    adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
+    # Call functions to push all resources
+    push_scripts
+    push_resources
+    push_onnxruntime
+
+  else
+    # If /data/ldsp exists, continue with the checks
+    # Check and push scripts if needed
+    if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "scripts"; then
+      push_scripts
+    fi
+
+    #TODO do this if at least one source file includes gui
+    # when/if gui gets ever extended to pd, gui will always be included in pd main, so the check will add "!pd" and then an extra check will be added:
+    # if pd and any patch has a gui send of or receive
+    # push gui resources, but only if they are not on phone yet
+    # Check and push resources if needed
+    if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "resources"; then
+      push_resources
+    fi
+
+    #TODO do this if at least one source file needs it
+    # Check and push onnxruntime if needed
+    if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "onnxruntime"; then
+      push_onnxruntime
+    fi
   fi
-  #TODO do this if at least one source file includes gui
-  # whne gui extended to pd, gui will always be included in pd main, so the check will add "!pd" and then an extra check will be added:
-  # if pd and any patch has a gui send of or receive
-  # push gui resources, but only if they are not on phone yet
-  # Check if the directory 'resources' is in the list
-  if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "resources"; then
-    adb push resources /sdcard/ldsp/resources/
-  fi
-  # Clean up
-  rm dirs.txt
+
   
   adb shell "su -c 'mkdir -p /data/ldsp/projects/$project_name'" # create ldsp and project folders
-  adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" # cp all files from sd card temp folder to project folder
+  adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" # cp all files from sd card temp folder to ldsp folder
   adb shell "su -c 'chmod 777 /data/ldsp/projects/$project_name/ldsp'" # add exe flag to ldsp bin
   
   adb shell "su -c 'rm -r /sdcard/ldsp'" # remove the temp /sdcard/ldsp directory from the device
@@ -359,7 +411,7 @@ run () {
   # Run adb shell in a subshell, so that it doesn't receive the SIGINT signal
   (
     trap "" INT
-    adb shell "su -c 'cd /data/ldsp/projects/$project_name && ./ldsp $@'" # we invoke su before running the bin
+    adb shell "su -c 'cd /data/ldsp/projects/$project_name && export LD_LIBRARY_PATH="/data/ldsp/onnxruntime/" && ./ldsp $@'" # we invoke su before running the bin
   ) &
 
 
@@ -504,6 +556,9 @@ for i in "${STEPS[@]}"; do
       ;;
     clean_phone)
       clean_phone
+      ;;
+    clean_ldsp)
+      clean_ldsp
       ;;
     install)
       install
