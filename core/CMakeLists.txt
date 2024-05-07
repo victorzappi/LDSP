@@ -85,11 +85,19 @@ if(ADD_SEASOCKS)
   )
 endif()
 
-
-target_link_directories(ldsp 
-  PRIVATE "../dependencies/onnxruntime/${DEVICE_ARCH}/${ONNX_VERSION}"
-)
-
+# Check if we should add onnx
+if(ADD_ONNX)
+  # onnxruntime is a dynamic lib and needs a target link directory
+  target_link_directories(ldsp 
+    PRIVATE "../dependencies/onnxruntime/${DEVICE_ARCH}/${ONNX_VERSION}"
+  )
+  target_link_libraries(ldsp
+    # DYNAMIC LIBRARY
+    PRIVATE onnxruntime
+    # LDSP wrapper
+    PRIVATE onnx_library
+  )
+endif()
 
 # These are mandatory/lightweight
 target_link_libraries(ldsp
@@ -99,7 +107,5 @@ target_link_libraries(ldsp
   PRIVATE sndfile 
   PRIVATE glob
   PRIVATE serial
-  # DYNAMIC LIBRARY
-  PRIVATE onnxruntime
 )
 

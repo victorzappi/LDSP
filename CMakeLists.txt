@@ -33,9 +33,9 @@ endif()
 
 # Check whether or not to add other large dependencies
 # Define the variable names and corresponding strings to search for
-set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFTW3")
+set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFTW3" "ADD_ONNX")
 # designed to work with two strings per dependency, one specific to ldsp and one to the dependency
-set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "fft.h;fftw3")
+set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "fft.h;fftw3" "libraries/OrtModel/OrtModel.h;onnx")
 # Initialize global cache variables based on VARIABLE_NAMES
 foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
     set(${VAR_NAME} FALSE CACHE BOOL "Initially, ${VAR_NAME} is not found" FORCE)

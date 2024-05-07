@@ -72,8 +72,11 @@ if(ADD_LIBPD)
 endif()
 
 
+# Check if we should add onnx
+if(ADD_ONNX)
+    add_subdirectory(onnxruntime)
+endif()
 
-add_subdirectory(onnxruntime)
 
 
 

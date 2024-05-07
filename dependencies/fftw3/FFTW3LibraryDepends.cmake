@@ -52,7 +52,7 @@ set_target_properties(FFTW3::fftw3f PROPERTIES
 set_property(TARGET FFTW3::fftw3f APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(FFTW3::fftw3f PROPERTIES
   IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
-  IMPORTED_LOCATION_RELEASE "/home/vic/Documents/Boston/Northeastern/research/lineageDSP/git/branches/LDSP_onnx/LDSP/dependencies/fftw3/libfftw3f.a"
+  IMPORTED_LOCATION_RELEASE "/home/vic/Documents/Boston/Northeastern/research/lineageDSP/git/LDSP/dependencies/fftw3/libfftw3f.a"
   )
 
 # This file does not depend on other imported targets which have
