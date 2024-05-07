@@ -10,6 +10,7 @@ vendor=""
 model=""
 
 settings_file="ldsp_settings.conf"
+dependencies_file="ldsp_dependencies.conf"
 
 # Convert a human-readable Android version (e.g. 13, 6.0.1, 4.4) into an API level.
 get_api_level () {
@@ -275,6 +276,7 @@ build () {
 clean () {
   ninja clean
   rm $settings_file
+  rm $dependencies_file
 }
 
 # Remove current project from directory from the device
@@ -305,16 +307,20 @@ push_scripts() {
 
 # Function to push resources
 push_resources() {
-  adb push resources /sdcard/ldsp/resources/
+  if [[ $ADD_SEASOCKS =~ ^(TRUE)$ ]]; then
+    adb push resources /sdcard/ldsp/resources/  
+  fi
 }
 
 # Function to push ONNX runtime
 push_onnxruntime() {
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'" # create temp folder on sdcard
-  target_arch=$(grep -o '"target architecture": "[^"]*' "$hw_config" | grep -o '[^"]*$')
-  onnx_version=$(get_onnx_version "$version")
-  onnx_path="./dependencies/onnxruntime/$target_arch/$onnx_version/libonnxruntime.so"
-  adb push $onnx_path /sdcard/ldsp/onnxruntime/libonnxruntime.so
+  if [[ $ADD_ONNX =~ ^(TRUE)$ ]]; then
+    adb shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'" # create temp folder on sdcard
+    target_arch=$(grep -o '"target architecture": "[^"]*' "$hw_config" | grep -o '[^"]*$')
+    onnx_version=$(get_onnx_version "$version")
+    onnx_path="./dependencies/onnxruntime/$target_arch/$onnx_version/libonnxruntime.so"
+    adb push $onnx_path /sdcard/ldsp/onnxruntime/libonnxruntime.so
+  fi
 }
 
 
@@ -345,6 +351,12 @@ install () {
   # now the ldsp bin
 	adb push bin/ldsp /sdcard/ldsp/projects/$project_name/ldsp
 
+
+  # Retrieve variables from dependencies file
+  if [[ -f $dependencies_file ]]; then
+      source $dependencies_file
+  fi
+
   # now all resources that do not need to be updated
   # first check if /data/ldsp exists
   if ! adb shell 'su -c "test -d /data/ldsp"'; then
@@ -364,16 +376,11 @@ install () {
       push_scripts
     fi
 
-    #TODO do this if at least one source file includes gui
-    # when/if gui gets ever extended to pd, gui will always be included in pd main, so the check will add "!pd" and then an extra check will be added:
-    # if pd and any patch has a gui send of or receive
-    # push gui resources, but only if they are not on phone yet
     # Check and push resources if needed
     if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "resources"; then
       push_resources
     fi
 
-    #TODO do this if at least one source file needs it
     # Check and push onnxruntime if needed
     if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "onnxruntime"; then
       push_onnxruntime

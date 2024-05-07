@@ -58,9 +58,9 @@ build.ninja.tmp*
 # -macOS
 .DS_Store
 
-# current LDSP project settings
+# current LDSP project configuration
 ldsp_settings.conf
-
+ldsp_dependencies.conf
 
 # Temporary local projects
 _projects/

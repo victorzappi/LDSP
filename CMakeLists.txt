@@ -36,6 +36,12 @@ endif()
 set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFTW3" "ADD_ONNX")
 # designed to work with two strings per dependency, one specific to ldsp and one to the dependency
 set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "fft.h;fftw3" "libraries/OrtModel/OrtModel.h;onnx")
+#TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
+# the main pd file needs to be excluded and an extra check needs to be added:
+# if pd and any patch has a 'gui send' or 'gui receive' ---> then ADD_SEASOCKS
+# along with a define that removes the seaksocks code from main pd if those objects are not found
+
+
 # Initialize global cache variables based on VARIABLE_NAMES
 foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
     set(${VAR_NAME} FALSE CACHE BOOL "Initially, ${VAR_NAME} is not found" FORCE)
@@ -47,6 +53,15 @@ include("${CMAKE_CURRENT_LIST_DIR}/check_dependencies_inclusion.cmake")
 #     message(STATUS "================State of ${VAR_NAME}: ${${VAR_NAME}}")
 # endforeach()
 
+# export dependencies configuration to text file
+# define the output text file path
+set(output_file "${CMAKE_CURRENT_LIST_DIR}/ldsp_dependencies.conf")
+# open the text file and write the results
+file(WRITE "${output_file}" "# Dependency States\n")
+foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
+    file(APPEND "${output_file}" "${VAR_NAME}=\"${${VAR_NAME}}\"\n")
+endforeach()
+file(APPEND "${output_file}" "ADD_LIBPD=\"${ADD_LIBPD}\"\n")
 
 
 
