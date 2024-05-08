@@ -2,128 +2,119 @@
 # This script controls configuring the LDSP build system, building a project
 # using LDSP, and running the resulting binary on a phone.
 
-
-# Global variable for project settings
-project_dir=""
-project_name=""
-vendor=""
-model=""
-
-settings_file="ldsp_settings.conf"
-dependencies_file="ldsp_dependencies.conf"
+settings_file="ldsp_settings.conf" # this is created by this script via configure()
+dependencies_file="ldsp_dependencies.conf" # this is created by CMake after build()
 
 # Convert a human-readable Android version (e.g. 13, 6.0.1, 4.4) into an API level.
 get_api_level () {
-	version_full=$1
+	version_major=$(echo $VERSION | cut -d . -f 1 )
+	version_minor=$(echo $VERSION | cut -d . -f 2 )
+	version_patch=$(echo $VERSION | cut -d . -f 3 )
 
-	major=$(echo $version_full | cut -d . -f 1 )
-	minor=$(echo $version_full | cut -d . -f 2 )
-	patch=$(echo $version_full | cut -d . -f 3 )
-
-	if [[ $major == 1 ]]; then
-		if [[ $minor == 0 ]]; then
+	if [[ $version_major == 1 ]]; then
+		if [[ $version_minor == 0 ]]; then
 			level=1
-		elif [[ $minor == 1 ]]; then
+		elif [[ $version_minor == 1 ]]; then
 			level=2
-		elif [[ $minor == 5 ]]; then
+		elif [[ $version_minor == 5 ]]; then
 			level=3
-		elif [[ $minor == 6 ]]; then
+		elif [[ $version_minor == 6 ]]; then
 			level=4
 		fi
-	elif [[ $major == 2 ]]; then
-		if [[ $minor == 0 ]]; then
-			if [[ $patch == 1 ]]; then
+	elif [[ $version_major == 2 ]]; then
+		if [[ $version_minor == 0 ]]; then
+			if [[ $version_patch == 1 ]]; then
 				level=6
 			else
 				level=5
 			fi
-		elif [[ $minor == 1 ]]; then
+		elif [[ $version_minor == 1 ]]; then
 			level=7
-		elif [[ $minor == 2 ]]; then
+		elif [[ $version_minor == 2 ]]; then
 			level=8
-		elif [[ $minor == 3 ]]; then
-			if [[ $patch == "" ]]; then
+		elif [[ $version_minor == 3 ]]; then
+			if [[ $version_patch == "" ]]; then
 				level=9
-			elif [[ $patch == 0 ]]; then
+			elif [[ $version_patch == 0 ]]; then
 				level=9
-			elif [[ $patch == 1 ]]; then
+			elif [[ $version_patch == 1 ]]; then
 				level=9
-			elif [[ $patch == 2 ]]; then
+			elif [[ $version_patch == 2 ]]; then
 				level=9
-			elif [[ $patch == 3 ]]; then
+			elif [[ $version_patch == 3 ]]; then
 				level=10
-			elif [[ $patch == 4 ]]; then
+			elif [[ $version_patch == 4 ]]; then
 				level=10
 			fi
 		fi
-	elif [[ $major == 3 ]]; then
-		if [[ $minor == 0 ]]; then
+	elif [[ $version_major == 3 ]]; then
+		if [[ $version_minor == 0 ]]; then
 			level=11
-		elif [[ $minor == 1 ]]; then
+		elif [[ $version_minor == 1 ]]; then
 			level=12
-		elif [[ $minor == 2 ]]; then
+		elif [[ $version_minor == 2 ]]; then
 			level=13
 		fi
-	elif [[ $major == 4 ]]; then
-		if [[ $minor == 0 ]]; then
-			if [[ $patch == "" ]]; then
+	elif [[ $version_major == 4 ]]; then
+		if [[ $version_minor == 0 ]]; then
+			if [[ $version_patch == "" ]]; then
 				level=14
-			elif [[ $patch == 0 ]]; then
+			elif [[ $version_patch == 0 ]]; then
 				level=14
-			elif [[ $patch == 1 ]]; then
+			elif [[ $version_patch == 1 ]]; then
 				level=14
-			elif [[ $patch == 2 ]]; then
+			elif [[ $version_patch == 2 ]]; then
 				level=14
-			elif [[ $patch == 3 ]]; then
+			elif [[ $version_patch == 3 ]]; then
 				level=15
-			elif [[ $patch == 4 ]]; then
+			elif [[ $version_patch == 4 ]]; then
 				level=15
 			fi
-		elif [[ $minor == 1 ]]; then
+		elif [[ $version_minor == 1 ]]; then
 			level=16
-		elif [[ $minor == 2 ]]; then
+		elif [[ $version_minor == 2 ]]; then
 			level=17
-		elif [[ $minor == 3 ]]; then
+		elif [[ $version_minor == 3 ]]; then
 			level=18
-		elif [[ $minor == 4 ]]; then
+		elif [[ $version_minor == 4 ]]; then
 			level=19
 		fi
 	# API_LEVEL 20 corresponds to Android 4.4W, which isn't relevant to us.
-	elif [[ $major == 5 ]]; then
-		if [[ $minor == 0 ]]; then
+	elif [[ $version_major == 5 ]]; then
+		if [[ $version_minor == 0 ]]; then
 			level=21
-		elif [[ $minor == 1 ]]; then
+		elif [[ $version_minor == 1 ]]; then
 			level=22
 		fi
-	elif [[ $major == 6 ]]; then
+	elif [[ $version_major == 6 ]]; then
 		level=23
-	elif [[ $major == 7 ]]; then
-		if [[ $minor == 0 ]]; then
+	elif [[ $version_major == 7 ]]; then
+		if [[ $version_minor == 0 ]]; then
 			level=24
-		elif [[ $minor == 1 ]]; then
+		elif [[ $version_minor == 1 ]]; then
 			level=25
 		fi
-	elif [[ $major == 8 ]]; then
-		if [[ $minor == 0 ]]; then
+	elif [[ $version_major == 8 ]]; then
+		if [[ $version_minor == 0 ]]; then
 			level=26
-		elif [[ $minor == 1 ]]; then
+		elif [[ $version_minor == 1 ]]; then
 			level=27
 		fi
-	elif [[ $major == 9 ]]; then
+	elif [[ $version_major == 9 ]]; then
 		level=28
-	elif [[ $major == 10 ]]; then
+	elif [[ $version_major == 10 ]]; then
 		level=29
-	elif [[ $major == 11 ]]; then
+	elif [[ $version_major == 11 ]]; then
 		level=30
-	elif [[ $major == 12 ]]; then
+	elif [[ $version_major == 12 ]]; then
 	# Android 12 uses both API_LEVEL 31 and 32
 	# Default to 31 but allow user to say "12.1" to get 32
-		if [[ $minor == 1 ]]; then
+		if [[ $version_minor == 1 ]]; then
 			level=32
 		else
 			level=31
 		fi
-	elif [[ $major == 13 ]]; then
+	elif [[ $version_major == 13 ]]; then
 		level=33
 	fi
 
@@ -136,9 +127,8 @@ get_api_level () {
 
 # Retrieve the correct version of the onnxruntime library, based on Android version
 get_onnx_version () {
-  major=$(echo "$1" | cut -d . -f 1)
-  if [[ $major -ge 7 ]]; then 
-    onnx_version="above24"
+  if [[ $api_level -ge 24 ]]; then 
+    onnx_version="aboveOrEqual24"
   else 
     onnx_version="below24"
   fi
@@ -196,11 +186,11 @@ configure () {
   fi
 
   # target Android version
-  api_level=$(get_api_level "$VERSION")
+  api_level=$(get_api_level)
   exit_code=$?
 
   if [[ $exit_code != 0 ]]; then
-    echo "Cannot configure: Unknown Android version: $version_full"
+    echo "Cannot configure: Unknown Android version: $VERSION"
     exit $exit_code
   fi
 
@@ -234,12 +224,6 @@ configure () {
   project_dir=$PROJECT 
   project_name=$(basename "$project_dir")
 
-  # store settings
-  echo "project_dir=\"$project_dir\"" > $settings_file
-  echo "project_name=\"$project_name\"" >> $settings_file
-  echo "vendor=\"$vendor\"" >> $settings_file
-  echo "model=\"$model\"" >> $settings_file
-
 
   if [[ ! -d "$NDK" ]]; then
     echo "Cannot configure: NDK not found"
@@ -248,7 +232,7 @@ configure () {
     exit 1
   fi
 
-  onnx_version=$(get_onnx_version "$version")
+  onnx_version=$(get_onnx_version)
 
   cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" -G Ninja .
   exit_code=$?
@@ -256,6 +240,15 @@ configure () {
     echo "Cannot configure: CMake failed"
     exit $exit_code
   fi
+
+  # store settings
+  echo "project_dir=\"$project_dir\"" > $settings_file
+  echo "project_name=\"$project_name\"" >> $settings_file
+  echo "vendor=\"$vendor\"" >> $settings_file
+  echo "model=\"$model\"" >> $settings_file
+  echo "arch=\"$arch\"" >> $settings_file
+  echo "api_level=\"$api_level\"" >> $settings_file
+  echo "onnx_version=\"$onnx_version\"" >> $settings_file
 }
 
 # Build the user project.
@@ -299,31 +292,28 @@ clean_ldsp () {
 }
 
 
-# Function to push scripts
+
 push_scripts() {
   adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
   adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
 }
 
-# Function to push resources
 push_resources() {
+  # push only if dependency is in use
   if [[ $ADD_SEASOCKS =~ ^(TRUE)$ ]]; then
+    adb shell "su -c 'mkdir -p /sdcard/ldsp/resources'" # create temp folder on sdcard
     adb push resources /sdcard/ldsp/resources/  
   fi
 }
 
-# Function to push ONNX runtime
 push_onnxruntime() {
+  # push only if dependency is in use
   if [[ $ADD_ONNX =~ ^(TRUE)$ ]]; then
     adb shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'" # create temp folder on sdcard
-    target_arch=$(grep -o '"target architecture": "[^"]*' "$hw_config" | grep -o '[^"]*$')
-    onnx_version=$(get_onnx_version "$version")
-    onnx_path="./dependencies/onnxruntime/$target_arch/$onnx_version/libonnxruntime.so"
+    onnx_path="./dependencies/onnxruntime/$arch/$onnx_version/libonnxruntime.so"
     adb push $onnx_path /sdcard/ldsp/onnxruntime/libonnxruntime.so
   fi
 }
-
-
 
 # Install the user project, LDSP hardware config and resources to the phone.
 install () {
@@ -335,6 +325,11 @@ install () {
   # Retrieve variables from settings file
   if [[ -f $settings_file ]]; then
       source $settings_file
+  fi
+
+  # Retrieve variables from dependencies file
+  if [[ -f $dependencies_file ]]; then
+      source $dependencies_file
   fi
 
 
@@ -350,16 +345,11 @@ install () {
 
   # now the ldsp bin
 	adb push bin/ldsp /sdcard/ldsp/projects/$project_name/ldsp
+  
 
-
-  # Retrieve variables from dependencies file
-  if [[ -f $dependencies_file ]]; then
-      source $dependencies_file
-  fi
-
-  # now all resources that do not need to be updated
+  # now all resources that do not need to be updated at every build
   # first check if /data/ldsp exists
-  if ! adb shell 'su -c "test -d /data/ldsp"'; then
+  if ! adb shell 'su -c "ls /data | grep ldsp"'; then
     # If /data/ldsp does not exist, create it
     adb shell 'su -c "mkdir -p /data/ldsp"'
     echo "/data/ldsp created. Pushing all necessary directories and files."
@@ -371,18 +361,18 @@ install () {
 
   else
     # If /data/ldsp exists, continue with the checks
-    # Check and push scripts if needed
-    if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "scripts"; then
+    # Check and push scripts if not there
+    if ! adb shell 'su -c "ls /data/ldsp"' | grep "scripts"; then
       push_scripts
     fi
 
-    # Check and push resources if needed
-    if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "resources"; then
+    # Check and push resources if not there
+    if ! adb shell 'su -c "ls /data/ldsp"' | grep "resources"; then
       push_resources
     fi
 
-    # Check and push onnxruntime if needed
-    if ! adb shell 'su -c "ls /data/ldsp"' | grep -q "onnxruntime"; then
+    # Check and push onnxruntime if not there
+    if ! adb shell 'su -c "ls /data/ldsp"' | grep "onnxruntime"; then
       push_onnxruntime
     fi
   fi

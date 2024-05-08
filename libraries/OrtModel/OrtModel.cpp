@@ -88,11 +88,11 @@ bool OrtModel::setup(string _sessionName, string _modelPath, bool _multiThreadin
         for(size_t j = 0; j < inputNodeDims[i].size(); j++) 
         {
             if(verbose)
-                printf("Input %d : dim %lu=%ld\n", i, j, (long int)inputNodeDims[i][j]);
+                printf("Input %d : dim %d=%d\n", i, (int)j, (int)inputNodeDims[i][j]);
             if(inputNodeDims[i][j] <= 0) 
             {
                 if(verbose)
-                    printf("Warning: Input %d, dim %lu has non-positive size, adjusting to size of 1\n", i, j);
+                    printf("Warning: Input %d, dim %d has non-positive size, adjusting to size of 1\n", i, (int)j);
                 inputNodeDims[i][j] = 1; // Adjust non-positive dimensions to 1
             }
         }
@@ -132,7 +132,7 @@ bool OrtModel::setup(string _sessionName, string _modelPath, bool _multiThreadin
             printf("Output %d : num_dims=%zu\n", i, outputNodeDims.size());
         for (int j = 0; j < outputNodeDims.size(); j++) {
             if(verbose)
-                printf("Output %d : dim %d=%ld\n", i, j, (long int)outputNodeDims[i][j]);
+                printf("Output %d : dim %d=%d\n", i, j, (int)outputNodeDims[i][j]);
             if ((int) this->outputNodeDims[i][j] < 0) {
                 if(verbose)
                     printf("Output %d, dim %d has a variable size, forcing a size of 1", i,j);

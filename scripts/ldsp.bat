@@ -3,26 +3,32 @@
 rem Before running, you need to set the path to the Android NDK, e.g.:
 rem set NDK=C:\Users\%USERNAME%\android-ndk-r25b
 
-rem Global variable for project settings
+rem Global variables for project settings //VIC needed?
+REM set "project_dir="
+REM set "project_name="
+REM set "vendor="
+REM set "model="
+REM set "arch="
+REM set "api_level="
+REM set "onnx_version="
 
-SET "project_dir="
-SET "project_name="
-SET "vendor="
-SET "model="
+REM this is created by this script via configure()
+set "settings_file=ldsp_settings.conf"
 
-SET "settings_file=ldsp_settings.conf"
+rem Global variables for project dependencies //VIC needed?
+REM set "ADD_SEASOCKS="
+REM set "ADD_FFTW3="
+REM set "ADD_ONNX="
+REM set "ADD_LIBPD="
+
+REM this is created by CMake after build()
+set "dependencies_file=ldsp_dependencies.conf"
 
 goto main
 
 :get_api_level
   rem Convert a human-readable Android version (e.g. 13, 6.0.1, 4.4) into an API level.
-  set version_full=%~1
-
-  set major=0
-  set minor=0
-  set patch=0
-
-  for /f "tokens=1-3 delims=." %%a in ("%version_full%") do (
+  for /f "tokens=1-3 delims=." %%a in ("%version%") do (
     set version_major=%%a
     set version_minor=%%b
     set version_patch=%%c
@@ -89,6 +95,21 @@ goto main
   exit /b 0
 rem End of :get_api_level
 
+
+
+rem Retrieve the correct version of the onnxruntime library, based on Android version
+:get_onnx_version
+    rem Use numeric exit codes to represent different onnx_version values
+    if %api_level% geq 24 (
+        exit /b 1  rem Error code 1 represents "aboveorEqual24"
+    ) else (
+        exit /b 0  rem Error code 0 represents "below24"
+    )
+
+rem End of :get_onnx_version
+
+
+
 :install_scripts
   rem Install the LDSP scripts on the phone.
 
@@ -104,28 +125,28 @@ rem End of :install_scripts
 :configure
   rem Configure the LDSP build system to build for the given phone model, Android version, and project path.
 
-  set vendor_=%~1
-  set model_=%~2
-  set version_=%~3
-  set project_dir_=%~4
+  set vendor=%~1
+  set model=%~2
+  set version=%~3
+  set project_dir=%~4
 
-  if "%vendor_%" == "" (
+  if "%vendor%" == "" (
     echo Cannot configure: vendor not specified
     echo Please specify a vendor with --vendor
     exit /b 1
   )
 
-  if "%model_%" == "" (
+  if "%model%" == "" (
     echo Cannot configure: model not specified
     echo Please specify a phone model with --model
     exit /b 1
   )
 
-  set hw_config=".\phones\%vendor_%\%model_%\ldsp_hw_config.json"
+  set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
 
   if not exist %hw_config% (
     echo Cannot configure: hardware config file not found
-    echo Please ensure that an ldsp_hw_config.json file exists for "%vendor_% %model_%"
+    echo Please ensure that an ldsp_hw_config.json file exists for "%vendor% %model%"
     exit /b 1
   )
 
@@ -146,10 +167,10 @@ rem End of :install_scripts
   )
 
   rem target Android version
-  call :get_api_level %version_%
+  call :get_api_level
   set "api_level=%ERRORLEVEL%"
   if "%api_level%" == "0" (
-    echo Cannot configure: Unknown Android version "%version_%
+    echo Cannot configure: Unknown Android version "%version%
     exit /b 1
   )
 
@@ -185,27 +206,20 @@ rem End of :install_scripts
     set "explicit_neon=-DEXPLICIT_ARM_NEON=0"
   )
 
-  if "%project_dir_%" == "" (
+  if "%project_dir%" == "" (
     echo Cannot configure: Project path not specified
     echo Please specify a project path with --project
     exit /b 1
   )
 
-  if not exist "%project_dir_%" (
+  if not exist "%project_dir%" (
     echo Cannot configure: Project path not found
     echo Please ensure that the project path exists
     exit /b 1
   )
 
   rem Extract the last part of the path for project_name
-  FOR %%I IN ("%project_dir_%") DO SET "project_name_=%%~nI"
-
-  rem store settings
-  echo project_dir="%project_dir_%" > "%settings_file%"
-  echo project_name="%project_name_%" >> "%settings_file%"
-  echo vendor="%vendor_%" >> "%settings_file%"
-  echo model="%model_%" >> "%settings_file%"
-
+  FOR %%I IN ("%project_dir%") DO set "project_name=%%~nI"
 
   if "%NDK%" == "" (
     echo Cannot configure: NDK not specified
@@ -221,14 +235,31 @@ rem End of :install_scripts
     exit /b 1
   )
 
-  cmake "-DCMAKE_TOOLCHAIN_FILE=%NDK%\build\cmake\android.toolchain.cmake" -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% "-DANDROID_NDK=%NDK%" %explicit_neon% %neon% "-DLDSP_PROJECT=%project_dir_%" -G Ninja .
+  call :get_onnx_version
+  if %ERRORLEVEL% == 1 (
+      set "onnx_version=aboveOrEqual24"
+  ) else (
+      set "onnx_version=below24"
+  )
+
+  cmake "-DCMAKE_TOOLCHAIN_FILE=%NDK%\build\cmake\android.toolchain.cmake" -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% "-DANDROID_NDK=%NDK%" %explicit_neon% %neon% "-DLDSP_PROJECT=%project_dir%" "-DONNX_VERSION=%onnx_version%" -G Ninja .
 
   if not %ERRORLEVEL% == 0 (
     echo Cannot configure: CMake failed
     exit /b %ERRORLEVEL%
   )
 
+  rem store settings
+  echo project_dir="%project_dir%" > "%settings_file%"
+  echo project_name="%project_name%" >> "%settings_file%"
+  echo vendor="%vendor%" >> "%settings_file%"
+  echo model="%model%" >> "%settings_file%"
+  echo arch="%arch%" >> "%settings_file%"
+  echo api_level="%api_level%" >> "%settings_file%"
+  echo onnx_version="%onnx_version%" >> "%settings_file%"
+
   exit /b 0
+
 rem End of :configure
 
 :build
@@ -249,6 +280,43 @@ rem End of :configure
   exit /b 0
 rem End of :build
 
+
+:push_scripts
+  rem Create a directory on the SD card using `adb shell` with `mkdir`
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
+
+  rem Push scripts matching the pattern `ldsp_*` to the created folder
+  adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/
+
+  exit /b
+rem End of :push_scripts
+
+
+:push_resources
+  if /i "%ADD_SEASOCKS%"=="TRUE" (
+    rem Create a directory on the SD card using `adb shell` with `mkdir`
+    adb shell "su -c 'mkdir -p /sdcard/ldsp/resources'"
+    
+    rem Push resources to the SD card
+    adb push resources /sdcard/ldsp/resources/
+  )
+  exit /b
+rem End of :push_resources
+
+:push_onnxruntime
+  if /i "%ADD_ONNX%" == "TRUE" (
+    rem Create directory on the SD card
+    adb shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'"
+
+    rem Set the path to the ONNX runtime library
+    set "onnx_path=.\dependencies\onnxruntime\%arch%\%onnx_version%\libonnxruntime.so"
+
+    rem Push the ONNX runtime library to the SD card
+    adb push "%onnx_path%" /sdcard/ldsp/onnxruntime/libonnxruntime.so
+  )
+  exit /b
+rem End of :push_onnxruntime
+
 :install
   rem Install the user project, LDSP hardware config and resources to the phone.
   if not exist "bin\ldsp" (
@@ -258,11 +326,23 @@ rem End of :build
 
   rem Retrieve variables from settings file
   FOR /F "tokens=1* delims==" %%G IN (%settings_file%) DO (
-    IF "%%G"=="project_dir" SET "project_dir=%%H"
-    IF "%%G"=="project_name" SET "project_name=%%H"
-    IF "%%G"=="vendor" SET "vendor=%%H"
-    IF "%%G"=="model" SET "model=%%H"
+    IF "%%G"=="project_dir" set "project_dir=%%H"
+    IF "%%G"=="project_name" set "project_name=%%H"
+    IF "%%G"=="vendor" set "vendor=%%H"
+    IF "%%G"=="model" set "model=%%H"
+    IF "%%G"=="arch" set "arch=%%H"
+    IF "%%G"=="api_level" set "api_level=%%H"
+    IF "%%G"=="onnx_version" set "onnx_version=%%H"
   )
+
+  rem Retrieve variables from dependencies file
+  FOR /F "tokens=1* delims==" %%G IN (%dependencies_file%) DO (
+    IF "%%G"=="ADD_SEASOCKS" set "ADD_SEASOCKS=%%H"
+    IF "%%G"=="ADD_FFTW3" set "ADD_FFTW3=%%H"
+    IF "%%G"=="ADD_ONNX" set "ADD_ONNX=%%H"
+    IF "%%G"=="ADD_LIBPD" set "ADD_LIBPD=%%H"
+  )
+
 
   set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
   adb push %hw_config% /sdcard/ldsp/projects/%project_name%/ldsp_hw_config.json
@@ -283,33 +363,38 @@ rem End of :build
       )
   )
 
-  rem now push the ldsp bin
+  rem now the ldsp bin
   adb push bin\ldsp /sdcard/ldsp/projects/%project_name%/ldsp
 
-  rem push scripts, but only if they are not on phone yet
-  rem Check if the folder exists on the Android device
-  adb shell "if [ ! -d '/data/ldsp/scripts' ]; then echo 'not_exists'; else echo 'exists'; fi" > temp.txt
-  rem Read the result into a variable
-  set /p FOLDER_STATUS=<temp.txt
-  rem Check the folder status
-  if "%FOLDER_STATUS%"=="not_exists" (
-      adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" rem create temp folder on sdcard
-      adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/ rem  push scripts there
-  ) 
-  rem Clean up temporary file
-  del temp.txt
 
-  rem push resources, but only if they are not on phone yet
-  rem Check if the folder exists on the Android device
-  adb shell "if [ ! -d '/data/ldsp/resources' ]; then echo 'not_exists'; else echo 'exists'; fi" > temp.txt
-  rem Read the result into a variable
-  set /p FOLDER_STATUS=<temp.txt
-  rem Check the folder status
-  if "%FOLDER_STATUS%"=="not_exists" (
-      adb push resources\gui /sdcard/ldsp/resources/gui
-  ) 
-  rem Clean up temporary file
-  del temp.txt
+  rem now all resources that do not need to be updated at every build
+  rem first check if /data/ldsp exists
+  adb shell "su -c 'ls /data | grep ldsp'" > nul 2>&1
+
+  if %ERRORLEVEL% neq 0 (
+      rem If `/data/ldsp` doesn't exist, create it
+      adb shell "su -c 'mkdir -p /data/ldsp'"
+      echo "/data/ldsp created. Pushing all necessary directories and files."
+
+      rem Call functions to push all resources
+      call :push_scripts
+      call :push_resources
+      call :push_onnxruntime
+
+  ) else (
+      rem If `/data/ldsp` exists, check and push missing subdirectories/files
+      rem Check for `scripts`
+      adb shell "su -c 'ls /data/ldsp'" | find "scripts" > nul 2>&1
+      if %ERRORLEVEL% neq 0 call :push_scripts
+
+      rem Check for `resources`
+      adb shell "su -c 'ls /data/ldsp'" | find "resources" > nul 2>&1
+      if %ERRORLEVEL% neq 0 call :push_resources
+
+      rem Check for `onnxruntime`
+      adb shell "su -c 'ls /data/ldsp'" | find "onnxruntime" > nul 2>&1
+      if %ERRORLEVEL% neq 0 call :push_onnxruntime
+  )
 
   adb shell "su -c 'mkdir -p /data/ldsp/projects/%project_name%'" rem create ldsp folder
   adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" rem cp all files from sd card temp folder to ldsp folder
@@ -327,10 +412,10 @@ rem End of :install
 
   rem Retrieve variables from settings file
   FOR /F "tokens=1* delims==" %%G IN (%settings_file%) DO (
-    IF "%%G"=="project_name" SET "project_name=%%H"
+    IF "%%G"=="project_name" set "project_name=%%H"
   )
 
-  adb shell "su -c 'cd /data/ldsp/projects/%project_name% && ./ldsp %args%'"
+  adb shell "su -c 'cd /data/ldsp/projects/%project_name%  && export LD_LIBRARY_PATH=\"/data/ldsp/onnxruntime\" && ./ldsp %args%'"
   exit /b 0
 rem End of :run
 
@@ -349,6 +434,7 @@ rem End of :Stop
   ninja clean
 
   del "%settings_file%"
+  del "%dependencies_file%"
 
   exit /b 0
 rem End of :clean
@@ -364,7 +450,7 @@ rem End of :clean
 
   rem Retrieve variable from settings file
   FOR /F "tokens=1* delims==" %%G IN (%settings_file%) DO (
-    IF "%%G"=="project_name" SET "project_name=%%H"
+    IF "%%G"=="project_name" set "project_name=%%H"
   )
 
   adb shell "su -c 'rm -r /data/ldsp/projects/%project_name%'" 
