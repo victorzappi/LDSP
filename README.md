@@ -167,9 +167,9 @@ We have had the experience of certain phones that do not have any type of mixer_
 	
   - Samsung Galaxy Nexus GT (GT-I9100)
   - LG Optimus L3 ---> needs more testing
-	- MEDION_E4504_S13A_206_160302 ---> needs more testing
-	- Xiaomi Redmi 9 ---> needs more testing
-	- Samsung Galaxy S3 mini ---> needs more testing
+  - MEDION_E4504_S13A_206_160302 ---> needs more testing
+  - Xiaomi Redmi 9 ---> needs more testing
+  - Samsung Galaxy S3 mini ---> needs more testing
 
 
 
