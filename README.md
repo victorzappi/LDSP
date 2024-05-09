@@ -164,7 +164,8 @@ We also need to change the name of the playback paths names and capture paths na
 This configuration .json file should be in your LDSP/phones/vendor/model folder, in order to be used. If you configure a phone, please let us know! So we can add it to the repository, to the list, and make it more accesible to other people. 
 
 We have had the experience of certain phones that do not have any type of mixer_paths.xml file and probably use a non standard method to control the audio I/O. This makes it impossible, as of now, to configure the phone for proper LDSP use. The phones in question are:
-	- Samsung Galaxy Nexus GT (GT-I9100)
+	
+  - Samsung Galaxy Nexus GT (GT-I9100)
   - LG Optimus L3 ---> needs more testing
 	- MEDION_E4504_S13A_206_160302 ---> needs more testing
 	- Xiaomi Redmi 9 ---> needs more testing
