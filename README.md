@@ -88,7 +88,7 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
     - Google USB Driver: for Google devices: [https://developer.android.com/studio/run/win-usb](https://developer.android.com/studio/run/win-usb)
     - OEM USB Drivers: these are the drivers provided directly by the phones' manufacturers: [https://developer.android.com/studio/run/oem-usb#Drivers](https://developer.android.com/studio/run/oem-usb#Drivers)
     
-  This link explains how to install the ADB driver for a phone once dowloaded: [https://www.auslogics.com/en/articles/install-adb-driver-on-windows-10/#step-1-check-if-you-already-have-the-adb-driver-installed-on-your-pc] (https://www.auslogics.com/en/articles/install-adb-driver-on-windows-10/#step-1-check-if-you-already-have-the-adb-driver-installed-on-your-pc)
+  This link explains how to install the ADB driver for a phone once dowloaded: [https://www.auslogics.com/en/articles/install-adb-driver-on-windows-10/#step-1-check-if-you-already-have-the-adb-driver-installed-on-your-pc](https://www.auslogics.com/en/articles/install-adb-driver-on-windows-10/#step-1-check-if-you-already-have-the-adb-driver-installed-on-your-pc)
 
 - **Pure Data “vanilla” [optional]**:  in case you want to code LDSP applications in Pd rather than C++: [https://puredata.info/downloads](https://puredata.info/downloads)
 
