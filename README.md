@@ -62,7 +62,7 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
   ninja --version
   ```
 
-- **ADB (Android device bridge)**: a small tool that allows you to open a shell on your phone via USB. We mainly use it to install, run and stop LDSP applications during development. You can also set up an SSH server on your phone to do all these things wirelessly, but ADB is simpler and in most cases more convenient.
+- **ADB (Android device bridge)**: a small tool that allows you to open a shell on your phone via USB. We mainly use it to install, run and stop LDSP applications during development. 
 
     - Linux: install via your package manager
     - macOS: install via Homebrew or MacPorts; otherwise follow Windows’ guidelines
@@ -72,6 +72,23 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
   ```console
   adb --version
   ```
+  Finally, check if ADB can actually connect to your phone (on Windows this procedure may fail due to the lack of proper drivers—in case, see the next point): 
+    - Activate developer options on your phone: [https://developer.android.com/studio/debug/dev-options](https://developer.android.com/studio/debug/dev-options)
+    - Connect your phone to your laptop with a USB cable capable of transfering data (e.g., images), as opposed to one that can only charge the phone
+    - Open a shell on your laptop and try to connect/open a shell on your phone with:
+      ```console
+      adb shell
+      ```
+  Check out your phone's screen, as Android will likely ask you for permission before allowing the connection. Tick the box that grants permission indefinitely.
+  If everything goes fine, your shell should be replaced by a new one opened on the phone, where the default phone user is logged in! You can type the command 'exit' to return to your local shell.
+
+- **ADB drivers [Windows only]**: on Windows, you may need to install some drivers for ADB to connect to your phone. Drivers tend to be phone-specific; you can try: 
+
+    - Universal ADB Drivers: these should work with a large number of phones: [https://adb.clockworkmod.com/](https://adb.clockworkmod.com/)
+    - Google USB Driver: for Google devices: [https://developer.android.com/studio/run/win-usb](https://developer.android.com/studio/run/win-usb)
+    - OEM USB Drivers: these are the drivers provided directly by the phones' manufacturers: [https://developer.android.com/studio/run/oem-usb#Drivers](https://developer.android.com/studio/run/oem-usb#Drivers)
+    
+  This link explains how to install the ADB driver for a phone once dowloaded: [https://www.auslogics.com/en/articles/install-adb-driver-on-windows-10/#step-1-check-if-you-already-have-the-adb-driver-installed-on-your-pc] (https://www.auslogics.com/en/articles/install-adb-driver-on-windows-10/#step-1-check-if-you-already-have-the-adb-driver-installed-on-your-pc)
 
 - **Pure Data “vanilla” [optional]**:  in case you want to code LDSP applications in Pd rather than C++: [https://puredata.info/downloads](https://puredata.info/downloads)
 
@@ -146,11 +163,12 @@ We also need to change the name of the playback paths names and capture paths na
 
 This configuration .json file should be in your LDSP/phones/vendor/model folder, in order to be used. If you configure a phone, please let us know! So we can add it to the repository, to the list, and make it more accesible to other people. 
 
-We have had the experience of certain phones that do not have any type of mixer_paths.xml -or even .xml files at all. This makes it impossible, as of now, to configure the phone for proper LDSP use. The phones in question are:
-	- LG Optimus L3 
-	- MEDION_E4504_S13A_206_160302 
-	- Xiaomi Redmi 9
-	- Samsung Galaxy S3 mini
+We have had the experience of certain phones that do not have any type of mixer_paths.xml file and probably use a non standard method to control the audio I/O. This makes it impossible, as of now, to configure the phone for proper LDSP use. The phones in question are:
+	- Samsung Galaxy Nexus GT (GT-I9100)
+  - LG Optimus L3 ---> needs more testing
+	- MEDION_E4504_S13A_206_160302 ---> needs more testing
+	- Xiaomi Redmi 9 ---> needs more testing
+	- Samsung Galaxy S3 mini ---> needs more testing
 
 
 
