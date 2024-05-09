@@ -1,27 +1,13 @@
 @echo off
+REM This script controls configuring the LDSP build system, building a project
+REM using LDSP, and running the resulting binary on a phone.
 
 rem Before running, you need to set the path to the Android NDK, e.g.:
-rem set NDK=C:\Users\%USERNAME%\android-ndk-r25b
-
-rem Global variables for project settings //VIC needed?
-REM set "project_dir="
-REM set "project_name="
-REM set "vendor="
-REM set "model="
-REM set "arch="
-REM set "api_level="
-REM set "onnx_version="
+rem set NDK=C:\Users\%USERNAME%\...\android-ndk-r25b
 
 REM this is created by this script via configure()
 set "settings_file=ldsp_settings.conf"
-
-rem Global variables for project dependencies //VIC needed?
-REM set "ADD_SEASOCKS="
-REM set "ADD_FFTW3="
-REM set "ADD_ONNX="
-REM set "ADD_LIBPD="
-
-REM this is created by CMake after build()
+REM this is created by CMake after configure()
 set "dependencies_file=ldsp_dependencies.conf"
 
 goto main
@@ -124,7 +110,6 @@ rem End of :install_scripts
 
 :configure
   rem Configure the LDSP build system to build for the given phone model, Android version, and project path.
-
   set vendor=%~1
   set model=%~2
   set version=%~3
@@ -374,7 +359,6 @@ rem End of :push_onnxruntime
   if %ERRORLEVEL% neq 0 (
       rem If `/data/ldsp` doesn't exist, create it
       adb shell "su -c 'mkdir -p /data/ldsp'"
-      echo "/data/ldsp created. Pushing all necessary directories and files."
 
       rem Call functions to push all resources
       call :push_scripts
@@ -494,46 +478,38 @@ rem End of :clean_phone
   exit /b 0
 rem End of :help
 
+
 :main
 
 rem Call the appropriate function based on the first argument.
 if "%1" == "install_scripts" (
   call :install_scripts
   exit /b %ERRORLEVEL%
-)
-else if "%1" == "configure" (
+) else if "%1" == "configure" (
   call :configure %2 %3 %4 %5
   exit /b %ERRORLEVEL%
-)
-else if "%1" == "build" (
+) else if "%1" == "build" (
   call :build
   exit /b %ERRORLEVEL%
-)
-else if "%1" == "install" (
+) else if "%1" == "install" (
   call :install
   exit /b %ERRORLEVEL%
-)
-else if "%1" == "run" (
+) else if "%1" == "run" (
   call :run %2
   exit /b %ERRORLEVEL%
-)
-else if "%1" == "stop" (
+) else if "%1" == "stop" (
   call :stop
   exit /b %ERRORLEVEL%
-)
-else if "%1" == "clean" (
+) else if "%1" == "clean" (
   call :clean
   exit /b %ERRORLEVEL%
-)
-else if "%1" == "clean_phone" (
+) else if "%1" == "clean_phone" (
   call :clean_phone
   exit /b %ERRORLEVEL%
-)
-else if "%1" == "install_scripts" (
+) else if "%1" == "install_scripts" (
   call :install_scripts
   exit /b %ERRORLEVEL%
-)
-else if "%1" == "help" (
+) else if "%1" == "help" (
   call :help
   exit /b %ERRORLEVEL%
 ) else (

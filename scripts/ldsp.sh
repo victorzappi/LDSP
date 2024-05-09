@@ -2,8 +2,11 @@
 # This script controls configuring the LDSP build system, building a project
 # using LDSP, and running the resulting binary on a phone.
 
+# Before running, you need to set the path to the Android NDK, e.g.:
+# export NDK="home/USERNAME/.../android-ndk-r25b
+
 settings_file="ldsp_settings.conf" # this is created by this script via configure()
-dependencies_file="ldsp_dependencies.conf" # this is created by CMake after build()
+dependencies_file="ldsp_dependencies.conf" # this is created by CMake after configure()
 
 # Convert a human-readable Android version (e.g. 13, 6.0.1, 4.4) into an API level.
 get_api_level () {
@@ -344,7 +347,7 @@ install () {
   find "$project_dir" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} /sdcard/ldsp/projects/$project_name \;
 
   # now the ldsp bin
-	adb push bin/ldsp /sdcard/ldsp/projects/$project_name/ldsp
+  adb push bin/ldsp /sdcard/ldsp/projects/$project_name/ldsp
   
 
   # now all resources that do not need to be updated at every build
@@ -352,7 +355,6 @@ install () {
   if ! adb shell 'su -c "ls /data | grep ldsp"'; then
     # If /data/ldsp does not exist, create it
     adb shell 'su -c "mkdir -p /data/ldsp"'
-    echo "/data/ldsp created. Pushing all necessary directories and files."
 
     # Call functions to push all resources
     push_scripts

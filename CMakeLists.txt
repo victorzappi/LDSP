@@ -64,6 +64,15 @@ endforeach()
 file(APPEND "${output_file}" "ADD_LIBPD=\"${ADD_LIBPD}\"\n")
 
 
+# dummy usage for DEVICE_ARCH and ONNX_VERSION, to avoid warnings
+# in projects that do not use them
+if(DEFINED DEVICE_ARCH)
+    set(_dummy_DEVICE_ARCH "${DEVICE_ARCH}")
+endif()
+if(DEFINED ONNX_VERSION)
+    set(_dummy_ONNX_VERSION "${ONNX_VERSION}")
+endif()
+
 
 
 add_subdirectory(core)
