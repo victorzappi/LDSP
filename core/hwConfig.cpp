@@ -23,7 +23,7 @@
 #include "libraries/JSON/json.hpp"
 #include "libraries/JSON/fifo_map.hpp"
 
-#define HW_CONFIG_FILE "ldsp_hw_config.json"
+#define HW_CONFIG_FILE "/data/ldsp/ldsp_hw_config.json"
 #define DEV_ID_PLCHLDR_STR "DEVICE_ID"
 
 using std::ifstream;

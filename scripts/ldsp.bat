@@ -1,13 +1,13 @@
 @echo off
-REM This script controls configuring the LDSP build system, building a project
-REM using LDSP, and running the resulting binary on a phone.
+rem This script controls configuring the LDSP build system, building a project
+rem using LDSP, and running the resulting binary on a phone.
 
 rem Before running, you need to set the path to the Android NDK, e.g.:
 rem set NDK=C:\Users\%USERNAME%\...\android-ndk-r25b
 
-REM this is created by this script via configure()
+rem this is created by this script via configure()
 set "settings_file=ldsp_settings.conf"
-REM this is created by CMake after configure()
+rem this is created by CMake after configure()
 set "dependencies_file=ldsp_dependencies.conf"
 
 goto main
@@ -250,7 +250,7 @@ rem End of :configure
 :build
   rem Build the user project.
   
-  REM Check if settings file exists
+  rem Check if settings file exists
   IF NOT EXIST "%settings_file%" (
     echo "Cannot build: project not configured. Please run ""ldsp.sh configure [settings]"" first."
     exit /b 1
@@ -328,9 +328,12 @@ rem End of :push_onnxruntime
     IF "%%G"=="ADD_LIBPD" set "ADD_LIBPD=%%H"
   )
 
+  rem create temp ldsp folder on sdcard
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/projects/%project_name%'" 
 
+  rem push hardware config file
   set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
-  adb push %hw_config% /sdcard/ldsp/projects/%project_name%/ldsp_hw_config.json
+  adb push %hw_config% /sdcard/ldsp/ldsp_hw_config.json
 
   rem Push all project resources, including Pd files in Pd projects, but excluding C/C++, assembly script files and folders that contain those files
   rem first folders
@@ -349,7 +352,7 @@ rem End of :push_onnxruntime
   )
 
   rem now the ldsp bin
-  adb push bin\ldsp /sdcard/ldsp/projects/%project_name%/ldsp
+  adb push bin\ldsp /sdcard/ldsp/projects/%project_name%/
 
 
   rem now all resources that do not need to be updated at every build

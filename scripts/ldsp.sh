@@ -335,10 +335,11 @@ install () {
       source $dependencies_file
   fi
 
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/projects/$project_name'" # create temp ldsp folder on sdcard
 
+  # push hardware config file
   hw_config="./phones/$vendor/$model/ldsp_hw_config.json"
-  adb push "$hw_config" /sdcard/ldsp/projects/$project_name/ldsp_hw_config.json
-
+  adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
 
   # Push all project resources, including Pd files in Pd projects, but excluding C/C++, assembly files and folders that contain those files
   # first folders
@@ -347,8 +348,7 @@ install () {
   find "$project_dir" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} /sdcard/ldsp/projects/$project_name \;
 
   # now the ldsp bin
-  adb push bin/ldsp /sdcard/ldsp/projects/$project_name/ldsp
-  
+  adb push bin/ldsp /sdcard/ldsp/projects/$project_name/
 
   # now all resources that do not need to be updated at every build
   # first check if /data/ldsp exists
@@ -378,7 +378,6 @@ install () {
       push_onnxruntime
     fi
   fi
-
   
   adb shell "su -c 'mkdir -p /data/ldsp/projects/$project_name'" # create ldsp and project folders
   adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" # cp all files from sd card temp folder to ldsp folder
