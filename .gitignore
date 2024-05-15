@@ -62,5 +62,8 @@ build.ninja.tmp*
 ldsp_settings.conf
 ldsp_dependencies.conf
 
+# inner repos
+**/LDSP-ONNX
+
 # Temporary local projects
 _projects/

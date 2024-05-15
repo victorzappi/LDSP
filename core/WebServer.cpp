@@ -104,18 +104,19 @@ std::string WebServer::runIpCommand(std::string command)
         std::smatch ipMatch;
 
         std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
-        if (!pipe) {
+        if (!pipe)
             throw std::runtime_error("popen() failed!");
-        }
 
         // removes all strings that start and end with 255 and returns the last one
-        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) 
+        {
             result = buffer.data();
-            if (std::regex_search(result, ipMatch, ipRegex)) {
+            if (std::regex_search(result, ipMatch, ipRegex)) 
+            {
                 std::string ip = ipMatch[1];
-                if (ip.substr(0, 1) != "0" && ip.substr(0, 3) != "255" && ip.substr(ip.size() - 4) != ".255") {
+                if(ip.substr(0, 1) != "0" && ip.substr(0, 3) != "255" && 
+                   ip.substr(0, 3) != "127" && ip.substr(ip.size() - 4) != ".255")
                     lastValidIPAddress = ip;
-                }
             }
         }
 
