@@ -78,6 +78,11 @@ endif()
 
 # Check if we should add onnx
 if(ADD_RTNEURAL)
+    # Set the CPM source cache to a custom directory within the build directory and create the dir
+    # needed because because rtneural uses the CMake Package Manager which needs to be explicitly 
+    # re-directed to the custom build dir
+    set(CPM_SOURCE_CACHE "${CMAKE_BINARY_DIR}/cpm_cache")
+    file(MAKE_DIRECTORY ${CPM_SOURCE_CACHE})
     add_subdirectory(RTNeural)
 endif()
 
