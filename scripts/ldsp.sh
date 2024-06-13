@@ -288,37 +288,6 @@ build () {
   fi
 }
 
-# Clean the built files
-clean () {
-  cd build
-  ninja clean
-  cd ..
-  rm -r ./build
-  rm $settings_file
-  rm $dependencies_file
-}
-
-# Remove current project from directory from the device
-clean_phone () {
-  if ! [[ -f $settings_file ]]; then
-    echo "Cannot clean phone: project not configured. Please run \"ldsp.sh configure [settings] first.\""
-  fi
-
-  # Retrieve variables from settings file
-  if [[ -f $settings_file ]]; then
-      source $settings_file
-  fi
-
-  adb shell "su -c 'rm -r /data/ldsp/projects/$project_name'" 
-}
-
-# Remove the ldsp directory from the device
-clean_ldsp () {
-  adb shell "su -c 'rm -r /data/ldsp/'" 
-}
-
-
-
 push_scripts() {
   adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
   adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
@@ -409,19 +378,6 @@ install () {
   adb shell "su -c 'rm -r /sdcard/ldsp'" # remove the temp /sdcard/ldsp directory from the device
 }
 
-# Stop the currently-running user project on the phone.
-stop () {
-  echo "Stopping LDSP..."
-  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
-}
-
-handle_stop() {
-  # Gracefully stop the LDSP process
-  stop
-  # Wait for the LDSP process and ADB shell to terminate properly
-  sleep 1
-}
-
 # Run the user project on the phone.
 run () {
   # Retrieve variables from settings file
@@ -458,6 +414,48 @@ run_persistent () {
   '
   exit
 EOF
+}
+
+# Stop the currently-running user project on the phone.
+stop () {
+  echo "Stopping LDSP..."
+  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
+}
+
+handle_stop() {
+  # Gracefully stop the LDSP process
+  stop
+  # Wait for the LDSP process and ADB shell to terminate properly
+  sleep 1
+}
+
+# Clean the built files
+clean () {
+  cd build
+  ninja clean
+  cd ..
+  rm -r ./build
+  rm $settings_file
+  rm $dependencies_file
+}
+
+# Remove current project from directory from the device
+clean_phone () {
+  if ! [[ -f $settings_file ]]; then
+    echo "Cannot clean phone: project not configured. Please run \"ldsp.sh configure [settings] first.\""
+  fi
+
+  # Retrieve variables from settings file
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
+
+  adb shell "su -c 'rm -r /data/ldsp/projects/$project_name'" 
+}
+
+# Remove the ldsp directory from the device
+clean_ldsp () {
+  adb shell "su -c 'rm -r /data/ldsp/'" 
 }
 
 # Print usage information.

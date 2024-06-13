@@ -227,12 +227,35 @@ rem End of :install_scripts
       set "onnx_version=below24"
   )
 
-  cmake "-DCMAKE_TOOLCHAIN_FILE=%NDK%\build\cmake\android.toolchain.cmake" -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% "-DANDROID_NDK=%NDK%" %explicit_neon% %neon% "-DLDSP_PROJECT=%project_dir%" "-DONNX_VERSION=%onnx_version%" -G Ninja .
+  rem convert project_dir to an absolute path
+  rem 1 Save the current directory
+  set current_dir=%CD%
+  rem 2 Change to the project directory
+  pushd "%project_dir%"
+  rem 3 Get the absolute path
+  SET project_dir=%CD%
+  rem 4 Return to the original directory
+  popd
+
+  rem create and navigate to the custom build directory
+  mkdir -p build
+  cd build
+  rem store custom build dir
+  set build_dir=%CD%
+
+  rem Run CMake configuration
+  cmake -DCMAKE_TOOLCHAIN_FILE=%NDK%/build/cmake/android.toolchain.cmake ^
+        -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% ^
+        "-DANDROID_NDK=%NDK%" %explicit_neon% %neon% "-DLDSP_PROJECT=%project_dir%" "-DONNX_VERSION=%onnx_version%" ^
+        -G Ninja -B"%build_dir%" -S".."
 
   if not %ERRORLEVEL% == 0 (
     echo Cannot configure: CMake failed
     exit /b %ERRORLEVEL%
   )
+
+  rem back to root dir
+  cd ..
 
   rem store settings
   echo project_dir="%project_dir%" > "%settings_file%"
@@ -256,7 +279,10 @@ rem End of :configure
     exit /b 1
   )
 
+  cd build
   ninja
+  cd ..
+
   if not %ERRORLEVEL% == 0 (
     echo Cannot build: Ninja failed
     exit /b %ERRORLEVEL%
@@ -304,7 +330,7 @@ rem End of :push_onnxruntime
 
 :install
   rem Install the user project, LDSP hardware config and resources to the phone.
-  if not exist "bin\ldsp" (
+  if not exist "build\bin\ldsp" (
     echo Cannot push: No ldsp executable found. Please run "ldsp build\ first.
     exit /b 1
   )
@@ -352,7 +378,7 @@ rem End of :push_onnxruntime
   )
 
   rem now the ldsp bin
-  adb push bin\ldsp /sdcard/ldsp/projects/%project_name%/
+  adb push build\bin\ldsp /sdcard/ldsp/projects/%project_name%/
 
 
   rem now all resources that do not need to be updated at every build
@@ -418,8 +444,10 @@ rem End of :Stop
 :clean
   rem Clean project.
 
+  cd build
   ninja clean
-
+  cd ..
+  rm -r ./build
   del "%settings_file%"
   del "%dependencies_file%"
 
