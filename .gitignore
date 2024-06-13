@@ -33,8 +33,8 @@
 *.out
 *.app
 
-# Build output
-bin/
+# Build dir
+build/
 
 # Build objs
 obj/
@@ -64,6 +64,7 @@ ldsp_dependencies.conf
 
 # inner repos
 **/LDSP-ONNX
+**/LDSP-RTNeural
 
 # Temporary local projects
 _projects/

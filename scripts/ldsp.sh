@@ -237,12 +237,29 @@ configure () {
 
   onnx_version=$(get_onnx_version)
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" -G Ninja .
+  # convert project_dir to an absolute path
+  project_dir=$(cd "$(dirname "$project_dir")"; pwd)/$(basename "$project_dir")
+
+  # create and navigate to the custom build directory
+  mkdir -p build
+  cd build
+  # store custom build dir
+  build_dir=$(pwd)
+
+  # run CMake configuration 
+  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
+        -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level \
+        "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" \
+        -G Ninja -B"$build_dir" -S".."
+
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
     echo "Cannot configure: CMake failed"
     exit $exit_code
   fi
+
+  # back to root dir
+  cd ..
 
   # store settings
   echo "project_dir=\"$project_dir\"" > $settings_file
@@ -260,7 +277,10 @@ build () {
     echo "Cannot build: project not configured. Please run \"ldsp.sh configure [settings] first.\""
   fi
 
+  cd build
   ninja
+  cd ..
+
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
     echo "Cannot build: Ninja failed"
@@ -268,9 +288,12 @@ build () {
   fi
 }
 
-# Clean the built files.
+# Clean the built files
 clean () {
+  cd build
   ninja clean
+  cd ..
+  rm -r ./build
   rm $settings_file
   rm $dependencies_file
 }
@@ -318,9 +341,9 @@ push_onnxruntime() {
   fi
 }
 
-# Install the user project, LDSP hardware config and resources to the phone.
+# Install the user project, LDSP hardware config and resources to the phone
 install () {
-  if [[ ! -f bin/ldsp ]]; then
+  if [[ ! -f build/bin/ldsp ]]; then
     echo "Cannot install: no ldsp executable found. Please run \"ldsp.sh build\" first."
     exit 1
   fi
@@ -348,7 +371,7 @@ install () {
   find "$project_dir" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} /sdcard/ldsp/projects/$project_name \;
 
   # now the ldsp bin
-  adb push bin/ldsp /sdcard/ldsp/projects/$project_name/
+  adb push build/bin/ldsp /sdcard/ldsp/projects/$project_name/
 
   # now all resources that do not need to be updated at every build
   # first check if /data/ldsp exists

@@ -99,6 +99,13 @@ if(ADD_ONNX)
   )
 endif()
 
+# Check if we should add rtneural
+if(ADD_RTNEURAL)
+  target_link_libraries(ldsp
+    PRIVATE RTNeural
+  )
+endif()
+
 # These are mandatory/lightweight
 target_link_libraries(ldsp
   PRIVATE libraries

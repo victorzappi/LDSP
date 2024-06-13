@@ -33,9 +33,9 @@ endif()
 
 # Check whether or not to add other large dependencies
 # Define the variable names and corresponding strings to search for
-set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFTW3" "ADD_ONNX")
+set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFTW3" "ADD_ONNX" "ADD_RTNEURAL")
 # designed to work with two strings per dependency, one specific to ldsp and one to the dependency
-set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "fft.h;fftw3" "libraries/OrtModel/OrtModel.h;onnx")
+set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "fft.h;fftw3" "libraries/OrtModel/OrtModel.h;onnx" "RTNeural/RTNeural.h;rtneural")
 #TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
 # the main pd file needs to be excluded and an extra check needs to be added:
 # if pd and any patch has a 'gui send' or 'gui receive' ---> then ADD_SEASOCKS

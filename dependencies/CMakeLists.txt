@@ -71,13 +71,15 @@ if(ADD_LIBPD)
     target_compile_options(libpd PRIVATE "-Wno-everything")
 endif()
 
-
 # Check if we should add onnx
 if(ADD_ONNX)
     add_subdirectory(onnxruntime)
 endif()
 
-
+# Check if we should add onnx
+if(ADD_RTNEURAL)
+    add_subdirectory(RTNeural)
+endif()
 
 
 
