@@ -76,5 +76,5 @@ endif()
 
 
 add_subdirectory(core)
-add_subdirectory(libraries)
 add_subdirectory(dependencies)
+add_subdirectory(libraries) # here we have all target include directories too

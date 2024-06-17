@@ -43,28 +43,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin/)
 add_executable(ldsp ${SOURCES})
 
 
-target_include_directories(ldsp
-  PRIVATE ../include
-  PRIVATE ..
-)
-
 
 # Check if we should add libpd
 if(ADD_LIBPD)
-    # All necessary headers for libpd
-    set(LIBPD_DIR ../dependencies/libpd)
-    set(LIBPD_INCLUDE_DIRS 
-      ${LIBPD_DIR}/libpd_wrapper 
-      ${LIBPD_DIR}/libpd_wrapper/util 
-      ${LIBPD_DIR}/pure-data/src 
-      ${LIBPD_DIR}/cpp
-    )
-    
-    # Adding libpd to the target include directories
-    target_include_directories(ldsp
-      PRIVATE ${LIBPD_INCLUDE_DIRS}
-    )
-
     # Linking libpd static library
     target_link_libraries(ldsp
       PRIVATE libpd_static
@@ -94,8 +75,7 @@ if(ADD_ONNX)
   target_link_libraries(ldsp
     # DYNAMIC LIBRARY
     PRIVATE onnxruntime
-    # LDSP wrapper
-    PRIVATE onnx_library
+
   )
 endif()
 
