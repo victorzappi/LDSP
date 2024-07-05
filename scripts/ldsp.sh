@@ -297,7 +297,7 @@ push_resources() {
   # push only if dependency is in use
   if [[ $ADD_SEASOCKS =~ ^(TRUE)$ ]]; then
     adb shell "su -c 'mkdir -p /sdcard/ldsp/resources'" # create temp folder on sdcard
-    adb push resources /sdcard/ldsp/resources/  
+    adb push resources /sdcard/ldsp/  
   fi
 }
 

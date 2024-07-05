@@ -40,7 +40,7 @@ public:
         const std::string uri = request.getRequestUri();
         const std::string basePath = "/data/ldsp/";
 
-        //printf("___________%s\n", uri.c_str());
+        // printf("___________%s\n", uri.c_str());
 
         // this is needed to pass web socket requests to the web socket handler
         if (request.verb() == seasocks::Request::Verb::WebSocket) 
@@ -103,7 +103,7 @@ public:
             } else if (extension == "ttf")
                 mimeType = "font/ttf";
 
-            //printf("/font/___________%s\n", filePath.c_str());
+            // printf("/font/___________%s\n", filePath.c_str());
 
             return serveFile(filePath, mimeType);
         }
@@ -118,7 +118,7 @@ public:
                 filePath = basePath + "projects/" + _projectName + "/sketch.js";
             }
 
-            //  printf("/projects/___________%s\n", filePath.c_str());
+            // printf("/projects/___________%s\n", filePath.c_str());
 
             // Check if file exists
             if (fs::exists(filePath)) {
@@ -134,8 +134,8 @@ public:
 
         // Default case for serving the main HTML file
         if (uri == "/" || uri == "/gui/index.html" || uri == "/gui/") {
-            // printf("/___________%s\n", uri.c_str());
-            // printf("/___________/data/ldsp/resources/gui/index.html\n");
+            std::string filePath = basePath + "resources/gui/index.html";
+            // printf("/___________%s\n", filePath.c_str());
             return serveFile( basePath + "resources/gui/index.html", "text/html");
         }
 

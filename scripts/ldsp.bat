@@ -309,7 +309,7 @@ rem End of :push_scripts
     adb shell "su -c 'mkdir -p /sdcard/ldsp/resources'"
     
     rem Push resources to the SD card
-    adb push resources /sdcard/ldsp/resources/
+    adb push resources /sdcard/ldsp/
   )
   exit /b
 rem End of :push_resources
