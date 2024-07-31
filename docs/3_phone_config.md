@@ -3,6 +3,8 @@
 
 [UNDER CONSTRUCTION]
 
+before you start, root...
+
 install LDSP scripts on phone...
 
- [Previous: Installation](installation.md) | [Next: Usage](usage.md)
+ [Previous: Installation](2_installation.md) | [Next: Usage](4_usage.md)

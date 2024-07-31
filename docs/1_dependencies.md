@@ -4,7 +4,7 @@
 - **Git [optional]**: while not needed to build/run LDSP applications, Git is very useful to download the LDSP environment from this repo and keep it up-to-date:
 [https://git-scm.com/book/en/v2/Getting-Started-Installing-Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
-- **Android NDK**: includes the C++ compiler (the toolchain) and the run-time libraries necessary to build from your laptop LDSP applications that can run on your phone.
+- **Android NDK**: includes the C++ compiler (the toolchain) and the run-time libraries necessary to build from your computer/laptop LDSP applications that can run on your phone.
 [https://developer.android.com/ndk/downloads](https://developer.android.com/ndk/downloads)
 --> Once downloaded, note down the path of the NDK, it will be needed later! <---
 
@@ -54,13 +54,13 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
   ```
   Finally, check if ADB can actually connect to your phone (on Windows this procedure may fail due to the lack of proper drivers—in case, see the next point): 
     - Activate developer options on your phone: [https://developer.android.com/studio/debug/dev-options](https://developer.android.com/studio/debug/dev-options)
-    - Connect your phone to your laptop with a USB cable capable of transfering data (e.g., images), as opposed to one that can only charge the phone
-    - Open a shell on your laptop and try to connect/open a shell on your phone with:
+    - Connect your phone to your computer with a USB cable capable of transfering data (e.g., images), as opposed to one that can only charge the phone
+    - Open a shell on your computer and try to connect/open a shell on your phone with:
       ```console
       adb shell
       ```
   Check out your phone's screen, as Android will likely ask you for permission before allowing the connection. Tick the box that grants permission indefinitely.
-  If everything goes fine, your shell should be replaced by a new one opened on the phone, where the default phone user is logged in! You can type the command 'exit' to return to your local shell.
+  If everything goes fine, your shell should be replaced by a new one opened on the phone, where the default phone user is logged in! You can type the command *exit* to return to your local shell.
 
 - **ADB drivers [Windows only]**: on Windows, you may need to install some drivers for ADB to connect to your phone. Drivers tend to be phone-specific; you can try: 
 
@@ -73,4 +73,4 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
 - **Pure Data “vanilla” [optional]**:  in case you want to code LDSP applications in Pd rather than C++: [https://puredata.info/downloads](https://puredata.info/downloads)
 
 
-[Previous: Introduction](introduction.md) | [Next: Installation](installation.md)
+[Previous: Introduction](0_introduction.md) | [Next: Installation](2_installation.md)

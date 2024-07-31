@@ -22,4 +22,4 @@ Then, make sure that you have Developer Options enabled on the phone, then insid
 If you configure a new phone, please let us know and we will add the configuration file you have populated (more on that later). 
 
 
-[Next: Dependencies](dependencies.md)
+[Next: Dependencies](1_dependencies.md)

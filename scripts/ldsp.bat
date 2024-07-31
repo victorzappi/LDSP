@@ -1,4 +1,5 @@
 @echo off
+
 rem This script controls configuring the LDSP build system, building a project
 rem using LDSP, and running the resulting binary on a phone.
 
@@ -110,28 +111,37 @@ rem End of :install_scripts
 
 :configure
   rem Configure the LDSP build system to build for the given phone model, Android version, and project path.
-  set vendor=%~1
-  set model=%~2
+  set config=%~1
   set version=%~3
-  set project_dir=%~4
+  set project=%~4
 
-  if "%vendor%" == "" (
-    echo Cannot configure: vendor not specified
-    echo Please specify a vendor with --vendor
+  if "%config%" == "" (
+    echo Cannot configure: harwdware configuration file path not specified
+    echo Please specify a harwdware configuration file path
     exit /b 1
   )
 
-  if "%model%" == "" (
-    echo Cannot configure: model not specified
-    echo Please specify a phone model with --model
+  rem convert config to an absolute path
+  rem 1 Save the current directory
+  set current_dir=%CD%
+  rem 2 Change to the project directory
+  pushd "%config%"
+  rem 3 Get the absolute path
+  set config_dir=%CD%
+  rem 4 Return to the original directory
+  popd
+
+  if not exist "%config_dir%" (
+    echo Cannot configure: hadrware configuration directory does not exist
+    echo Please specify a valid harwdware configuration file path
     exit /b 1
   )
 
-  set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
+  set hw_config="%config_dir%\ldsp_hw_config.json"
 
   if not exist %hw_config% (
-    echo Cannot configure: hardware config file not found
-    echo Please ensure that an ldsp_hw_config.json file exists for "%vendor% %model%"
+    echo Cannot configure: hardware configuration file not found
+    echo Please ensure that an ldsp_hw_config.json file exists in "%config%"
     exit /b 1
   )
 
@@ -191,11 +201,21 @@ rem End of :install_scripts
     set "explicit_neon=-DEXPLICIT_ARM_NEON=0"
   )
 
-  if "%project_dir%" == "" (
+  if "%project%" == "" (
     echo Cannot configure: Project path not specified
     echo Please specify a project path with --project
     exit /b 1
   )
+
+  rem convert project to an absolute path
+  rem 1 Save the current directory
+  set current_dir=%CD%
+  rem 2 Change to the project directory
+  pushd "%project%"
+  rem 3 Get the absolute path
+  set project_dir=%CD%
+  rem 4 Return to the original directory
+  popd
 
   if not exist "%project_dir%" (
     echo Cannot configure: Project path not found
@@ -205,6 +225,7 @@ rem End of :install_scripts
 
   rem Extract the last part of the path for project_name
   FOR %%I IN ("%project_dir%") DO set "project_name=%%~nI"
+
 
   if "%NDK%" == "" (
     echo Cannot configure: NDK not specified
@@ -226,16 +247,6 @@ rem End of :install_scripts
   ) else (
       set "onnx_version=below24"
   )
-
-  rem convert project_dir to an absolute path
-  rem 1 Save the current directory
-  set current_dir=%CD%
-  rem 2 Change to the project directory
-  pushd "%project_dir%"
-  rem 3 Get the absolute path
-  SET project_dir=%CD%
-  rem 4 Return to the original directory
-  popd
 
   rem create and navigate to the custom build directory
   mkdir -p build
@@ -260,8 +271,7 @@ rem End of :install_scripts
   rem store settings
   echo project_dir="%project_dir%" > "%settings_file%"
   echo project_name="%project_name%" >> "%settings_file%"
-  echo vendor="%vendor%" >> "%settings_file%"
-  echo model="%model%" >> "%settings_file%"
+  echo hw_config="%hw_config%" >> "%settings_file%"
   echo arch="%arch%" >> "%settings_file%"
   echo api_level="%api_level%" >> "%settings_file%"
   echo onnx_version="%onnx_version%" >> "%settings_file%"
@@ -339,8 +349,7 @@ rem End of :push_onnxruntime
   FOR /F "tokens=1* delims==" %%G IN (%settings_file%) DO (
     IF "%%G"=="project_dir" set "project_dir=%%H"
     IF "%%G"=="project_name" set "project_name=%%H"
-    IF "%%G"=="vendor" set "vendor=%%H"
-    IF "%%G"=="model" set "model=%%H"
+    IF "%%G"=="hw_config" set "hw_config=%%H"
     IF "%%G"=="arch" set "arch=%%H"
     IF "%%G"=="api_level" set "api_level=%%H"
     IF "%%G"=="onnx_version" set "onnx_version=%%H"
@@ -358,21 +367,20 @@ rem End of :push_onnxruntime
   adb shell "su -c 'mkdir -p /sdcard/ldsp/projects/%project_name%'" 
 
   rem push hardware config file
-  set hw_config=".\phones\%vendor%\%model%\ldsp_hw_config.json"
   adb push %hw_config% /sdcard/ldsp/ldsp_hw_config.json
 
-  rem Push all project resources, including Pd files in Pd projects, but excluding C/C++, assembly script files and folders that contain those files
+  rem Push all project resources, including Pd files in Pd projects, but excluding C/C++ and assembly files, and folders that contain those files
   rem first folders
   @echo off
   for /F "delims=" %%i in ('dir /B /A:D "%project_dir%"') do (
-      dir /B /A "%project_dir%\%%i\*.cpp" "%project_dir%\%%i\*.c" "%project_dir%\%%i\*.h" "%project_dir%\%%i\*.hpp" "%project_dir%\%%i\*.S" "%project_dir%\%%i\*.s" >nul 2>&1
+      dir /B /A "%project_dir%\%%i\*.cpp" "%project_dir%\%%i\*.c" "%project_dir%\%%i\*.h" "%project_dir%\%%i\*.hpp" "%project_dir%\%%i\*.S" "%project_dir%\%%i\*.s" "%project_dir%\%%i\*.sh" >nul 2>&1
       if errorlevel 1 (
           adb push "%project_dir%\%%i" /sdcard/ldsp/projects/%project_name%/
       )
   )
   rem then files
   for %%i in ("%project_dir%\*") do (
-      if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" (
+      if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" if /I not "%%~xi" == ".sh" (
           adb push "%%i" /sdcard/ldsp/projects/%project_name%/
       )
   )
@@ -485,7 +493,7 @@ rem End of :clean_phone
   rem Print usage information.
   echo usage:
   echo   ldsp.bat install_scripts
-  echo   ldsp.bat configure [vendor] [model] [version] [project]
+  echo   ldsp.bat configure [configuration] [version] [project]
   echo   ldsp.bat build
   echo   ldsp.bat install
   echo   ldsp.bat run ^"[list of arguments]^"
@@ -496,15 +504,17 @@ rem End of :clean_phone
   echo.
   echo Description:
   echo   install_scripts    Install the LDSP scripts on the phone.
-  echo   configure          Configure the LDSP build system for the specified phone (vendor and model), version and project.
-  echo                      (The above settings are needed)
-  echo   build              Build the configured user project.
-  echo   install            Install the configured user project, LDSP hardware config, scripts and resources to the phone.
-  echo   run                Run the configured user project on the phone.
-  echo                      (Any arguments passed after "run" within quotes are passed to the user project)
-  echo   stop               Stop the currently-running user project on the phone.
-  echo   clean              Clean the configured user project.
-  echo   clean_phone        Remove all user project files from phone.
+  echo   configure          Configure the LDSP build system for the specified phone and project. It requires the following settings, in this order:
+  echo                        the path to the folder containing the hardware configuration file of the chosen phone 
+  echo                        Android version running on the phone
+  echo                        the path to the project to build
+  echo   build              Build the configured project.
+  echo   install            Install the configured project, LDSP hardware config, scripts and resources to the phone.
+  echo   run                Run the configured project on the phone.
+  echo                        (Any arguments passed after "run" within quotes are passed to the project)
+  echo   stop               Stop the currently-running project on the phone.
+  echo   clean              Clean the configured project.
+  echo   clean_phone        Remove all project files from phone.
   echo   clean_ldsp         Remove all LDSP files from phone.
   exit /b 0
 rem End of :help
@@ -517,7 +527,7 @@ if "%1" == "install_scripts" (
   call :install_scripts
   exit /b %ERRORLEVEL%
 ) else if "%1" == "configure" (
-  call :configure %2 %3 %4 %5
+  call :configure %2 %3 %4
   exit /b %ERRORLEVEL%
 ) else if "%1" == "build" (
   call :build

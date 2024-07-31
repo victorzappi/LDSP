@@ -150,26 +150,27 @@ install_scripts() {
 
 # Configure the LDSP build system to build for the given phone model, Android version, and project path.
 configure () {
-  if [[ $VENDOR == "" ]]; then
-    echo "Cannot configure: Vendor not specified"
-    echo "Please specify a phone vendor with --vendor"
+  if [[ $CONFIG == "" ]]; then
+    echo "Cannot configure: hardware configuration file path not specified"
+    echo "Please specify a hardware configuration file path with --configure"
     exit 1
   fi
-  vendor=$VENDOR
-
-  if [[ $MODEL == "" ]]; then
-    echo "Cannot configure: Model not specified"
-    echo "Please specify a phone model with --model"
+  config_dir=$CONFIG  
+  # convert config to an absolute path
+  config_dir=$(cd "$(dirname "$config_dir")"; pwd)/$(basename "$config_dir")
+  
+  if [[ ! -d "$config_dir" ]]; then
+    echo "Cannot configure: hadrware configuration directory does not exist"
+    echo "Please specify a valid hadrware configuration file path with --configure"
     exit 1
   fi
-  model=$MODEL
 
   # path to hardware config
-  hw_config="./phones/$vendor/$model/ldsp_hw_config.json"
+  hw_config="$config_dir/ldsp_hw_config.json"
 
   if [[ ! -f "$hw_config" ]]; then
-    echo "Cannot configure: Hardware config file not found"
-    echo "Please ensure that an ldsp_hw_config.json file exists for \"$vendor/$model\""
+    echo "Cannot configure: hardware configuration file not found"
+    echo "Please ensure that an ldsp_hw_config.json file exists in \"$CONFIG\""
     exit 1
   fi
 
@@ -184,7 +185,7 @@ configure () {
   elif [[ $arch == "x86_64" ]]; then
     abi="x86_64"
   else
-    echo "Cannot configure: Unknown architecture: $arch"
+    echo "Cannot configure: unknown architecture: $arch"
     exit 1
   fi
 
@@ -193,7 +194,7 @@ configure () {
   exit_code=$?
 
   if [[ $exit_code != 0 ]]; then
-    echo "Cannot configure: Unknown Android version: $VERSION"
+    echo "Cannot configure: unknown Android version: $VERSION"
     exit $exit_code
   fi
 
@@ -219,14 +220,18 @@ configure () {
     exit 1
   fi
 
-  if [[ ! -d "$PROJECT" ]]; then
+  project_dir=$PROJECT 
+  # convert project_dir to an absolute path
+  project_dir=$(cd "$(dirname "$project_dir")"; pwd)/$(basename "$project_dir")
+
+  if [[ ! -d "$project_dir" ]]; then
     echo "Cannot configure: project directory does not exist"
     echo "Please specify a valid project path with --project"
     exit 1
   fi
-  project_dir=$PROJECT 
+  
   project_name=$(basename "$project_dir")
-
+  
 
   if [[ ! -d "$NDK" ]]; then
     echo "Cannot configure: NDK not found"
@@ -236,9 +241,6 @@ configure () {
   fi
 
   onnx_version=$(get_onnx_version)
-
-  # convert project_dir to an absolute path
-  project_dir=$(cd "$(dirname "$project_dir")"; pwd)/$(basename "$project_dir")
 
   # create and navigate to the custom build directory
   mkdir -p build
@@ -264,8 +266,7 @@ configure () {
   # store settings
   echo "project_dir=\"$project_dir\"" > $settings_file
   echo "project_name=\"$project_name\"" >> $settings_file
-  echo "vendor=\"$vendor\"" >> $settings_file
-  echo "model=\"$model\"" >> $settings_file
+  echo "hw_config=\"$hw_config\"" >> $settings_file
   echo "arch=\"$arch\"" >> $settings_file
   echo "api_level=\"$api_level\"" >> $settings_file
   echo "onnx_version=\"$onnx_version\"" >> $settings_file
@@ -330,10 +331,9 @@ install () {
   adb shell "su -c 'mkdir -p /sdcard/ldsp/projects/$project_name'" # create temp ldsp folder on sdcard
 
   # push hardware config file
-  hw_config="./phones/$vendor/$model/ldsp_hw_config.json"
   adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
 
-  # Push all project resources, including Pd files in Pd projects, but excluding C/C++, assembly files and folders that contain those files
+  # Push all project resources, including Pd files in Pd projects, but excluding C/C++ and assembly files, folders that contain those files
   # first folders
   find "$project_dir"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp "{}"/*.S "{}"/*.s 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /sdcard/ldsp/projects/$project_name
   # then files
@@ -471,21 +471,20 @@ help () {
   echo -e "ldsp.sh clean_phone"
   echo -e "ldsp.sh clean_ldsp"
   echo -e "\nSettings (used with the 'configure' step):"
-  echo -e "  --vendor=VENDOR, -v VENDOR\tThe vendor of the phone to build for."
-  echo -e "  --model=MODEL, -m MODEL\tThe model of the phone to build for."
-  echo -e "  --project=PROJECT, -p PROJECT\tThe path to the user project to build."
-  echo -e "  --version=VERSION, -a VERSION\tThe Android version to build for."
+  echo -e "  --configuration=CONFIGURATION, -c CONFIGURATION\tThe path to the folder containing the hardware configuration file of the chosen phone."
+  echo -e "  --version=VERSION, -a VERSION\tThe Android version running on the phone."
+  echo -e "  --project=PROJECT, -p PROJECT\tThe path to the project to build."
   echo -e "\nDescription:"
   echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone."
-  echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone (vendor and model), version and project."
+  echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone and project."
   echo -e "  \t\t\t\t(The above settings are needed)"
-  echo -e "  build\t\t\t\tBuild the configured user project."
-  echo -e "  install\t\t\t\tInstall the configured user project, LDSP hardware config, scripts and resources to the phone."
-  echo -e "  run\t\t\t\tRun the configured user project on the phone."
+  echo -e "  build\t\t\t\tBuild the configured project."
+  echo -e "  install\t\t\t\tInstall the configured project, LDSP hardware config, scripts and resources to the phone."
+  echo -e "  run\t\t\t\tRun the configured project on the phone."
   echo -e "  \t\t\t\t(Any arguments passed after \"run\" within quotes are passed to the user project)"
-  echo -e "  stop\t\t\t\tStop the currently-running user project on the phone."
-  echo -e "  clean\t\t\t\tClean the configured user project."
-  echo -e "  clean_phone\t\t\tRemove all user project files from phone."
+  echo -e "  stop\t\t\t\tStop the currently-running project on the phone."
+  echo -e "  clean\t\t\t\tClean the configured project."
+  echo -e "  clean_phone\t\t\tRemove all project files from phone."
   echo -e "  clean_ldsp\t\t\tRemove all LDSP files from phone."
 }
 
@@ -493,21 +492,12 @@ STEPS=()
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --vendor=*)
-      VENDOR="${1#*=}"
+    --configuration=*)
+      CONFIG="${1#*=}"
       shift
       ;;
-    --vendor|-v)
-      VENDOR="$2"
-      shift
-      shift
-      ;;
-    --model=*)
-      MODEL="${1#*=}"
-      shift
-      ;;
-    --model|-m)
-      MODEL="$2"
+    --configuration|-c)
+      CONFIG="$2"
       shift
       shift
       ;;
