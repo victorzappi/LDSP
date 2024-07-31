@@ -3,6 +3,7 @@
 
 - **Git [optional]**: while not needed to build/run LDSP applications, Git is very useful to download the LDSP environment from this repo and keep it up-to-date:
 [https://git-scm.com/book/en/v2/Getting-Started-Installing-Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+<br><br>
 
 - **Android NDK**: includes the C++ compiler (the toolchain) and the run-time libraries necessary to build from your computer/laptop LDSP applications that can run on your phone.
 [https://developer.android.com/ndk/downloads](https://developer.android.com/ndk/downloads)
@@ -21,6 +22,8 @@ To find the installation path, open a terminal and try (the NDK contains several
 
   > **Note:** from NDK r26, [the minimum supported Android version is Android 5.0 Lollipop (API level 21)](https://github.com/android/ndk/issues/1751). If you want to use LDSP on a phone running Android 4.4 KitKat (API level 19) or lower, we suggest NDK version r25c, accessible [here](https://github.com/android/ndk/wiki/Unsupported-Downloads). And here is the [macOS zip download link](https://dl.google.com/android/repository/android-ndk-r25c-darwin.zip).
 
+<br>
+
 - **CMake**: a tool that makes it easier to build projects in C++. It is officially supported by Google for Android app development and it comes in very handy to run the Android NDK C++ toolchain!
 Download: [https://cmake.org/download/](https://cmake.org/download/)
 Install: [https://cmake.org/install/](https://cmake.org/install/)
@@ -30,6 +33,7 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
   cmake --version
   ```
   You should see the number of the installed version!
+<br><br>
 
 - **Ninja Build System**: we use this tool to speed up the building process of LDSP applications. The LDSP environment includes the NDK and some third-party libraries (all open-source) that need to be built and linked against, and [Ninja](https://ninja-build.org/) makes this almost effortless!
 
@@ -41,6 +45,7 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
   ```console
   ninja --version
   ```
+<br>
 
 - **ADB (Android device bridge)**: a small tool that allows you to open a shell on your phone via USB. We mainly use it to install, run and stop LDSP applications during development. 
 
@@ -61,6 +66,7 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
       ```
   Check out your phone's screen, as Android will likely ask you for permission before allowing the connection. Tick the box that grants permission indefinitely.
   If everything goes fine, your shell should be replaced by a new one opened on the phone, where the default phone user is logged in! You can type the command *exit* to return to your local shell.
+<br><br>
 
 - **ADB drivers [Windows only]**: on Windows, you may need to install some drivers for ADB to connect to your phone. Drivers tend to be phone-specific; you can try: 
 
@@ -69,6 +75,7 @@ Install: [https://cmake.org/install/](https://cmake.org/install/)
     - OEM USB Drivers: these are the drivers provided directly by the phones' manufacturers: [https://developer.android.com/studio/run/oem-usb#Drivers](https://developer.android.com/studio/run/oem-usb#Drivers)
     
   This link explains how to install the ADB driver for a phone once dowloaded: [https://www.auslogics.com/en/articles/install-adb-driver-on-windows-10/#step-1-check-if-you-already-have-the-adb-driver-installed-on-your-pc](https://www.auslogics.com/en/articles/install-adb-driver-on-windows-10/#step-1-check-if-you-already-have-the-adb-driver-installed-on-your-pc)
+<br><br>
 
 - **Pure Data “vanilla” [optional]**:  in case you want to code LDSP applications in Pd rather than C++: [https://puredata.info/downloads](https://puredata.info/downloads)
 

@@ -7,7 +7,8 @@
   ```console
   git clone --recurse-submodules https://github.com/victorzappi/LDSP.git
   ```
-  
+<br>
+
 - **Export the NDK var**: finally, export a new environment variable called **NDK**, with the path to the actual content of the Android NDK you downloaded from the dependecies list. Specifically, export the full path that points to where the **toolchains** and **sources** folders can be found (i.e., path to the folder that contains them). This allows LDSP to use the toolchain and the C++ run-time!
 
     We recommend you make the variable persistent, otherwise you will have to export it again every time you open a new shell to build an LDSP application. This can be done on [Linux](https://stackoverflow.com/a/13046663), [macOS](https://support.apple.com/guide/terminal/use-environment-variables-apd382cc5fa-4f58-4449-b20a-41c53c006f8f/mac) as well as [Windows](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables?view=powershell-7.3#saving-environment-variables-with-the-system-control-panel).

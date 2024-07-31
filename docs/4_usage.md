@@ -6,11 +6,11 @@ LDSP comes with a variety of example projects and libraries that can be used out
 
 Here is an overview of all the steps necessary to 'use' an LDSP application:
 
-1. **Configure**: select a project and a target phone
-2. **Build**: create an executable binary file (i.e., a *bin*)
-3. **Install**: push the bin to the phone
-4. **Run**: launch the application by execute the bin, optionally passing run-time parameters
-5. **Stop**: stop the application!
+1. **[Configure](#1.-configure)**: select a project and a target phone
+2. **[Build](#2.-build)**: create an executable binary file (i.e., a *bin*)
+3. **[Install](#3.-install)**: push the bin to the phone
+4. **[Run](#4.-run)**: launch the application by execute the bin, optionally passing run-time parameters
+5. **[Stop](#5.-stop)**: stop the application!
 
 LDSP comes with a set of scripts that facilitate these steps! Let's see them in detail for the case of the *sine* example.
 
@@ -142,4 +142,8 @@ Let's run the *sine* project so that we hear a vanilla sinusoid coming out of th
 
 ## How to design your own LDSP application
 [UNDER CONSTRUCTION]
+
+## How to use LDSP with Pure Data
+[UNDER CONSTRUCTION]
+
 [Previous: Phone Configuration](3_phone_config.md)
