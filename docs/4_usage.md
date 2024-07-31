@@ -27,7 +27,7 @@ Open a shell on your computer (i.e., a 'local' shell) and navigate to the LDSP f
 
 #### macOS and Linux
 ```console
-./scripts/ldsp.sh configure --configure=\"./phones/LG/Nexus 4 (mako)\" --version=5.1.1 --project=./examples/Fundamentals/sine 
+./scripts/ldsp.sh configure --configuration=\"./phones/LG/Nexus 4 (mako)\" --version=5.1.1 --project=./examples/Fundamentals/sine 
 ```
 
 #### Windows
