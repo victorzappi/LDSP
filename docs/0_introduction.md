@@ -20,7 +20,7 @@ More on this stuff is explained in one of the later doc pages ([Phone Configurat
 - Samsung Galaxy Tab 4 (SM-T237P)
 - Xiaomi Mi8 Lite (platina)
 
-Each comes with a pre-made configuration file, stored in [LDSP/phones](../LDSP/phones) and orgnaized by vendor.
+Each comes with a pre-made configuration file, stored in [LDSP/phones](../phones) and orgnaized by vendor.
 If you configure a new phone, please let us know and we will add the configuration file you created for it! 
 
 
