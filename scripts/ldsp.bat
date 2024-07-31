@@ -112,8 +112,8 @@ rem End of :install_scripts
 :configure
   rem Configure the LDSP build system to build for the given phone model, Android version, and project path.
   set config=%~1
-  set version=%~3
-  set project=%~4
+  set version=%~2
+  set project=%~3
 
   if "%config%" == "" (
     echo Cannot configure: harwdware configuration file path not specified
@@ -137,16 +137,16 @@ rem End of :install_scripts
     exit /b 1
   )
 
-  set hw_config="%config_dir%\ldsp_hw_config.json"
+  set hw_config=%config_dir%\ldsp_hw_config.json
 
-  if not exist %hw_config% (
+  if not exist "%hw_config%" (
     echo Cannot configure: hardware configuration file not found
     echo Please ensure that an ldsp_hw_config.json file exists in "%config%"
     exit /b 1
   )
 
   rem target ABI
-  for /f "tokens=2 delims=:" %%i in ('type %hw_config% ^| findstr /r "target architecture"') do set arch=%%i
+  for /f "tokens=2 delims=:" %%i in ('type "%hw_config%" ^| findstr /r "target architecture"') do set arch=%%i
 
   set arch=%arch:"=%
   set arch=%arch:,=%
@@ -170,7 +170,7 @@ rem End of :install_scripts
   )
 
   rem support for NEON floating-point unit
-  for /f "tokens=2 delims=:" %%i in ('type %hw_config% ^| findstr /r "supports neon floating point unit"') do set neon_setting=%%i
+  for /f "tokens=2 delims=:" %%i in ('type "%hw_config%" ^| findstr /r "supports neon floating point unit"') do set neon_setting=%%i
 
   set neon_setting=%neon_setting:"=%
   set neon_setting=%neon_setting:,=%
@@ -248,8 +248,11 @@ rem End of :install_scripts
       set "onnx_version=below24"
   )
 
-  rem create and navigate to the custom build directory
-  mkdir -p build
+  
+  set "dir_path=build"
+  if not exist "%dir_path%" (
+	  mkdir "%dir_path%"
+  )
   cd build
   rem store custom build dir
   set build_dir=%CD%
@@ -455,7 +458,7 @@ rem End of :Stop
   cd build
   ninja clean
   cd ..
-  rm -r ./build
+  rmdir /S /Q .\build
   del "%settings_file%"
   del "%dependencies_file%"
 
