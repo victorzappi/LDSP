@@ -331,7 +331,7 @@ install () {
   adb shell "su -c 'mkdir -p /sdcard/ldsp/projects/$project_name'" # create temp ldsp folder on sdcard
 
   # push hardware config file
-  adb push "$hw_config" /sdcard/ldsp/ldsp_hw_config.json
+  adb push "$hw_config" /sdcard/ldsp/
 
   # Push all project resources, including Pd files in Pd projects, but excluding C/C++ and assembly files, folders that contain those files
   # first folders

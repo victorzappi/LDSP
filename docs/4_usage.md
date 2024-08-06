@@ -93,7 +93,7 @@ Let's run the *sine* project so that we hear a vanilla sinusoid coming out of th
     .\scripts\ldsp.bat run "-p 512 -o line-out"
     ```
     <br>
-    A few of notes:
+    A few notes:
     
     - If the USB gets disconnected, the application will stop! If you don't want to depend on a tethered connection with a host computer and you're on macOS or Linux, you can swap the command *run* with *run_persistent* (still in progress on Windows). Alternatively, check the other options to run the application that are listed next.
 

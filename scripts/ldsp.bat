@@ -272,12 +272,12 @@ rem End of :install_scripts
   cd ..
 
   rem store settings
-  echo project_dir="%project_dir%" > "%settings_file%"
-  echo project_name="%project_name%" >> "%settings_file%"
-  echo hw_config="%hw_config%" >> "%settings_file%"
-  echo arch="%arch%" >> "%settings_file%"
-  echo api_level="%api_level%" >> "%settings_file%"
-  echo onnx_version="%onnx_version%" >> "%settings_file%"
+  echo project_dir="%project_dir%">>"%settings_file%"
+  echo project_name="%project_name%">>"%settings_file%"
+  echo hw_config="%hw_config%">>"%settings_file%"
+  echo arch="%arch%">>"%settings_file%"
+  echo api_level="%api_level%">>"%settings_file%"
+  echo onnx_version="%onnx_version%">>"%settings_file%"
 
   exit /b 0
 
@@ -288,7 +288,7 @@ rem End of :configure
   
   rem Check if settings file exists
   IF NOT EXIST "%settings_file%" (
-    echo "Cannot build: project not configured. Please run ""ldsp.sh configure [settings]"" first."
+    echo Cannot build: project not configured. Please run "ldsp.bat configure [settings]" first.
     exit /b 1
   )
 
@@ -344,7 +344,7 @@ rem End of :push_onnxruntime
 :install
   rem Install the user project, LDSP hardware config and resources to the phone.
   if not exist "build\bin\ldsp" (
-    echo Cannot push: No ldsp executable found. Please run "ldsp build\ first.
+    echo Cannot push: No ldsp executable found. Please run "ldsp.bat build" first.
     exit /b 1
   )
 
@@ -370,7 +370,7 @@ rem End of :push_onnxruntime
   adb shell "su -c 'mkdir -p /sdcard/ldsp/projects/%project_name%'" 
 
   rem push hardware config file
-  adb push %hw_config% /sdcard/ldsp/ldsp_hw_config.json
+  adb push %hw_config% /sdcard/ldsp/
 
   rem Push all project resources, including Pd files in Pd projects, but excluding C/C++ and assembly files, and folders that contain those files
   rem first folders
@@ -470,7 +470,7 @@ rem End of :clean
 
   rem Check if settings file exists
   IF NOT EXIST "%settings_file%" (
-    echo "Cannot clean phone: project not configured. Please run ""ldsp.sh configure [settings]"" first."
+    echo Cannot clean phone: project not configured. Please run "ldsp.bat configure [settings]" first.
     exit /b 1
   )
 
