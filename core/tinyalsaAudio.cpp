@@ -549,10 +549,14 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		audio_struct->bps = 3;
 
 	// this is used for capture only
-	// we compute the mask necessary to complete the two's complment of received raw samples
+	// we compute the mask necessary to complete the two's complement of received raw samples
+	// in other words, we will use this to extend the sign of negative numbers that are composed of fewer bits than the int container
 	audio_struct->mask = 0x00000000;
-	for (int i = 0; i<sizeof(int)-audio_struct->bps; i++)
-		audio_struct->mask |= (0xFF000000 >> i*8);
+	// for (int i = 0; i<sizeof(int)-audio_struct->bps; i++)
+	// 	audio_struct->mask |= (0xFF000000 >> i*8);
+	for(int i=audio_struct->formatBits; i < sizeof(int)*8; i++) 
+		audio_struct->mask |= (1 << i); // put a 1 in all bits that are beyond those used by the format
+
 			
 	return 0;
 }
@@ -631,7 +635,7 @@ void fromRawToFloat_int(audio_struct *audio_struct)
 	{
 			int res = byteCombine(sampleBytes, audio_struct); // function pointer, gets sample value by combining the consecutive bytes, organized in either little or big endian
 			// if retrieved value is greater than maximum value allowed within current format
-			// we have to manually complete the 2's complement 
+			// we have to manually complete the 2's complement, by extending the sign
 			if(res>audio_struct->scaleVal)
 				res |= audio_struct->mask;
 			audio_struct->audioBuffer[n] = res/((float)(audio_struct->scaleVal)); // turn int sample into full scale normalized float

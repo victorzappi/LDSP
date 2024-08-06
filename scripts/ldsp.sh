@@ -356,17 +356,17 @@ install () {
   else
     # If /data/ldsp exists, continue with the checks
     # Check and push scripts if not there
-    if ! adb shell 'su -c "ls /data/ldsp"' | grep "scripts"; then
+    if ! adb shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "scripts"; then
       push_scripts
     fi
 
     # Check and push resources if not there
-    if ! adb shell 'su -c "ls /data/ldsp"' | grep "resources"; then
+    if ! adb shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "resources"; then
       push_resources
     fi
 
     # Check and push onnxruntime if not there
-    if ! adb shell 'su -c "ls /data/ldsp"' | grep "onnxruntime"; then
+    if ! adb shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "onnxruntime"; then
       push_onnxruntime
     fi
   fi

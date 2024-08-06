@@ -11,7 +11,7 @@ A C++ software environment to hack your Android phone and program it as a low-le
 - [Usage](docs/4_usage.md)
 
 ## In a Nutshell
-LDSP enables developers and creatives to **design interactive audio applications entirely in C++** (or Pure Data). The outcome **is not an Android app**, but a command line binary file, similar to those used on Linux computers. However, like apps, LDSP applications have access audio input/output and can interface with sensors and other goodies including the touchscreen and the vibration control.
+LDSP enables developers and creatives to **design interactive audio applications entirely in C++** (or Pure Data). The outcome **is not an Android app**, but a command line binary file, similar to those used on Linux computers. However, like apps, LDSP applications have access to audio input/output and can interface with sensors and other goodies including the touchscreen and the vibration control.
 
 LDSP is not intended to replace the Android app workflow and ecosystem. Instead, it is a thought-provoking project that allows us to repurpose our phones—both new and old—into dedicated audio boards.
 

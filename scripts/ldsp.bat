@@ -408,15 +408,15 @@ rem End of :push_onnxruntime
   ) else (
       rem If `/data/ldsp` exists, check and push missing subdirectories/files
       rem Check for `scripts`
-      adb shell "su -c 'ls /data/ldsp'" | find "scripts" > nul 2>&1
+      adb shell "su -c 'ls /data/ldsp' 2>/dev/null" | find "scripts" > nul 2>&1
       if %ERRORLEVEL% neq 0 call :push_scripts
 
       rem Check for `resources`
-      adb shell "su -c 'ls /data/ldsp'" | find "resources" > nul 2>&1
+      adb shell "su -c 'ls /data/ldsp' 2>/dev/null" | find "resources" > nul 2>&1
       if %ERRORLEVEL% neq 0 call :push_resources
 
       rem Check for `onnxruntime`
-      adb shell "su -c 'ls /data/ldsp'" | find "onnxruntime" > nul 2>&1
+      adb shell "su -c 'ls /data/ldsp' 2>/dev/null" | find "onnxruntime" > nul 2>&1
       if %ERRORLEVEL% neq 0 call :push_onnxruntime
   )
 
