@@ -12,8 +12,14 @@ Here is an overview of all the steps necessary to 'use' an LDSP application:
 4. **[Run](#4-run)**: launch the application by executing the bin, optionally passing run-time parameters
 5. **[Stop](#5-stop)**: stop the application!
 
-LDSP comes with a set of scripts that facilitate these steps! Let's see them in detail for the case of the *sine* example.
+LDSP comes with a main script that facilitates these steps! Let's see them in detail for the case of the *sine* example.
+There are two versions of the main script, which were designed to work on different systems/configurations:
+- **macOS/Linux users:** for you, the main script is called *[ldsp.sh](../scripts/ldsp.sh)* (shell script version). You should be able to use it from any terminal application.
 
+- **Windows users:** you can use the version of the main script called *[ldsp.bat](../scripts/ldsp.bat)* (batch script version), either from a Command Prompt or from a PowerShell—we reccomend the latter. However, if you have a Unix-like environment installed, like *Cygwin* or *MinGW*, you should be able to use *ldsp.sh* too.
+
+>**Note:** the two versions of the scripts are *almost* equivalent; they  differ slightly in synatx. The following example steps will showcase both versions!
+ 
 
 
 <br>
