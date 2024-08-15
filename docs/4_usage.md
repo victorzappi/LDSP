@@ -6,11 +6,11 @@ LDSP comes with a variety of example projects and libraries that can be used out
 
 Here is an overview of all the steps necessary to 'use' an LDSP application:
 
-1. **[Configure](#1.-configure)**: select a project and a target phone
-2. **[Build](#2.-build)**: create an executable binary file (i.e., a *bin*)
-3. **[Install](#3.-install)**: push the bin to the phone
-4. **[Run](#4.-run)**: launch the application by execute the bin, optionally passing run-time parameters
-5. **[Stop](#5.-stop)**: stop the application!
+1. **[Configure](#1-configure)**: select a project and a target phone
+2. **[Build](#2-build)**: create an executable binary file (i.e., a *bin*)
+3. **[Install](#3-install)**: push the bin to the phone
+4. **[Run](#4-run)**: launch the application by executing the bin, optionally passing run-time parameters
+5. **[Stop](#5-stop)**: stop the application!
 
 LDSP comes with a set of scripts that facilitate these steps! Let's see them in detail for the case of the *sine* example.
 
@@ -27,7 +27,7 @@ Open a shell on your computer (i.e., a 'local' shell) and navigate to the LDSP f
 
 #### macOS and Linux
 ```console
-./scripts/ldsp.sh configure --configuration=\"./phones/LG/Nexus 4 (mako)\" --version=5.1.1 --project=./examples/Fundamentals/sine 
+./scripts/ldsp.sh configure --configuration="./phones/LG/Nexus 4 (mako)" --version=5.1.1 --project=./examples/Fundamentals/sine 
 ```
 
 #### Windows
