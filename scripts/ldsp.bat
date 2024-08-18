@@ -100,11 +100,16 @@ rem End of :get_onnx_version
 :install_scripts
   rem Install the LDSP scripts on the phone.
 
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" rem create temp folder on sdcard
-  adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/ rem  push scripts there
-  adb shell "su -c 'mkdir -p /data/ldsp/scripts'" rem create ldsp scripts folder
-  adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" rem copy scripts to ldsp scripts folder
-  adb shell "su -c 'rm -r /sdcard/ldsp'" rem remove temp folder from sd card
+  rem create temp folder on sdcard
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
+  rem  push scripts there 
+  adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/
+  rem create ldsp scripts folder
+  adb shell "su -c 'mkdir -p /data/ldsp/scripts'" 
+  rem copy scripts to ldsp scripts folder
+  adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" 
+  rem remove temp folder from sd card
+  adb shell "su -c 'rm -r /sdcard/ldsp'" 
 
   exit /b 0
 rem End of :install_scripts
@@ -420,11 +425,15 @@ rem End of :push_onnxruntime
       if %ERRORLEVEL% neq 0 call :push_onnxruntime
   )
 
-  adb shell "su -c 'mkdir -p /data/ldsp/projects/%project_name%'" rem create ldsp folder
-  adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" rem cp all files from sd card temp folder to ldsp folder
-  adb shell "su -c 'chmod 777 /data/ldsp/projects/%project_name%/ldsp'" rem add exe flag to ldsp bin
+  rem create ldsp folder
+  adb shell "su -c 'mkdir -p /data/ldsp/projects/%project_name%'" 
+  rem cp all files from sd card temp folder to ldsp folder
+  adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" 
+  rem add exe flag to ldsp bin
+  adb shell "su -c 'chmod 777 /data/ldsp/projects/%project_name%/ldsp'" 
   
-  adb shell "su -c 'rm -r /sdcard/ldsp'" rem remove temp folder from sdcard
+  rem remove temp folder from sdcard
+  adb shell "su -c 'rm -r /sdcard/ldsp'" 
 
   exit /b 0
 rem End of :install
@@ -550,8 +559,8 @@ if "%1" == "install_scripts" (
 ) else if "%1" == "clean_phone" (
   call :clean_phone
   exit /b %ERRORLEVEL%
-) else if "%1" == "install_scripts" (
-  call :install_scripts
+) else if "%1" == "clean_ldsp" (
+  call :clean_ldsp
   exit /b %ERRORLEVEL%
 ) else if "%1" == "help" (
   call :help
