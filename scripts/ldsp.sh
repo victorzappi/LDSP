@@ -560,20 +560,8 @@ for i in "${STEPS[@]}"; do
     build)
       build
       ;;
-    clean)
-      clean
-      ;;
-    clean_phone)
-      clean_phone
-      ;;
-    clean_ldsp)
-      clean_ldsp
-      ;;
     install)
       install
-      ;;
-    install_scripts)
-      install_scripts
       ;;
     run)
       run "${@:2}"
@@ -583,6 +571,15 @@ for i in "${STEPS[@]}"; do
       ;;
     stop)
       stop
+      ;;
+    clean)
+      clean
+      ;;
+    clean_phone)
+      clean_phone
+      ;;
+    clean_ldsp)
+      clean_ldsp
       ;;
     help)
       help
