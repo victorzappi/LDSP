@@ -1,18 +1,18 @@
 # USAGE
 ## How to build and use example LDSP applications on your phone
 
-LDSP comes with a variety of example projects and libraries that can be used out of the box. Let's see how to build and play around with the *sine* example that you can find in *[LDSP/examples/sine](../examples/sine)*. Note that all LDSP C++ projects (including examples) consist of a dedicated folder with inside at least a source file called *render.cpp* (more on this in the [next section](#how-to-design-your-own-ldsp-application)).
+LDSP comes with a variety of example projects that can be used out of the box. Let's see how to build and play around with the *sine* example that you can find in *[LDSP/examples/sine](../examples/sine)*. Note that all LDSP C++ projects (including examples) consist of a dedicated folder with inside at least a source file called *render.cpp*. They are built into a LDSP applications. LDSP supports Pure Data projects too (via *[libpd](https://github.com/libpd/libpd)*), which must contain a *_main.pd* file. **Both C++ and Pd projects are built and run with the same commands.**
 
 
-Here is an overview of all the steps necessary to 'use' an LDSP application:
+Here is an overview of all the steps necessary to build and 'use' an LDSP application:
 
-1. **[Configure](#1-configure)**: select a project and a target phone
+1. **[Configure](#1-configure)**: select a project (C++ or Pd) and a target phone
 2. **[Build](#2-build)**: create an executable binary file (i.e., a *bin*)
 3. **[Install](#3-install)**: push the bin to the phone
 4. **[Run](#4-run)**: launch the application by executing the bin, optionally passing run-time parameters
 5. **[Stop](#5-stop)**: stop the application!
 
-LDSP comes with a main script that facilitates these steps! Let's see them in detail for the case of the *sine* example.
+LDSP comes with a main script that facilitates these steps! We will see them in detail for the case of the *sine* example.
 There are two versions of the main script, which were designed to work on different systems/configurations:
 - **macOS/Linux users:** for you, the main script is called *[ldsp.sh](../scripts/ldsp.sh)* (shell script version). You should be able to use it from any terminal application.
 
@@ -143,13 +143,6 @@ Let's run the *sine* project so that we hear a vanilla sinusoid coming out of th
 <br>
 
 ### 5. Stop
-[UNDER CONSTRUCTION]
-
-
-## How to design your own LDSP application
-[UNDER CONSTRUCTION]
-
-## How to use LDSP with Pure Data
 [UNDER CONSTRUCTION]
 
 [Previous: Phone Configuration](3_phone_config.md)
