@@ -1,8 +1,9 @@
 # DEPENDENCIES
 ## Required and optional tools to install beforehand
 
-- **Git [optional]**: while not needed to build/run LDSP applications, Git is very useful to download the LDSP environment from this repo and keep it up-to-date:
+- **Git**: while not needed to build/run LDSP applications, Git is very useful to download the LDSP environment from this repo and keep it up-to-date:
 [https://git-scm.com/book/en/v2/Getting-Started-Installing-Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+Also, if you are on Windows, by installing Git you will have access to Git Bash, which is a very useful Unix-like terminal environment that can be used instead of the command prompt!
 <br><br>
 
 - **Android NDK**: includes the C++ compiler (the toolchain) and the run-time libraries necessary to build from your computer/laptop LDSP applications that can run on your phone.
@@ -71,7 +72,7 @@ To find the installation path, open a terminal and try (the NDK contains several
 <br><br>
 
 <a name="adb-drivers-windows"></a>
-- **ADB drivers [Windows only]**: on Windows, you may need to install some drivers for ADB to connect to your phone. Drivers tend to be phone-specific; you can try: 
+- **ADB drivers [Windows only]**: on Windows, you may need to install some drivers for ADB to connect to your phone. Drivers tend to be phone-specific, so one solution is to look for any official distribution that matches your phone's vendor and model. Otherwise, you can try these more generic options: 
 
     - Universal ADB Drivers: these should work with a large number of phones, [https://adb.clockworkmod.com/](https://adb.clockworkmod.com/)
     - Google USB Driver: for Google devices, [https://developer.android.com/studio/run/win-usb](https://developer.android.com/studio/run/win-usb)
