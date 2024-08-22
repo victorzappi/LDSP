@@ -30,7 +30,7 @@
 channels *** \; ADC 3: accel_x \; ADC 4: accel_y \; ADC 5: accel_z
 \; ADC 6: mag_x \; ADC 7: mag_y \; ADC 8: mag_z \; ADC 9: gyro_x \;
 ADC 10: gyro_y \; ADC 11: gyro_z \; ADC 12: light \; ADC 13: proximity
-\;;
+\;, f 63;
 #X connect 0 0 12 0;
 #X connect 1 0 6 0;
 #X connect 2 0 1 0;

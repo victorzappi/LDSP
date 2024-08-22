@@ -63,7 +63,7 @@ void LDSP_usage(const char *argv)
 	fprintf(stderr, "-Q | --ctrl-inputs-off\t\t\t\tDisables control inputs [control inputs enabled]\n");
 	fprintf(stderr, "-R | --ctrl-outputs-off\t\t\t\tDisables control outputs [control outputs enabled]\n");
 	fprintf(stderr, "-A | --perf-mode-off\t\t\t\tDisables CPU's governor peformance mode [performance mode enabled]\n");
-	fprintf(stderr, "-C | --cpu-affinity <cpu index>\t\t\t\tSets CPU affinity for the audio thread\n");
+	fprintf(stderr, "-C | --cpu-affinity <cpu index>\t\t\tSets CPU affinity for the audio thread\n");
 	fprintf(stderr, "-v | --verbose\t\t\t\t\tPrints all phone's info, current settings main function calls [off]\n");
 	fprintf(stderr, "-h | --help\t\t\t\t\tPrints this and exits [off]\n");
 }
