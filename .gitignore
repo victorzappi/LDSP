@@ -65,6 +65,7 @@ ldsp_dependencies.conf
 # inner repos
 **/LDSP-ONNX
 **/LDSP-RTNeural
+**/LDSP-Extras
 
 # Temporary local projects
 _projects/
