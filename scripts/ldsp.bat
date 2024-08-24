@@ -103,7 +103,7 @@ rem End of :get_onnx_version
   rem create temp folder on sdcard
   adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
   rem  push scripts there 
-  adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/
+  powershell -Command "Get-ChildItem .\scripts\ldsp_* | ForEach-Object { adb push $_.FullName /sdcard/ldsp/scripts/ }"
   rem create ldsp scripts folder
   adb shell "su -c 'mkdir -p /data/ldsp/scripts'" 
   rem copy scripts to ldsp scripts folder

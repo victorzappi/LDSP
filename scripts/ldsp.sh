@@ -139,10 +139,10 @@ get_onnx_version () {
   echo $onnx_version
 }
 
-# Install the LDSP scripts on the phone.
+# Install the LDSP scripts on the phone
 install_scripts() {
   adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
-  adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
+  adb push ./scripts/ldsp_* //sdcard/ldsp/scripts/ # push scripts there, double slash needed by Git Bash
   adb shell "su -c 'mkdir -p /data/ldsp/scripts'" # create ldsp scripts folder
   adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" # copy scripts to ldsp scripts folder
   adb shell "su -c 'rm -r /sdcard/ldsp'" # remove temp folder from sd card
@@ -291,14 +291,14 @@ build () {
 
 push_scripts() {
   adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
-  adb push ./scripts/ldsp_* /sdcard/ldsp/scripts/ # push scripts there
+  adb push ./scripts/ldsp_* //sdcard/ldsp/scripts/ # push scripts there, double slash needed by Git Bash
 }
 
 push_resources() {
   # push only if dependency is in use
   if [[ $ADD_SEASOCKS =~ ^(TRUE)$ ]]; then
     adb shell "su -c 'mkdir -p /sdcard/ldsp/resources'" # create temp folder on sdcard
-    adb push resources /sdcard/ldsp/  
+    adb push resources //sdcard/ldsp/ #double slash needed by Git Bash
   fi
 }
 
@@ -307,7 +307,7 @@ push_onnxruntime() {
   if [[ $ADD_ONNX =~ ^(TRUE)$ ]]; then
     adb shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'" # create temp folder on sdcard
     onnx_path="./dependencies/onnxruntime/$arch/$onnx_version/libonnxruntime.so"
-    adb push $onnx_path /sdcard/ldsp/onnxruntime/libonnxruntime.so
+    adb push $onnx_path //sdcard/ldsp/onnxruntime/libonnxruntime.so #double slash needed by Git Bash
   fi
 }
 
@@ -330,17 +330,18 @@ install () {
 
   adb shell "su -c 'mkdir -p /sdcard/ldsp/projects/$project_name'" # create temp ldsp folder on sdcard
 
-  # push hardware config file
-  adb push "$hw_config" /sdcard/ldsp/
+  # push hardware config file, double slash needed by Git Bash
+  adb push "$hw_config" //sdcard/ldsp/
 
   # Push all project resources, including Pd files in Pd projects, but excluding C/C++ and assembly files, folders that contain those files
+  # double slash needed by Git Bash
   # first folders
-  find "$project_dir"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp "{}"/*.S "{}"/*.s 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} /sdcard/ldsp/projects/$project_name
+  find "$project_dir"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp "{}"/*.S "{}"/*.s 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} //sdcard/ldsp/projects/$project_name
   # then files
-  find "$project_dir" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} /sdcard/ldsp/projects/$project_name \;
+  find "$project_dir" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} //sdcard/ldsp/projects/$project_name \;
 
-  # now the ldsp bin
-  adb push build/bin/ldsp /sdcard/ldsp/projects/$project_name/
+  # now the ldsp bin, double slash needed by Git Bash
+  adb push build/bin/ldsp //sdcard/ldsp/projects/$project_name/
 
   # now all resources that do not need to be updated at every build
   # first check if /data/ldsp exists
