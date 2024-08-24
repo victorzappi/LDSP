@@ -24,14 +24,14 @@
 #include "LDSP.h"
 #include <vector>
 #include "MonoFilePlayer.h"
-#include <fft.h>
+#include <libraries/Fft/Fft.h>
 
 string filename = "323623__shpira__tech-drums_mono.wav";
 
 MonoFilePlayer player;
 
 
-FFT fft;
+Fft fft;
 int n_fft = 1024;
 int nyquist;
 
@@ -60,13 +60,15 @@ bool setup(LDSPcontext *context, void *userData)
 	screenSetState(true, 1, true);
 
  	// Load the audio file
-	if(!player.setup(filename)) {
+	if(!player.setup(filename)) 
+	{
     	printf("Error loading audio file '%s'\n", filename.c_str());
     	return false;
 	}
 
 	// Setup the FFT object
-	if(!fft.setup(n_fft)) {
+	if(!fft.setup(n_fft)) 
+	{
 		printf("Error setting up FFT with length %d\n", n_fft);
 		return false;
 	}
@@ -78,18 +80,18 @@ bool setup(LDSPcontext *context, void *userData)
 }
 
 
-void processFFT(LDSPcontext *context) {
+void processFFT(LDSPcontext *context) 
+{
 
 	fft.fft(inputBuffer);
 
 	int upperBand = nyquist / 16;
-	for (int i = 0; i < nyquist; i++) {
-		if (i < upperBand) {
+	for (int i = 0; i < nyquist; i++) 
+	{
+		if (i < upperBand)
 			energyLow += fft.getRealComponent(i);
-		}
-		else {
-			energyHigh += fft.getRealComponent(i);
-		}
+		else
+			energyHigh += fft.getRealComponent(i); // not used in this example
 	}
 	// Normalize energy
 	energyLow /= upperBand;

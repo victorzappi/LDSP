@@ -1,9 +1,9 @@
 #include <LDSP.h>
-#include <fft.h>
+#include <libraries/Fft/Fft.h>
 #include <iostream>
 
 
-FFT fft;
+Fft fft;
 
 std::vector<float> fft_in;
 std::vector<float> real;

@@ -1,10 +1,10 @@
-#include "fft.h"
+#include "Fft.h"
 #include <math.h>
 #include <string.h>
 
 
 
-bool FFT::setup(unsigned int length) {
+bool Fft::setup(unsigned int length) {
 
     this->length = length;
 
@@ -17,7 +17,7 @@ bool FFT::setup(unsigned int length) {
     return true;
 }
 
-void FFT::cleanup() {
+void Fft::cleanup() {
     fftwf_free(this->timeIn);
     fftwf_free(this->timeOut);
     fftwf_free(this->freq);
@@ -27,11 +27,11 @@ void FFT::cleanup() {
 }
 
 
-void FFT::fft() {
+void Fft::fft() {
     fftwf_execute(forwardPlan);
 }
 
-void FFT::fft(const std::vector<float> &input) {
+void Fft::fft(const std::vector<float> &input) {
     if (input.size() > this->length) {
         return;
     }
@@ -42,7 +42,7 @@ void FFT::fft(const std::vector<float> &input) {
     fft();
 }
 
-void FFT::ifft() {
+void Fft::ifft() {
     fftwf_execute(inversePlan);
     for (int i = 0; i < this->length; i++) {
         this->timeOut[i][FFT_REAL] /= this->length;
@@ -50,7 +50,7 @@ void FFT::ifft() {
     }
 }
 
-void FFT::ifft(const std::vector<float> &real, const std::vector<float> &imag) {
+void Fft::ifft(const std::vector<float> &real, const std::vector<float> &imag) {
     if (real.size() > this->length || imag.size() > this->length) {
         return;
     }
@@ -59,34 +59,4 @@ void FFT::ifft(const std::vector<float> &real, const std::vector<float> &imag) {
         this->freq[i][FFT_IMAG] = imag[i];
     }
     ifft();
-}
-
-void FFT::getReal(float * real) {
-    for (int i = 0; i < length; i++) {
-        real[i] = this->freq[i][FFT_REAL];
-    }
-}
-
-float FFT::getRealComponent(int idx) {
-    return this->freq[idx][FFT_REAL];
-}
-
-void FFT::getImag(float * imag) {
-    for (int i = 0; i < length; i++) {
-        imag[i] = this->freq[i][FFT_IMAG];
-    }
-}
-
-float FFT::getImagComponent(int idx) {
-    return this->freq[idx][FFT_IMAG];
-}
-
-void FFT::getTimeDomain(float * samples) {
-    for (int i = 0; i < length; i++) {
-        samples[i] = this->timeOut[i][FFT_REAL];
-    }
-}
-
-float FFT::getTimeDomainSample(int idx) {
-    return this->timeOut[idx][FFT_REAL];
 }
