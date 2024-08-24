@@ -55,7 +55,7 @@ bool setup(LDSPcontext *context, void *userData)
 	gui.setup(context->projectName);
 	controller.setup(&gui, "Control parameters");
     controller.addSlider("Guitar Volume", guitarVol, 0, 1, 0);
-    controller.addSlider("Drive (conditioning param)", map(drive, 0, 1, 0, 11), 0, 11, 0);
+    controller.addSlider("Drive (conditioning)", map(drive, 0, 1, 0, 11), 0, 11, 0);
     controller.addSlider("Amp Volume", ampVol, 0, 1, 0);
 
     return true;
