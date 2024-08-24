@@ -19,7 +19,7 @@
 
 // This code example uses this sound from freesound:
 // "323623__shpira__tech-drums.wav" by shpira ( https://freesound.org/s/323623/ ) licensed under CCBYNC 4.0
-// the original file has beend exported as a mono track
+// the original file has been exported as a mono track
 
 #include "LDSP.h"
 #include <vector>

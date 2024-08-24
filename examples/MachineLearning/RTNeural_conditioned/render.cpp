@@ -17,45 +17,69 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// This code example uses this sound from freesound:
-// Simple Lofi Vinyl E-Piano Loop 95 BPM.wav by holizna -- https://freesound.org/s/629178/ -- License: Creative Commons 0
-// the original file has been exported as a mono track and resampled at 48 kHz
-
 #include "LDSP.h"
+#include "RTNeuralLSTM.h"
 #include "MonoFilePlayer.h"
+#include <libraries/Gui/Gui.h>
+#include <libraries/GuiController/GuiController.h>
+
+// This code example uses this sound from freesound:
+// Clean Electric Guitar by guitarman213 -- https://freesound.org/s/715794/ -- License: Creative Commons 0
+// the original file has been normalized, exported as a mono track and resampled at 48 kHz
 
 
-// drum loop has to have same samplerate as project!
-string filename = "629178__holizna__simple-lofi-vinyl-e-piano-loop-95-bpm_mono_48k.wav";
-//-------------------------------------------
+string filename = "715794__guitarman213__clean-electric-guitar_mono_norm_48k.wav";
+float guitarVol = 0.5;
+float drive = 0.5;
+float ampVol = 0.5;
+
+//------------------------------------
 
 MonoFilePlayer player;
-
+RT_LSTM model;
+Gui gui;
+GuiController controller;
 
 bool setup(LDSPcontext *context, void *userData)
 {
-	bool loop = true;
-	bool autostart = true;
- 	
 	// load the audio file
-	if( !player.setup(filename, loop, autostart) ) 
+	if( !player.setup(filename, true, true) ) 
 	{
     	printf("Error loading audio file '%s'\n", filename.c_str());
     	return false;
 	}
+
+    model.load_json("TS9.json"); // model's dictionary sourced from: https://github.com/GuitarML/NeuralPi
+    model.reset();
+
+	gui.setup(context->projectName);
+	controller.setup(&gui, "Control parameters");
+    controller.addSlider("Guitar Volume", guitarVol, 0, 1, 0);
+    controller.addSlider("Drive (conditioning param)", map(drive, 0, 1, 0, 11), 0, 11, 0);
+    controller.addSlider("Amp Volume", ampVol, 0, 1, 0);
 
     return true;
 }
 
 void render(LDSPcontext *context, void *userData)
 {
-	for(int n=0; n<context->audioFrames; n++)
-	{
-		// get next sample from file
-		float out = player.process(); 
+    guitarVol = controller.getSliderValue(0);
+    drive = controller.getSliderValue(1);
+    drive = map(drive, 0, 11, 0, 1);
+    ampVol = controller.getSliderValue(2);
 
-		for(int chn=0; chn<context->audioOutChannels; chn++)
-            audioWrite(context, n, chn, out);
+    float output[] = {0};
+    for(int n=0; n<context->audioFrames; n++)
+	{
+        float original = player.process()*guitarVol;
+
+        const float input[] = {original};
+        model.process(input, drive, output, 1);
+        
+        output[0] *= ampVol;
+
+        audioWrite(context, n, 0, output[0]);
+        audioWrite(context, n, 1, output[0]);
 	}
 }
 
