@@ -1,4 +1,4 @@
-#N canvas 1920 159 1920 1020 12;
+#N canvas 227 107 1440 726 12;
 #X obj 270 365 osc~ 220;
 #X obj 401 156 abs~;
 #X obj 402 115 lop~ 100;
@@ -25,12 +25,18 @@
 #X text 453 298 map to [0.01 \, 0.7];
 #X obj 401 280 *~ 0.69;
 #X obj 400 318 +~ 0.01;
-#X text 618 66 ADC channel overview ----------------- *** Audio Channels
-*** \; ADC 1: Analog in L / Mono \; ADC 2: Analog in R \; *** Sensor
-channels *** \; ADC 3: accel_x \; ADC 4: accel_y \; ADC 5: accel_z
-\; ADC 6: mag_x \; ADC 7: mag_y \; ADC 8: mag_z \; ADC 9: gyro_x \;
-ADC 10: gyro_y \; ADC 11: gyro_z \; ADC 12: light \; ADC 13: proximity
-\;, f 63;
+#X text 637 75 *** Audio Channels ***;
+#X text 639 109 ADC 2: Analog in R;
+#X text 640 126 *** Sensor channels ***;
+#X text 641 142 ADC 3: accel_x ADC 4: accel_y ADC 5: accel_z, f 17
+;
+#X text 641 188 ADC 6: mag_x ADC 7: mag_y ADC 8: mag_z, f 13;
+#X text 641 234 ADC 9: gyro_x ADC 10: gyro_y ADC 11: gyro_z, f 15
+;
+#X text 638 57 ADC channel overview, f 22;
+#X text 641 280 ADC 12: light;
+#X text 641 295 ADC 13: proximity;
+#X text 639 92 ADC 1: Analog in L / Mono;
 #X connect 0 0 12 0;
 #X connect 1 0 6 0;
 #X connect 2 0 1 0;

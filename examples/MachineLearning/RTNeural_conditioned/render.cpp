@@ -44,16 +44,16 @@ bool setup(LDSPcontext *context, void *userData)
 {
 	// load the audio file
 	if( !player.setup(filename, true, true) ) 
-	{
-    	printf("Error loading audio file '%s'\n", filename.c_str());
-    	return false;
-	}
+    {
+        printf("Error loading audio file '%s'\n", filename.c_str());
+        return false;
+    }
 
     model.load_json("TS9.json"); // model's dictionary sourced from: https://github.com/GuitarML/NeuralPi
     model.reset();
 
-	gui.setup(context->projectName);
-	controller.setup(&gui, "Control parameters");
+    gui.setup(context->projectName);
+    controller.setup(&gui, "Control parameters");
     controller.addSlider("Guitar Volume", guitarVol, 0, 1, 0);
     controller.addSlider("Drive (conditioning)", map(drive, 0, 1, 0, 11), 0, 11, 0);
     controller.addSlider("Amp Volume", ampVol, 0, 1, 0);
@@ -70,17 +70,17 @@ void render(LDSPcontext *context, void *userData)
 
     float output[] = {0};
     for(int n=0; n<context->audioFrames; n++)
-	{
+    {
         float original = player.process()*guitarVol;
 
         const float input[] = {original};
         model.process(input, drive, output, 1);
-        
+
         output[0] *= ampVol;
 
         audioWrite(context, n, 0, output[0]);
         audioWrite(context, n, 1, output[0]);
-	}
+    }
 }
 
 void cleanup(LDSPcontext *context, void *userData)
