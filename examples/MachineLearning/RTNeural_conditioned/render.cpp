@@ -42,8 +42,8 @@ GuiController controller;
 
 bool setup(LDSPcontext *context, void *userData)
 {
-	// load the audio file
-	if( !player.setup(filename, true, true) ) 
+    // load the audio file
+    if( !player.setup(filename, true, true) ) 
     {
         printf("Error loading audio file '%s'\n", filename.c_str());
         return false;
