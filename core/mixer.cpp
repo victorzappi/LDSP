@@ -244,9 +244,9 @@ int findDeviceInfo(vector<string> deviceInfoPath, string match_a, string name, s
 			fprintf(stderr, "Could not find %s's \"%s\" in \"%s\"\n", name.c_str(), match_b.c_str(), path.c_str());
 			return -1;
 		}
-		break;
+		return 0;
 	}
-	return 0;
+	return -2;
 }
 
 int setupDeviceNumAndId(vector<string> deviceInfoPath, int &deviceNum, int defaultNum, string &deviceId, string defaultId)
@@ -296,14 +296,29 @@ int setupDevicesNumAndId(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	// get the paths to the info files of all devices 
 	getDeviceInfoPaths(settings->card, "info", deviceInfoPath_p, deviceInfoPath_c);
 
+	// if using an external card, we force the default device numbers to 0
+	// because what we read from the hw config file applies to the embedded card only
+	int defaultDevNum_p;
+	int defaultDevNum_c;
+	if(settings->card == 0)
+	{
+		defaultDevNum_p = hwconfig->default_dev_num_p;
+		defaultDevNum_c = hwconfig->default_dev_num_c;
+	}
+	else 
+	{
+		defaultDevNum_p = 0;
+		defaultDevNum_c = 0;
+	}
+
 	// playback
-	if(setupDeviceNumAndId(deviceInfoPath_p, settings->deviceOutNum, hwconfig->default_dev_num_p, settings->deviceOutId, hwconfig->default_dev_id_p)!=0)
+	if(setupDeviceNumAndId(deviceInfoPath_p, settings->deviceOutNum, defaultDevNum_p, settings->deviceOutId, hwconfig->default_dev_id_p)!=0)
 		return -1;
 
 	if(!settings->captureOff)
 	{
 		// capture
-		if(setupDeviceNumAndId(deviceInfoPath_c, settings->deviceInNum, hwconfig->default_dev_num_c, settings->deviceInId, hwconfig->default_dev_id_c)!=0)
+		if(setupDeviceNumAndId(deviceInfoPath_c, settings->deviceInNum, defaultDevNum_c, settings->deviceInId, hwconfig->default_dev_id_c)!=0)
 			return -1;
 	}
 
