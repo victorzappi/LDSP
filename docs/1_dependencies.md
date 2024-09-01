@@ -53,7 +53,7 @@ To find the installation path, open a terminal and try (the NDK contains several
 - **ADB (Android device bridge)**: a small tool that allows you to open a shell on your phone via USB. We mainly use it to install, run and stop LDSP applications during development. 
 
     - Linux: install via your package manager
-    - macOS: install via Homebrew or MacPorts; otherwise use Windows’ guidelines
+    - macOS: install via [Homebrew](https://formulae.brew.sh/cask/android-platform-tools#default) or MacPorts; otherwise use Windows’ guidelines
     - Windows: download the Android SDK, *adb* binary we'll be there: [https://developer.android.com/tools/releases/platform-tools](https://developer.android.com/tools/releases/platform-tools), uncompress and then add to your PATH environment variable the path to the folder contaning the binary
 
   Then check that the *adb* binary was successfully installed, by openinig a **new shell** and typing:
