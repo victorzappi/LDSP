@@ -243,3 +243,39 @@ void OrtModel::run(float* input, float* params, float* output)
     for(int i = 0; i < outputTensorSizes[0]; i++)
         output[i] = outputTensorValues[0][i];
 }
+
+void OrtModel::cleanup()
+{
+    if(verbose)
+        printf("Cleanup ONNX session\n");
+
+    // Check if the session is initialized
+    if (this->session != nullptr)
+    {
+    // Properly release the session
+        delete this->session;
+        this->session = nullptr;
+    }
+
+    // Clear out input-related vectors
+    inputNodeNames.clear();
+    inputNodeDims.clear();
+    inputTensorSizes.clear();
+    inputTensorValues.clear();
+
+    // Clear tensors
+    inputTensors.clear();
+    outputTensors.clear();
+
+    // Clear output-related vectors
+    outputNodeNames.clear();
+    outputNodeDims.clear();
+    outputTensorSizes.clear();
+    outputTensorValues.clear();
+
+    // Reset other member variables
+    numInputNodes = 0;
+    numOutputNodes = 0;
+    modelPath = nullptr;
+    sessionName = nullptr;
+}
