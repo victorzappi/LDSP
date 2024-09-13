@@ -262,6 +262,11 @@ rem End of :install_scripts
   rem store custom build dir
   set build_dir=%CD%
 
+  rem patch ne10 cmake: comment out __ANDROID_API__ redefinition line and remove -pie flag
+  set "file_path=../dependencies/Ne10/CMakeLists.txt"
+  powershell -Command "(Get-Content '%file_path%') | ForEach-Object { if ($_ -notmatch '^#add_definitions\(-D__ANDROID_API__') { $_ -replace '^add_definitions\(-D__ANDROID_API__=\$\{ANDROID_API_LEVEL\}\)', '#add_definitions(-D__ANDROID_API__=${ANDROID_API_LEVEL})' } else { $_ } } | Set-Content '%file_path%'"
+  powershell -Command "(Get-Content '%file_path%') -replace '-pie', '' | Set-Content '%file_path%'"
+
   rem Run CMake configuration
   cmake -DCMAKE_TOOLCHAIN_FILE=%NDK%/build/cmake/android.toolchain.cmake ^
         -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% ^

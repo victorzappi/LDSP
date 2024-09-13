@@ -64,6 +64,16 @@ endforeach()
 file(APPEND "${output_file}" "ADD_LIBPD=\"${ADD_LIBPD}\"\n")
 
 
+
+# if neon is supported, add ne10 as dependency
+if (NOT EXPLICIT_ARM_NEON OR ANDROID_ARM_NEON)
+  set(ADD_NE10 TRUE)
+else()
+  set(ADD_NE10 FALSE)
+endif()
+
+
+
 # dummy usage for DEVICE_ARCH and ONNX_VERSION, to avoid warnings
 # in projects that do not use them
 if(DEFINED DEVICE_ARCH)

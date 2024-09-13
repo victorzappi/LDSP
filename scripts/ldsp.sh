@@ -248,11 +248,17 @@ configure () {
   # store custom build dir
   build_dir=$(pwd)
 
+  # patch ne10 cmake: comment out __ANDROID_API__ redefinition line and remove -pie flag
+  sed -i '/#add_definitions(-D__ANDROID_API__/!s/add_definitions(-D__ANDROID_API__/#&/' ../dependencies/Ne10/CMakeLists.txt
+  sed -i 's/-pie//g' ../dependencies/Ne10/CMakeLists.txt
+
   # run CMake configuration 
   cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
         -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level \
         "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" \
         -G Ninja -B"$build_dir" -S".."
+# "-DNE10_ANDROID_TARGET_ARCH=$arch" \
+        #         "-DANDROID_API_LEVEL=$aplevel" \
 
   exit_code=$?
   if [[ $exit_code != 0 ]]; then

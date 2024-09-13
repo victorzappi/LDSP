@@ -86,5 +86,14 @@ if(ADD_RTNEURAL)
     add_subdirectory(RTNeural)
 endif()
 
+# Check if we should add ne10
+if(ADD_NE10)
+    set(NE10_BUILD_SHARED OFF CACHE BOOL "Build Ne10 as a static library" FORCE)
+    set(NE10_ANDROID_TARGET_ARCH ${DEVICE_ARCH})
+    set(NE10_BUILD_EXAMPLES OFF CACHE BOOL "Do not build Ne10 examples" FORCE)
+    set(NE10_BUILD_UNIT_TEST OFF CACHE BOOL "Do not build Ne10 unit tests" FORCE)
+    add_subdirectory(Ne10)
+endif()
+
 
 

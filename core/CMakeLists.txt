@@ -86,6 +86,14 @@ if(ADD_RTNEURAL)
   )
 endif()
 
+# Check if we should add ne10
+if(ADD_NE10)
+  target_link_libraries(ldsp 
+    PRIVATE NE10
+  )
+endif()
+
+
 # These are mandatory/lightweight
 target_link_libraries(ldsp
   PRIVATE libraries
