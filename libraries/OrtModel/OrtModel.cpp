@@ -129,7 +129,7 @@ bool OrtModel::setup(string _sessionName, string _modelPath, bool _multiThreadin
         // Get shapes of output tensors
         outputNodeDims[i] = tensorInfo.GetShape();
         if(verbose)
-            printf("Output %d : num_dims=%zu\n", i, outputNodeDims.size());
+            printf("Output %d : num_dims=%zu\n", i, outputNodeDims[i].size());
         for (int j = 0; j < outputNodeDims.size(); j++) {
             if(verbose)
                 printf("Output %d : dim %d=%d\n", i, j, (int)outputNodeDims[i][j]);
@@ -167,31 +167,6 @@ bool OrtModel::setup(string _sessionName, string _modelPath, bool _multiThreadin
     }
 
     return true;   
-}
-
-// multiple input nodes
-void OrtModel::run(float** inputs, float* output) 
-{
-    // Copy Inputs
-    for(int i = 0; i < numInputNodes; i++) 
-    {
-        for (int j = 0; j < inputTensorSizes[i]; j++)
-            inputTensorValues[i][j] = inputs[i][j];
-    }
-
-    // Run Inference
-    this->session->Run(
-        options,
-        inputNodeNames.data(),
-        inputTensors.data(),
-        inputTensors.size(),
-        outputNodeNames.data(),
-        outputTensors.data(),
-        1);
-
-    // Copy Output
-    for(int i = 0; i < outputTensorSizes[0]; i++)
-        output[i] = outputTensorValues[0][i];
 }
 
 // single input note
@@ -242,6 +217,60 @@ void OrtModel::run(float* input, float* params, float* output)
     // Copy Output
     for(int i = 0; i < outputTensorSizes[0]; i++)
         output[i] = outputTensorValues[0][i];
+}
+
+// multiple input nodes
+void OrtModel::run(float** inputs, float* output) 
+{
+    // Copy Inputs
+    for(int i = 0; i < numInputNodes; i++) 
+    {
+        for (int j = 0; j < inputTensorSizes[i]; j++)
+            inputTensorValues[i][j] = inputs[i][j];
+    }
+
+    // Run Inference
+    this->session->Run(
+        options,
+        inputNodeNames.data(),
+        inputTensors.data(),
+        inputTensors.size(),
+        outputNodeNames.data(),
+        outputTensors.data(),
+        1);
+
+    // Copy Output
+    for(int i = 0; i < outputTensorSizes[0]; i++)
+        output[i] = outputTensorValues[0][i];
+}
+
+// multiple input/output nodes
+void OrtModel::run(float** inputs, float** outputs) 
+{
+    // Copy Inputs
+    for(int i = 0; i < numInputNodes; i++) 
+    {
+        for (int j = 0; j < inputTensorSizes[i]; j++)
+            inputTensorValues[i][j] = inputs[i][j];
+    }
+
+    // Run Inference
+    this->session->Run(
+        options,
+        inputNodeNames.data(),
+        inputTensors.data(),
+        inputTensors.size(),
+        outputNodeNames.data(),
+        outputTensors.data(),
+        outputTensors.size()
+        );
+
+    // Copy Outputs
+    for(int i = 0; i < numOutputNodes; i++) 
+    {
+        for(int j = 0; j < outputTensorSizes[i]; j++) 
+            outputs[i][j] = outputTensorValues[i][j];
+    }
 }
 
 void OrtModel::cleanup()

@@ -54,7 +54,7 @@ void render(LDSPcontext *context, void *userData)
 	// check if we have touch
 	bool touch; 
 	if(context->mtInfo->anyTouchSupported)
-		touch = (multiTouchRead(context, chn_mt_anyTouch)); // not all phones support anyTouch input, that checks all slots automatically
+		touch = (multiTouchRead(context, chn_mt_anyTouch) == 1); // not all phones support anyTouch input, that checks all slots automatically
 	else
 		touch = (multiTouchRead(context, chn_mt_id, 0) != -1); // on most phones the slot is given an actual index only when a touch is detected
 
