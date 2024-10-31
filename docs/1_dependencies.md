@@ -28,7 +28,7 @@ To find the installation path, open a terminal and try (the NDK contains several
 - **CMake**: a tool that makes it easier to build projects in C++. It is officially supported by Google for Android app development and it comes in very handy to run the Android NDK C++ toolchain!
 
     - Linux: install via your package manager
-    - macOS: install via Homebrew or MacPorts; otherwise follow Windows’ guidelines
+    - macOS: install via Homebrew (*brew install cmake*) or MacPorts; otherwise follow Windows’ guidelines
     - Windows: download the *binary distribution* installer that matches your system from here [https://cmake.org/download/](https://cmake.org/download/) and run it
 
   Then check that the CMake binary (*cmake*) was successfully installed, by openinig a terminal/command prompt (i.e., a shell) and typing:
@@ -41,7 +41,7 @@ To find the installation path, open a terminal and try (the NDK contains several
 - **Ninja Build System**: we use this tool to speed up the building process of LDSP applications. The LDSP environment includes the NDK and some third-party libraries (all open-source) that need to be built and linked against, and [Ninja](https://ninja-build.org/) makes this almost effortless!
 
     - Linux: install via your package manager
-    - macOS: install via Homebrew or MacPorts; otherwise download the zip from here [https://github.com/ninja-build/ninja/releases](https://github.com/ninja-build/ninja/releases), uncompress and place it wherever you prefer; then add to your [PATH environment variable](https://www.architectryan.com/2012/10/02/add-to-the-path-on-mac-os-x-mountain-lion/#.Uydjga1dXDg) the path to the folder that contains the *ninja* binary
+    - macOS: install via Homebrew (*brew install ninja*) or MacPorts; otherwise download the zip from here [https://github.com/ninja-build/ninja/releases](https://github.com/ninja-build/ninja/releases), uncompress and place it wherever you prefer; then add to your [PATH environment variable](https://www.architectryan.com/2012/10/02/add-to-the-path-on-mac-os-x-mountain-lion/#.Uydjga1dXDg) the path to the folder that contains the *ninja* binary
     - Windows: download the zip from here [https://github.com/ninja-build/ninja/releases](https://github.com/ninja-build/ninja/releases), uncompress and place it wherever you prefer, and then add to your [PATH environment variable](https://stackoverflow.com/a/44272417) the path to the folder that contains the *ninja* binary (.exe)
 
   Then check that *ninja* was successfully installed, by openinig a **new shell** and typing:
@@ -53,7 +53,7 @@ To find the installation path, open a terminal and try (the NDK contains several
 - **ADB (Android device bridge)**: a small tool that allows you to open a shell on your phone via USB. We mainly use it to install, run and stop LDSP applications during development. 
 
     - Linux: install via your package manager
-    - macOS: install via Homebrew or MacPorts; otherwise use Windows’ guidelines
+    - macOS: install via Homebrew (*brew install android-platform-tools*) or MacPorts; otherwise use Windows’ guidelines
     - Windows: download the Android SDK, *adb* binary we'll be there: [https://developer.android.com/tools/releases/platform-tools](https://developer.android.com/tools/releases/platform-tools), uncompress and then add to your PATH environment variable the path to the folder contaning the binary
 
   Then check that the *adb* binary was successfully installed, by openinig a **new shell** and typing:
