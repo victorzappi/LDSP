@@ -58,4 +58,7 @@ void render(LDSPcontext *context, void *userData)
   }
 }
 
-void cleanup(LDSPcontext *context, void *userData) {}
+void cleanup(LDSPcontext *context, void *userData) 
+{
+    ortModel.cleanup();
+}

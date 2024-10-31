@@ -12,9 +12,11 @@ public:
 
     bool setup(string _sessionName, string _modelPath, bool _multiThreading=false);
     void cleanup();
-    void run(float** inputs, float* output); // multiple input nodes
+    
     void run(float* input, float* output); // single input note
     void run(float* input, float* params, float* output); // single input node + cond params
+    void run(float** inputs, float* output); // multiple input nodes
+    void run(float** inputs, float** outputs); // multiple input/output nodes
 
 private: 
     bool verbose = false;
