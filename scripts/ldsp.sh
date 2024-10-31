@@ -199,17 +199,10 @@ configure () {
   fi
 
   # support for NEON floating-point unit
-  explicit_neon="-DEXPLICIT_ARM_NEON=0"
   neon_setting=$(grep 'supports neon floating point unit' "$hw_config" | cut -d \" -f 4)
-  if [[ $arch == "armv7a" ]];
+  if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
   then
-    if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
-    then
-      neon="-DANDROID_ARM_NEON=ON"
-      explicit_neon="-DEXPLICIT_ARM_NEON=1"
-    else
-      neon=""
-    fi
+    neon="-DANDROID_ARM_NEON=ON"
   else
     neon=""
   fi
@@ -251,7 +244,7 @@ configure () {
   # run CMake configuration 
   cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
         -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level \
-        "-DANDROID_NDK=$NDK" $explicit_neon $neon "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" \
+        "-DANDROID_NDK=$NDK" $neon "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" \
         -G Ninja -B"$build_dir" -S".."
 
   exit_code=$?
