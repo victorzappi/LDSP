@@ -1,6 +1,9 @@
 Tested on LineageOS 21 [Android 14]
 but built for Android 13 with NDK 25 [max is Android 13]
 
+Every time an LDSP application is launched, Android is uncapable of setting the speaker correctly
+and the output is distorted. Reboot needed
+
 
 Flashlight does not work. It works manually ONCE when controlling 'switch 0'
 Vibration does not work. Probably needs both 'activate' and 'duration'

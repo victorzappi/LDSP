@@ -10,11 +10,11 @@
 		{ 
 			"speaker": "speaker",
 			"line-out": "headphones",
-			"handset": "handset"
+			"handset": "handset-spkout"
 		},
 		"capture path names":
 		{
-		   	"mic": "mic1",
+		   	"mic": "speaker-mic",
 			"line-in": "headset-mic",
 		   	"handset": "handset-mic"
 		},
