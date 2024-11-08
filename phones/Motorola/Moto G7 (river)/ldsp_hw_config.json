@@ -4,13 +4,13 @@
 	"supports neon floating point unit": "true",
 	"mixer settings":
 	{
-		"mixer paths xml file": "/vendor/etc/mixer_paths_madera_epout.xml",
+		"mixer paths xml file": "/vendor/etc/mixer_paths.xml",
 		"[mixer volumes xml file]": "",
 		"playback path names":
 		{ 
 			"speaker": "speaker",
 			"line-out": "headphones",
-			"handset": "handset-spkout"
+			"handset": "handset"
 		},
 		"capture path names":
 		{
