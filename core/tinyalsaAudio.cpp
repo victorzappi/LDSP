@@ -35,6 +35,7 @@
 #include <thread> // number of cpus
 #include <dirent.h> // browse dirs
 #include <stdlib.h>
+#include <iostream>
 
 #include "LDSP.h"
 #include "tinyalsaAudio.h"
@@ -100,6 +101,7 @@ void (*fromFloatToRaw)(audio_struct*);
 void fromFloatToRaw_int(audio_struct*);
 void fromFloatToRaw_float32(audio_struct*);
 void fromFloatToRaw_int_NEON(audio_struct*);
+void fromFloatToRaw_int_unrolled(audio_struct*);
 
 
 // non-exposed functions
@@ -332,21 +334,26 @@ int initFormatFunctions(string format)
     	case LDSP_pcm_format::S8:  // but it doesn't really matter, single byte no need to split/combine
     	case LDSP_pcm_format::S24_LE:
     	case LDSP_pcm_format::S24_3LE:
+			std::cout << "This is the case switch for NEON !!" << std::endl;
 			byteCombine = byteCombine_littleEndian;
     		byteSplit = byteSplit_littleEndian;
+			// fromRawToFloat = fromRawToFloat_int;
+			// fromFloatToRaw = fromFloatToRaw_int_unrolled;
 			fromRawToFloat = fromRawToFloat_int_NEON;
-    		fromFloatToRaw = fromFloatToRaw_int_NEON; // Set to only be NEON if supported
+    		fromFloatToRaw = fromFloatToRaw_int_NEON_bitshift; // Set to only be NEON if supported
     		break;
     	case LDSP_pcm_format::S16_BE:
     	case LDSP_pcm_format::S32_BE:
     	case LDSP_pcm_format::S24_BE:
     	case LDSP_pcm_format::S24_3BE:
+		std::cout << "Big Endian ____________" << std::endl;
     	    byteCombine = byteCombine_bigEndian;
 			byteSplit = byteSplit_bigEndian;
 			fromRawToFloat = fromRawToFloat_int;
     	    fromFloatToRaw = fromFloatToRaw_int;
     		break;
     	case LDSP_pcm_format::FLOAT_LE:
+		std::cout << "LE Endian Float ____________" << std::endl;
 			byteCombine = byteCombine_littleEndian;
     		byteSplit = byteSplit_littleEndian;
 			fromRawToFloat = fromRawToFloat_float32;
@@ -481,6 +488,7 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		channels = 1;
 
 	audio_struct->numOfSamples = channels*audio_struct->config.period_size;
+	// Might not need the extra mod 4 at the end? Test !
 	audio_struct->numOfSamples4Multiple = audio_struct->numOfSamples + (4 - audio_struct->numOfSamples % 4) % 4;
 
 	unsigned int formatBits;
@@ -621,7 +629,7 @@ void *audioLoop(void*)
 			fromRawToFloat(pcmContext.capture);
 		}
 
-		if(!sensorsOff_)
+		// if(!sensorsOff_)
 			readSensors();
 		if(!ctrlInputsOff_)
 			readCtrlInputs();
@@ -675,7 +683,8 @@ void fromRawToFloat_int(audio_struct *audio_struct)
 // NEON
 void fromRawToFloat_int_NEON(audio_struct *audio_struct) 
 {
-	// auto start = std::chrono::high_resolution_clock::now();
+	std::cout << "In NEON!" << std::endl;
+	auto start = std::chrono::high_resolution_clock::now();
 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
  
@@ -709,9 +718,9 @@ void fromRawToFloat_int_NEON(audio_struct *audio_struct)
 			audio_struct->audioBuffer[n + 2] = result[2];
 			audio_struct->audioBuffer[n + 3] = result[3];		
 	}
-	// auto end = std::chrono::high_resolution_clock::now();
-	// std::chrono::duration<double, std::milli> elapsed = end - start;
-	// std::cout << "Execution time: " << elapsed.count() << " ms\n";
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> elapsed = end - start;
+	std::cout << "Execution time: " << elapsed.count() << " ms\n";
 }
 
 
@@ -766,44 +775,44 @@ void fromFloatToRaw_int(audio_struct *audio_struct)
 
 
 // Loop unrolled:
-// void fromFloatToRaw_int(audio_struct *audio_struct)
-// {
-// 	auto start = std::chrono::high_resolution_clock::now();
+void fromFloatToRaw_int_unrolled(audio_struct *audio_struct)
+{
+	auto start = std::chrono::high_resolution_clock::now();
 
-// 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
-// 	for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
-// 	{	
-// 		int res[4];
-// 		res[0] = audio_struct->scaleVal * audio_struct->audioBuffer[0 + n]; // get actual int sample out of normalized full scale float
-// 		res[1] = audio_struct->scaleVal * audio_struct->audioBuffer[1 + n];
-// 		res[2] = audio_struct->scaleVal * audio_struct->audioBuffer[2 + n];
-// 		res[3] = audio_struct->scaleVal * audio_struct->audioBuffer[3 + n];
+	for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
+	{	
+		int res[4];
+		res[0] = audio_struct->scaleVal * audio_struct->audioBuffer[0 + n]; // get actual int sample out of normalized full scale float
+		res[1] = audio_struct->scaleVal * audio_struct->audioBuffer[1 + n];
+		res[2] = audio_struct->scaleVal * audio_struct->audioBuffer[2 + n];
+		res[3] = audio_struct->scaleVal * audio_struct->audioBuffer[3 + n];
 
-// 		byteSplit(sampleBytes, res[0], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
-// 		sampleBytes += audio_struct->bps; // jump to next sample
+		byteSplit(sampleBytes, res[0], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+		sampleBytes += audio_struct->bps; // jump to next sample
 
-// 		byteSplit(sampleBytes, res[1], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
-// 		sampleBytes += audio_struct->bps; // jump to next sample
+		byteSplit(sampleBytes, res[1], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+		sampleBytes += audio_struct->bps; // jump to next sample
 
-// 		byteSplit(sampleBytes, res[2], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
-// 		sampleBytes += audio_struct->bps; // jump to next sample
+		byteSplit(sampleBytes, res[2], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+		sampleBytes += audio_struct->bps; // jump to next sample
 
-// 		byteSplit(sampleBytes, res[3], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
-// 		sampleBytes += audio_struct->bps; // jump to next sample
-// 	}
-// 	// clean up buffer for next period
-// 	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+		byteSplit(sampleBytes, res[3], audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+		sampleBytes += audio_struct->bps; // jump to next sample
+	}
+	// clean up buffer for next period
+	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 
-// 	auto end = std::chrono::high_resolution_clock::now();
-// 	std::chrono::duration<double, std::milli> elapsed = end - start;
-// 	std::cout << "Execution time: " << elapsed.count() << " ms\n";
-// }
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> elapsed = end - start;
+	std::cout << "Execution time: " << elapsed.count() << " ms\n";
+}
 
 // NEON
 void fromFloatToRaw_int_NEON(audio_struct *audio_struct)
 {
-	// auto start = std::chrono::high_resolution_clock::now();      
+	auto start = std::chrono::high_resolution_clock::now();      
 	// YOUR CODE (Full content of body of the function) 
 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
@@ -811,7 +820,9 @@ void fromFloatToRaw_int_NEON(audio_struct *audio_struct)
 	{	
 		// Load the four floating-point inputs into a NEON vector
     	float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
+
 		float32x4_t resultVec = vmulq_f32(inputVec, audio_struct->factorVec);
+
 
 		// int res[4];
 		// Truncates float type to int type
@@ -823,26 +834,50 @@ void fromFloatToRaw_int_NEON(audio_struct *audio_struct)
 		// Will be changed to be ByteSplit()
 		// byteSplit_littleEndian_unrolled(&sampleBytes, res, audio_struct);
 		byteSplit_littleEndian_NEON(&sampleBytes, intValues, audio_struct);
-		// byteSplit_bigEndian_NEON(&sampleBytes, intValues, audio_struct);
 
-		// byteSplit(sampleBytes, res[0], audio_struct);
-		// // sampleBytes += audio_struct->physBps; // jump to next sample ** COnfirm I need to jump here?
-
-		// byteSplit(sampleBytes, res[1], audio_struct);
-		// // sampleBytes += audio_struct->physBps; // jump to next sample
-
-		// byteSplit(sampleBytes, res[2], audio_struct);
-		// // sampleBytes += audio_struct->physBps; // jump to next sample
-
-		// byteSplit(sampleBytes, res[3], audio_struct);
-		// sampleBytes += audio_struct->physBps; // jump to next sample
 	}
 	// clean up buffer for next period
 	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 
-	// auto end = std::chrono::high_resolution_clock::now();
-	// std::chrono::duration<double, std::milli> elapsed = end - start;
-	// std::cout << "Execution time: " << elapsed.count() << " ms\n";
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> elapsed = end - start;
+	std::cout << "Execution time: " << elapsed.count() << " ms\n";
+}
+
+
+// NEON Using bitshift - n instead of multiplication:
+void fromFloatToRaw_int_NEON_bitshift(audio_struct *audio_struct)
+{
+	auto start = std::chrono::high_resolution_clock::now();      
+	// YOUR CODE (Full content of body of the function) 
+	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+	for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
+	{	
+		// Load the four floating-point inputs into a NEON vector
+    	float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
+
+		float32x4_t resultVec = vmulq_f32(inputVec, audio_struct->factorVec);
+
+
+		// int res[4];
+		// Truncates float type to int type
+		int32x4_t intValues = vcvtq_s32_f32(resultVec);
+
+		// Moves intValues to res
+		// vst1q_s32(res, intValues);
+
+		// Will be changed to be ByteSplit()
+		// byteSplit_littleEndian_unrolled(&sampleBytes, res, audio_struct);
+		byteSplit_littleEndian_NEON(&sampleBytes, intValues, audio_struct);
+
+	}
+	// clean up buffer for next period
+	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> elapsed = end - start;
+	std::cout << "Execution time: " << elapsed.count() << " ms\n";
 }
 
 
