@@ -202,9 +202,9 @@ configure () {
   neon_setting=$(grep 'supports neon floating point unit' "$hw_config" | cut -d \" -f 4)
   if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
   then
-    neon="-DANDROID_ARM_NEON=ON"
+    neon="ON"
   else
-    neon=""
+    neon="OFF"
   fi
 
   if [[ $PROJECT == "" ]]; then
@@ -244,7 +244,7 @@ configure () {
   # run CMake configuration 
   cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
         -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level \
-        "-DANDROID_NDK=$NDK" $neon "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" \
+        "-DANDROID_NDK=$NDK" "-DEXPLICIT_ARM_NEON=$neon" "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" \
         -G Ninja -B"$build_dir" -S".."
 
   exit_code=$?

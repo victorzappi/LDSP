@@ -36,6 +36,8 @@
 #include <dirent.h> // browse dirs
 #include <unistd.h> // getpid()
 
+#include <iostream>
+
 #include "LDSP.h"
 #include "tinyalsaAudio.h"
 #include "mixer.h"
@@ -78,18 +80,27 @@ int cpuIndex = -1;
 
 // function pointers set up in initFormatFunctions()
 // capture
+
+// ** TODO: Add NEON_ENABLED for ByteCombine Once ByteCombine_BigEndian_NEON is written
 int (*byteCombine)(unsigned char*, audio_struct*);
 int byteCombine_littleEndian(unsigned char*, audio_struct*);
 int byteCombine_bigEndian(unsigned char*, audio_struct*);
+
 // playback
 void (*fromRawToFloat)(audio_struct*);
 void fromRawToFloat_int(audio_struct*);
 void fromRawToFloat_float32(audio_struct*);
 
 
-void (*byteSplit)(unsigned char*, int, audio_struct*);
-void byteSplit_littleEndian(unsigned char*, int, audio_struct*);
-void byteSplit_bigEndian(unsigned char*, int, audio_struct*);
+#ifdef NEON_ENABLED
+	void (*byteSplit)(unsigned char**, int32x4_t, audio_struct*);
+	void byteSplit_littleEndian(unsigned char**, int32x4_t, audio_struct*);
+	void byteSplit_bigEndian(unsigned char**, int32x4_t, audio_struct*);
+#else
+	void (*byteSplit)(unsigned char*, int, audio_struct*);
+	void byteSplit_littleEndian(unsigned char*, int, audio_struct*);
+	void byteSplit_bigEndian(unsigned char*, int, audio_struct*);
+#endif
 
 void (*fromFloatToRaw)(audio_struct*);
 void fromFloatToRaw_int(audio_struct*);
@@ -668,7 +679,6 @@ void fromRawToFloat_float32(audio_struct *audio_struct)
 void fromFloatToRaw_int(audio_struct *audio_struct)
 {
 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-
 	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 	{
 		int res = audio_struct->scaleVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
