@@ -182,17 +182,17 @@ rem End of :install_scripts
   set neon_setting=%neon_setting: =%
 
   if "%neon_setting%" == "true" (
-    set "neon=-DANDROID_ARM_NEON=ON"
+    set "neon=ON"
   ) else if "%neon_setting%" == "True" (
-    set "neon=-DANDROID_ARM_NEON=ON"
+    set "neon=ON"
   ) else if "%neon_setting%" == "yes" (
-    set "neon=-DANDROID_ARM_NEON=ON"
+    set "neon=ON"
   ) else if "%neon_setting%" == "Yes" (
-    set "neon=-DANDROID_ARM_NEON=ON"
+    set "neon=ON"
   ) else if "%neon_setting%" == "1" (
-    set "neon=-DANDROID_ARM_NEON=ON"
+    set "neon=ON"
   ) else (
-    set "neon="
+    set "neon=OFF"
   )
 
 
@@ -255,7 +255,7 @@ rem End of :install_scripts
   rem Run CMake configuration
   cmake -DCMAKE_TOOLCHAIN_FILE=%NDK%/build/cmake/android.toolchain.cmake ^
         -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% ^
-        "-DANDROID_NDK=%NDK%" %neon% "-DLDSP_PROJECT=%project_dir%" "-DONNX_VERSION=%onnx_version%" ^
+        "-DANDROID_NDK=%NDK%" "-DEXPLICIT_ARM_NEON=%neon%" "-DLDSP_PROJECT=%project_dir%" "-DONNX_VERSION=%onnx_version%" ^
         -G Ninja -B"%build_dir%" -S".."
 
   if not %ERRORLEVEL% == 0 (
