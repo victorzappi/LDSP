@@ -103,8 +103,6 @@ void byteSplit_bigEndian_NEON(unsigned char**, int32x4_t, audio_struct*);
 void byteSplit_littleEndian(unsigned char*, int, audio_struct*);
 void byteSplit_bigEndian(unsigned char*, int, audio_struct*);
 
-// ** TODO: Add NEON_ENABLED for ByteCombine Once ByteCombine_BigEndian_NEON is written
-
 
 int byteCombine_littleEndian(unsigned char*, audio_struct*);
 int byteCombine_bigEndian(unsigned char*, audio_struct*);
@@ -389,9 +387,11 @@ int initFormatFunctions(string format)
     	case LDSP_pcm_format::S24_LE:
     	case LDSP_pcm_format::S24_3LE:
 			#ifdef NEON_ENABLED
+				std::cout << "We are in the switch statement and it thikns NEON is enabled" << std::endl;
 				fromRawToFloat = fromRawToFloat_int_NEON;
 				fromFloatToRaw = fromFloatToRaw_int_NEON;
 			#else
+				std::cout << "Bye NEON DISabled!" << std::endl;
 				fromRawToFloat = fromRawToFloat_int;
 				fromFloatToRaw = fromFloatToRaw_int;
 			#endif
@@ -417,30 +417,18 @@ int initFormatFunctions(string format)
 			byteSplit = byteSplit_bigEndian;
     		break;
     	case LDSP_pcm_format::FLOAT_LE:
-			#ifdef NEON_ENABLED
-				fromRawToFloat = fromRawToFloat_int_NEON;
-				fromFloatToRaw = fromFloatToRaw_int_NEON;
-			#else
-				fromRawToFloat = fromRawToFloat_int;
-				fromFloatToRaw = fromFloatToRaw_int;
-			#endif
-			byteCombine_NEON = byteCombine_littleEndian_NEON;
-			byteSplit_NEON = byteSplit_littleEndian_NEON;
+			// No support for NEON yet
 			byteCombine = byteCombine_littleEndian;
-			byteSplit = byteSplit_littleEndian;
+    		byteSplit = byteSplit_littleEndian;
+			fromRawToFloat = fromRawToFloat_float32;
+    		fromFloatToRaw = fromFloatToRaw_float32;
     		break;
     	case LDSP_pcm_format::FLOAT_BE:
-		    #ifdef NEON_ENABLED
-				fromRawToFloat = fromRawToFloat_int_NEON;
-				fromFloatToRaw = fromFloatToRaw_int_NEON;
-			#else
-				fromRawToFloat = fromRawToFloat_int;
-				fromFloatToRaw = fromFloatToRaw_int;
-			#endif
-			byteCombine_NEON = byteCombine_bigEndian_NEON;
-			byteSplit_NEON = byteSplit_bigEndian_NEON;
-			byteCombine = byteCombine_bigEndian;
-			byteSplit = byteSplit_bigEndian;
+			// No support for NEON yet
+		    byteCombine = byteCombine_bigEndian;
+    	    byteSplit = byteSplit_bigEndian;
+			fromRawToFloat = fromRawToFloat_float32;
+    	    fromFloatToRaw = fromFloatToRaw_float32;
 			break;
     	case LDSP_pcm_format::MAX:
     	default:
@@ -637,6 +625,12 @@ void cleanupLowLevelAudioStruct(LDSPpcmContext *pcmContext)
 void *audioLoop(void*)
 {
 
+	#ifdef NEON_ENABLED
+				std::cout << "Audio Loop: NEON EBALED" << std::endl;
+		#else
+				std::cout << "Audio Loop: NEON Disabled!" << std::endl;
+	#endif
+
     // set the affinity to ensure the thread runs on chosen CPU
 	if(cpuIndex > -1)
 		set_cpu_affinity(cpuIndex, "audio", audioVerbose);
@@ -724,6 +718,8 @@ void fromRawToFloat_float32(audio_struct *audio_struct)
 //VIC on android, it seems that interleaved is the only way to go
 void fromFloatToRaw_int(audio_struct *audio_struct)
 {
+	std::cout << "Neon disabled!" << std::endl;
+	std::cout << "---------------------------------------!" << std::endl;
 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 	{
@@ -762,6 +758,8 @@ void fromFloatToRaw_float32(audio_struct *audio_struct)
 // NEON implementation of fromFloatToRaw_int
 void fromFloatToRaw_int_NEON(audio_struct *audio_struct)
 {
+
+	std::cout << "Neon enabled!" << std::endl;
 	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
 	for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
