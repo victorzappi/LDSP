@@ -587,11 +587,11 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	else
 		audio_struct->bps = 3;
 
-	#ifdef NEON_ENABLED
-		audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal);
-		audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->scaleVal);
-		audio_struct->byteSplit_maskVec = vdupq_n_s32(0xff);
-	#endif
+	// #ifdef NEON_ENABLED
+	audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal);
+	audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->scaleVal);
+	audio_struct->byteSplit_maskVec = vdupq_n_s32(0xff);
+	// #endif
 
 	// this is used for capture only
 	// we compute the mask necessary to complete the two's complement of received raw samples
