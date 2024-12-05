@@ -20,9 +20,7 @@
 #ifndef TINY_ALSA_AUDIO_H_
 #define TINY_ALSA_AUDIO_H_
 
-#ifdef NEON_ENABLED
-    #include <arm_neon.h>
-#endif
+#include <arm_neon.h>
 
 #include"LDSP.h"
 
@@ -75,13 +73,13 @@ struct audio_struct {
 	unsigned int physBps;
     int mask; // used for capture only
     // Define NEON fields only if needed
-    #ifdef NEON_ENABLED
+    // #ifdef NEON_ENABLED
         float32x4_t factorVec; // This must be byteAligned by byteAligning full audioStruct
         float32x4_t factorVecReciprocal;
         int32x4_t byteSplit_maskVec; // This must be byteAligned by byteAligning full audioStruct
         int32x4_t capture_maskVec;
         unsigned int numOfSamples4Multiple;
-    #endif
+    // #endif
 };
 
 struct LDSPpcmContext {
