@@ -150,14 +150,22 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 	// once the pcm device is open, we can check if the requested params have been set
 	// and update our variables according to the actual params
     updateAudioParams(settings, &pcmContext.playback, true);
-	if(fullDuplex)
+	if(fullDuplex) 
+	{
     	updateAudioParams(settings, &pcmContext.capture, false);
+		if(pcmContext.playback->config.period_size != pcmContext.capture->config.period_size) 
+		{
+			fprintf(stderr, "The requested period size results in different sizes for playback (%d) and capture (%d)! Please choose a different one\n", pcmContext.playback->config.period_size, pcmContext.capture->config.period_size);
+			return -3;
+		}
+
+	}
 
     if(initLowLevelAudioStruct(pcmContext.playback)<0)
     {
         // try partial deallocation
         deallocateLowLevelAudioStruct(pcmContext.playback);
-        return -3;
+        return -4;
     }
 	if(fullDuplex)
 	{
@@ -165,7 +173,7 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 		{
 			// try partial deallocation
 			deallocateLowLevelAudioStruct(pcmContext.capture);
-			return -3;
+			return -4;
 		}
 	}
 
@@ -206,7 +214,7 @@ int LDSP_startAudio(void *userData)
 	pthread_t audioThread;
 	if( pthread_create(&audioThread, nullptr, audioLoop, nullptr) ) 
 	{
-		fprintf(stderr, "Error:unable to create thread\n");
+		fprintf(stderr, "Error: unable to create thread\n");
 		return -2;
 	}
 
@@ -265,13 +273,13 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
     }
 
     (*audioStruct)->config.period_size = settings->periodSize;
-    (*audioStruct)->config.period_count =settings->periodCount;
+    (*audioStruct)->config.period_count = settings->periodCount;
     (*audioStruct)->config.rate = settings->samplerate;
     (*audioStruct)->config.format = (pcm_format) gFormats[settings->pcmFormatString];
 	(*audioStruct)->config.avail_min = 1;
-	(*audioStruct)->config.start_threshold = 1; //VIC 60 //settings->periodSize;
-	(*audioStruct)->config.stop_threshold = 0;
-    (*audioStruct)->config.silence_threshold = 1; //settings->periodSize * settings->periodCount; 
+	(*audioStruct)->config.start_threshold = 1;//settings->periodSize; //1; 
+	(*audioStruct)->config.stop_threshold = 2 * settings->periodSize * settings->periodCount; //0;
+    (*audioStruct)->config.silence_threshold = 0; //1; 
     (*audioStruct)->config.silence_size = 0;
 
 
@@ -424,14 +432,6 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 		return -1;
 	}
 
-    //VIC only added in later versions of tinyalsa, apparently not needed though
-	// last touch for playback
-	// if(pcm_prepare(audio_struct_p->pcm) < 0) 
-	// {
-	// 	fprintf(stderr, "Pcm prepare error: %s\n", pcm_get_error(audio_struct_p->pcm));
-	// 	return -2;
-	// }
-
 	audio_struct_p->frameBytes = pcm_frames_to_bytes(audio_struct_p->pcm, config_p->period_size); //VIC note that we are using period size, not buffer size
     
     if(audioVerbose)
@@ -464,6 +464,18 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 		
 		if(audioVerbose)
 			printf("Playback and Capture audio device linked!\n");
+	}
+
+	if( pcm_prepare(audio_struct_p->pcm) < 0)
+	{
+		fprintf(stderr, "Failed to prepare playback audio device. %s\n", pcm_get_error(audio_struct_p->pcm));
+		return -3;
+	}
+
+	if( fullDuplex && pcm_prepare(audio_struct_c->pcm) < 0)
+	{
+		fprintf(stderr, "Failed to prepare capture audio device. %s\n", pcm_get_error(audio_struct_c->pcm));
+		return -3;
 	}
 
 

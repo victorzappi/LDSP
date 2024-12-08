@@ -52,7 +52,7 @@ screenCtrlsCommands screenCmds;
 const char *pwrBtn_input_cmd = "input keyevent 26";
 const char *tap_input_cmd = "input tap 1 1";
 extern bool gShouldStop; // extern from tinyalsaAudio.cpp
-pthread_t screenCtl_thread;
+pthread_t screenCtl_thread = 0;
 bool initialScreenState;
 int nextScreenState = -1;
 float nextBrightness = 0;
@@ -82,7 +82,7 @@ int LDSP_initCtrlOutputs(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
     if(!ctrlOutputsOff)
     {
         int retVal = initCtrlOutputs(hwconfig->ctrl_outputs);
-        if(retVal!=0)
+        if(retVal!=0) 
             return retVal;
     }
 
@@ -112,7 +112,12 @@ void LDSP_cleanupCtrlOutputs()
 
     
     // wait for screen thread to finish...
-    pthread_join(screenCtl_thread, NULL);
+    if(screenCtl_thread != 0) 
+    {
+        if(!gShouldStop)
+            gShouldStop = true;
+        pthread_join(screenCtl_thread, NULL);
+    }
 
     // ...then reset screen to inital state
     if(isScreenOn() != initialScreenState)
