@@ -259,7 +259,10 @@ int readCardParam(string info_path, string param_match, string &param);
 
 void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, bool is_playback)
 {
-    *audioStruct = (audio_struct*) malloc(sizeof(audio_struct));
+	// ByteAlign audioStruct so that it is prepared for NEON
+	if (posix_memalign((void**)*&audioStruct, 16, sizeof(audio_struct)) != 0) {
+        perror("posix_memalign failed");
+    }
     
     (*audioStruct)->card = settings->card;
     if(is_playback)
@@ -543,15 +546,16 @@ void cleanupPcm(LDSPpcmContext *pcmContext)
 
 int initLowLevelAudioStruct(audio_struct *audio_struct)
 {    
+
+	std::cout << "Init low level start!" << std::endl;
 	int channels = audio_struct->config.channels;
 	// to cover the case of capture when non full duplex engine
 	if(channels <=0)
 		channels = 1;
 
+	std::cout << "1" << std::endl;
 	audio_struct->numOfSamples = channels*audio_struct->config.period_size;
 	audio_struct->numOfSamples4Multiple = audio_struct->numOfSamples + (4 - audio_struct->numOfSamples % 4) % 4;
-
-	unsigned int formatBits;
 
 	/*
 	* Create a local var to replace frameBytes
@@ -575,22 +579,27 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	}
 	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples4Multiple*sizeof(float)); // quiet please!
 
+	std::cout << "2" << std::endl;
 	// finish audio initialization
 	//formatBits = LDSP_pcm_format_to_bits((int)audio_struct->config.format); // replaces/implements pcm_format_to_bits(), that is missing from old tinyalsa
-	formatBits = pcm_format_to_bits(audio_struct->config.format);
-	audio_struct->formatBits = formatBits;
-	audio_struct->scaleVal = (1 << (formatBits - 1)) - 1;
-	audio_struct->physBps = formatBits / 8;  // size in bytes of the format var type used to store sample
+	audio_struct->physBps = pcm_format_to_bits(audio_struct->config.format) / 8;  // size in bytes of the format var type used to store sample
 	// different than this, i.e., number of bytes actually used within that format var type!
 	if(audio_struct->config.format != gFormats["S24_3LE"] && audio_struct->config.format != gFormats["S24_3BE"]) // these vars span 32 bits, but only 24 are actually used! -> 3 bytes
 		audio_struct->bps = audio_struct->physBps;
 	else
 		audio_struct->bps = 3;
 
+	audio_struct->formatBits = audio_struct->bps * 8;
+	audio_struct->scaleVal = (1 << (audio_struct->formatBits - 1)) - 1;
+
+	std::cout << "3" << std::endl;
+
 	// #ifdef NEON_ENABLED
 	audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal);
 	audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->scaleVal);
 	audio_struct->byteSplit_maskVec = vdupq_n_s32(0xff);
+
+	std::cout << "4" << std::endl;
 	// #endif
 
 	// this is used for capture only
@@ -602,8 +611,9 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	for(int i=audio_struct->formatBits; i < sizeof(int)*8; i++) 
 		audio_struct->mask |= (1 << i); // put a 1 in all bits that are beyond those used by the format
 
-			
+	std::cout << "Init low level end!" << std::endl;
 	return 0;
+
 }
 
 
@@ -1127,12 +1137,12 @@ int32x4_t byteCombine_littleEndian_NEON(unsigned char** sampleBytes, audio_struc
 
 	int32x4_t rawValues;
 	
-	int bps = audio_struct->bps;
+	int physBps = audio_struct->physBps;
 	for (int i = 0; i<bps; i++) {
 		rawValues[0] = *(*sampleBytes + i);
-		rawValues[1] = *(*sampleBytes + 1 * bps + i); // This should be physBPS?
-		rawValues[2] = *(*sampleBytes + 2 * bps + i); // This should be physBPS?
-		rawValues[3] = *(*sampleBytes + 3 * bps + i); // This should be physBPS?
+		rawValues[1] = *(*sampleBytes + 1 * physBps + i);
+		rawValues[2] = *(*sampleBytes + 2 * physBps + i);
+		rawValues[3] = *(*sampleBytes + 3 * physBps + i);
 
 		int32x4_t shiftAmountVec = vdupq_n_s32(i*8);
 		int32x4_t shiftedValues = vshlq_s32(rawValues, shiftAmountVec);

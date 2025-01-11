@@ -73,13 +73,13 @@ struct audio_struct {
 	unsigned int physBps;
     int mask; // used for capture only
     // Define NEON fields only if needed
-    // #ifdef NEON_ENABLED
-        float32x4_t factorVec; // This must be byteAligned by byteAligning full audioStruct
-        float32x4_t factorVecReciprocal;
-        int32x4_t byteSplit_maskVec; // This must be byteAligned by byteAligning full audioStruct
-        int32x4_t capture_maskVec;
-        unsigned int numOfSamples4Multiple;
-    // #endif
+// #ifdef NEON_ENABLED
+    float32x4_t factorVec; // This must be byteAligned by byteAligning full audioStruct
+    float32x4_t factorVecReciprocal;
+    int32x4_t byteSplit_maskVec; // This must be byteAligned by byteAligning full audioStruct
+    int32x4_t capture_maskVec;
+    unsigned int numOfSamples4Multiple;
+// #endif
 };
 
 struct LDSPpcmContext {
