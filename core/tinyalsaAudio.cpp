@@ -77,37 +77,37 @@ bool ctrlOutputsOff_ = false;
 
 int cpuIndex = -1;
 
-
 // function pointers set up in initFormatFunctions()
 // capture
+
+// Depending on if NEON_ENABLED, fromRawToFloat_int and fromFloatToRaw_int will be implenented with NEON or not
 
 // playback
 void (*fromRawToFloat)(audio_struct*);
 void fromRawToFloat_int(audio_struct*);
-void fromRawToFloat_float32(audio_struct*);
-void fromRawToFloat_int_NEON(audio_struct*);
 
+// capture
 void (*fromFloatToRaw)(audio_struct*);
 void fromFloatToRaw_int(audio_struct*);
+
+void fromRawToFloat_float32(audio_struct*);
 void fromFloatToRaw_float32(audio_struct*);
-void fromFloatToRaw_int_NEON(audio_struct*);
 
-void (*byteSplit)(unsigned char*, int, audio_struct*);
-void (*byteSplit_NEON)(unsigned char**, int32x4_t, audio_struct*);
-
-int (*byteCombine)(unsigned char*, audio_struct*);
-int32x4_t (*byteCombine_NEON)(unsigned char**, audio_struct*);
-
-void byteSplit_littleEndian_NEON(unsigned char**, int32x4_t, audio_struct*);
-void byteSplit_bigEndian_NEON(unsigned char**, int32x4_t, audio_struct*);
-void byteSplit_littleEndian(unsigned char*, int, audio_struct*);
-void byteSplit_bigEndian(unsigned char*, int, audio_struct*);
-
-
-int byteCombine_littleEndian(unsigned char*, audio_struct*);
-int byteCombine_bigEndian(unsigned char*, audio_struct*);
-int32x4_t byteCombine_littleEndian_NEON(unsigned char**, audio_struct*);
-int32x4_t byteCombine_bigEndian_NEON(unsigned char**, audio_struct*);
+#ifdef NEON_ENABLED
+	void (*byteSplit)(unsigned char**, int32x4_t, audio_struct*);
+	int32x4_t (*byteCombine)(unsigned char**, audio_struct*);
+	void byteSplit_littleEndian(unsigned char**, int32x4_t, audio_struct*);
+	void byteSplit_bigEndian(unsigned char**, int32x4_t, audio_struct*);
+	int32x4_t byteCombine_littleEndian(unsigned char**, audio_struct*);
+	int32x4_t byteCombine_bigEndian(unsigned char**, audio_struct*);
+#else
+	void (*byteSplit)(unsigned char*, int, audio_struct*);
+	int (*byteCombine)(unsigned char*, audio_struct*);
+	void byteSplit_littleEndian(unsigned char*, int, audio_struct*);
+	void byteSplit_bigEndian(unsigned char*, int, audio_struct*);
+	int byteCombine_littleEndian(unsigned char*, audio_struct*);
+	int byteCombine_bigEndian(unsigned char*, audio_struct*);
+#endif
 
 
 // non-exposed functions
@@ -389,17 +389,8 @@ int initFormatFunctions(string format)
     	case LDSP_pcm_format::S8:  // but it doesn't really matter, single byte no need to split/combine
     	case LDSP_pcm_format::S24_LE:
     	case LDSP_pcm_format::S24_3LE:
-			#ifdef NEON_ENABLED
-				std::cout << "We are in the switch statement and it thikns NEON is enabled" << std::endl;
-				fromRawToFloat = fromRawToFloat_int_NEON;
-				fromFloatToRaw = fromFloatToRaw_int_NEON;
-			#else
-				std::cout << "Bye NEON DISabled!" << std::endl;
-				fromRawToFloat = fromRawToFloat_int;
-				fromFloatToRaw = fromFloatToRaw_int;
-			#endif
-			byteCombine_NEON = byteCombine_littleEndian_NEON;
-			byteSplit_NEON = byteSplit_littleEndian_NEON;
+			fromRawToFloat = fromRawToFloat_int;
+			fromFloatToRaw = fromFloatToRaw_int;
 			byteCombine = byteCombine_littleEndian;
 			byteSplit = byteSplit_littleEndian;
     		break;
@@ -407,15 +398,8 @@ int initFormatFunctions(string format)
     	case LDSP_pcm_format::S32_BE:
     	case LDSP_pcm_format::S24_BE:
     	case LDSP_pcm_format::S24_3BE:
-			#ifdef NEON_ENABLED
-				fromRawToFloat = fromRawToFloat_int_NEON;
-				fromFloatToRaw = fromFloatToRaw_int_NEON;
-			#else
-				fromRawToFloat = fromRawToFloat_int;
-				fromFloatToRaw = fromFloatToRaw_int;
-			#endif
-			byteCombine_NEON = byteCombine_bigEndian_NEON;
-			byteSplit_NEON = byteSplit_bigEndian_NEON;
+			fromRawToFloat = fromRawToFloat_int;
+			fromFloatToRaw = fromFloatToRaw_int;
 			byteCombine = byteCombine_bigEndian;
 			byteSplit = byteSplit_bigEndian;
     		break;
@@ -553,7 +537,6 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	if(channels <=0)
 		channels = 1;
 
-	std::cout << "1" << std::endl;
 	audio_struct->numOfSamples = channels*audio_struct->config.period_size;
 	audio_struct->numOfSamples4Multiple = audio_struct->numOfSamples + (4 - audio_struct->numOfSamples % 4) % 4;
 
@@ -579,7 +562,6 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	}
 	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples4Multiple*sizeof(float)); // quiet please!
 
-	std::cout << "2" << std::endl;
 	// finish audio initialization
 	//formatBits = LDSP_pcm_format_to_bits((int)audio_struct->config.format); // replaces/implements pcm_format_to_bits(), that is missing from old tinyalsa
 	audio_struct->physBps = pcm_format_to_bits(audio_struct->config.format) / 8;  // size in bytes of the format var type used to store sample
@@ -592,14 +574,12 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	audio_struct->formatBits = audio_struct->bps * 8;
 	audio_struct->scaleVal = (1 << (audio_struct->formatBits - 1)) - 1;
 
-	std::cout << "3" << std::endl;
 
 	// #ifdef NEON_ENABLED
 	audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal);
 	audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->scaleVal);
 	audio_struct->byteSplit_maskVec = vdupq_n_s32(0xff);
 
-	std::cout << "4" << std::endl;
 	// #endif
 
 	// this is used for capture only
@@ -686,139 +666,155 @@ void *audioLoop(void*)
 	return (void *)0;
 }
 
-
-//VIC on android, it seems that interleaved is the only way to go
-void fromRawToFloat_int(audio_struct *audio_struct) 
-{
-	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-
-	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+#ifdef NEON_ENABLED
+	// NEON implementation of fromFloatToRaw_int
+	void fromFloatToRaw_int(audio_struct *audio_struct)
 	{
-			int res = byteCombine(sampleBytes, audio_struct); // function pointer, gets sample value by combining the consecutive bytes, organized in either little or big endian
-			// if retrieved value is greater than maximum value allowed within current format
-			// we have to manually complete the 2's complement, by extending the sign
-			if(res>audio_struct->scaleVal)
-				res |= audio_struct->mask;
-			audio_struct->audioBuffer[n] = res/((float)(audio_struct->scaleVal)); // turn int sample into full scale normalized float
+
+		std::cout << "Neon enabled!" << std::endl;
+		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+		for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
+		{	
+			// Load the four floating-point inputs into a NEON vector
+			float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
+
+			// Scale the input by scaleVal
+			float32x4_t resultVec = vmulq_f32(inputVec, audio_struct->factorVec);
+
+			// Truncates float type to int type
+			int32x4_t intValues = vcvtq_s32_f32(resultVec);
+
+			byteSplit(&sampleBytes, intValues, audio_struct);
+		}
+		// clean up buffer for next period
+		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+	}
+
+	// NEON implementation of fromRawToFloat_int
+	void fromRawToFloat_int(audio_struct *audio_struct) 
+	{
+		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+		for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
+		{
+				int32x4_t res = byteCombine(&sampleBytes, audio_struct);
+
+				// Perform the comparison (res > scaleVal)
+				uint32x4_t greaterThanMask = vcgtq_s32(res, audio_struct->factorVec);
+
+				// Prepare the mask by ANDing it with the captureMask
+				int32x4_t maskedValues = vandq_s32((int32x4_t)greaterThanMask, audio_struct->capture_maskVec);
+
+				// Apply the mask using OR operation
+				int32x4_t masked_result = vorrq_s32(res, maskedValues);
+
+				// Convert masked_result to float type
+				float32x4_t floatVec = vcvtq_f32_s32(masked_result);
+
+				// Scale integer representation to float representation
+				float32x4_t result = vmulq_f32(floatVec, audio_struct->factorVecReciprocal);
+
+				audio_struct->audioBuffer[n] = result[0];
+				audio_struct->audioBuffer[n + 1] = result[1];
+				audio_struct->audioBuffer[n + 2] = result[2];
+				audio_struct->audioBuffer[n + 3] = result[3];		
+		}
+	}
+
+	void fromFloatToRaw_float32(audio_struct *audio_struct) {
+		throw std::runtime_error("NEON is not supported for float32 type! Please disable NEON.");
+	}
+
+	void fromRawToFloat_float32(audio_struct *audio_struct) {
+		throw std::runtime_error("NEON is not supported for float32 type! Please disable NEON.");
+	}
+
+#else
+	//TODO optimize: loop unrolling and, when possible, NEON
+	//VIC on android, it seems that interleaved is the only way to go
+	void fromFloatToRaw_int(audio_struct *audio_struct)
+	{
+		std::cout << "Neon disabled!" << std::endl;
+		std::cout << "---------------------------------------!" << std::endl;
+		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+		{
+			int res = audio_struct->scaleVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
+			
+			byteSplit(sampleBytes, res, audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
 
 			sampleBytes += audio_struct->bps; // jump to next sample
+		}
+		// clean up buffer for next period
+		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 	}
-}
-void fromRawToFloat_float32(audio_struct *audio_struct) 
-{
-	union {
-		float f;
-		int i;
-	} fval;
 
-	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-
-	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+	//VIC on android, it seems that interleaved is the only way to go
+	void fromRawToFloat_int(audio_struct *audio_struct) 
 	{
-		int res = byteCombine(sampleBytes, audio_struct); // function pointer, gets sample value by combining the consecutive bytes, organized in either little or big endian
+		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
-		fval.i = res; // safe
-		audio_struct->audioBuffer[n] = fval.f; // interpret as float
+		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+		{
+				int res = byteCombine(sampleBytes, audio_struct); // function pointer, gets sample value by combining the consecutive bytes, organized in either little or big endian
+				// if retrieved value is greater than maximum value allowed within current format
+				// we have to manually complete the 2's complement, by extending the sign
+				if(res>audio_struct->scaleVal)
+					res |= audio_struct->mask;
+				audio_struct->audioBuffer[n] = res/((float)(audio_struct->scaleVal)); // turn int sample into full scale normalized float
 
-		sampleBytes += audio_struct->bps; // jump to next sample
+				sampleBytes += audio_struct->bps; // jump to next sample
+		}
 	}
-}
 
-//TODO optimize: loop unrolling and, when possible, NEON
-//VIC on android, it seems that interleaved is the only way to go
-void fromFloatToRaw_int(audio_struct *audio_struct)
-{
-	std::cout << "Neon disabled!" << std::endl;
-	std::cout << "---------------------------------------!" << std::endl;
-	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+	void fromFloatToRaw_float32(audio_struct *audio_struct)
 	{
-		int res = audio_struct->scaleVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
-		
-		byteSplit(sampleBytes, res, audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+		union {
+			float f;
+			int i;
+		} fval;
 
-		sampleBytes += audio_struct->bps; // jump to next sample
+		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+		{
+			fval.f = audio_struct->audioBuffer[n]; // safe, cos float is at least 32 bits
+			int res = fval.i; // interpret as int
+			
+			byteSplit(sampleBytes, res, audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+
+			sampleBytes += audio_struct->bps; // jump to next sample
+		}
+		// clean up buffer for next period
+		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 	}
-	// clean up buffer for next period
-	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
-}
 
-void fromFloatToRaw_float32(audio_struct *audio_struct)
-{
-	union {
-		float f;
-		int i;
-	} fval;
-
-	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-
-	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+	void fromRawToFloat_float32(audio_struct *audio_struct) 
 	{
-		fval.f = audio_struct->audioBuffer[n]; // safe, cos float is at least 32 bits
-		int res = fval.i; // interpret as int
-		
-		byteSplit(sampleBytes, res, audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
+		union {
+			float f;
+			int i;
+		} fval;
 
-		sampleBytes += audio_struct->bps; // jump to next sample
+		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+		{
+			int res = byteCombine(sampleBytes, audio_struct); // function pointer, gets sample value by combining the consecutive bytes, organized in either little or big endian
+
+			fval.i = res; // safe
+			audio_struct->audioBuffer[n] = fval.f; // interpret as float
+
+			sampleBytes += audio_struct->bps; // jump to next sample
+		}
 	}
-	// clean up buffer for next period
-	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
-}
+#endif
 
-// NEON implementation of fromFloatToRaw_int
-void fromFloatToRaw_int_NEON(audio_struct *audio_struct)
-{
 
-	std::cout << "Neon enabled!" << std::endl;
-	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
-	for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
-	{	
-		// Load the four floating-point inputs into a NEON vector
-    	float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
 
-		// Scale the input by scaleVal
-		float32x4_t resultVec = vmulq_f32(inputVec, audio_struct->factorVec);
 
-		// Truncates float type to int type
-		int32x4_t intValues = vcvtq_s32_f32(resultVec);
-
-		byteSplit_NEON(&sampleBytes, intValues, audio_struct);
-	}
-	// clean up buffer for next period
-	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
-}
-
-// NEON implementation of fromRawToFloat_int
-void fromRawToFloat_int_NEON(audio_struct *audio_struct) 
-{
-	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-
-	for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
-	{
-			int32x4_t res = byteCombine_NEON(&sampleBytes, audio_struct);
-
-			// Perform the comparison (res > scaleVal)
-   			uint32x4_t greaterThanMask = vcgtq_s32(res, audio_struct->factorVec);
-
-			// Prepare the mask by ANDing it with the captureMask
-			int32x4_t maskedValues = vandq_s32((int32x4_t)greaterThanMask, audio_struct->capture_maskVec);
-
-			// Apply the mask using OR operation
-    		int32x4_t masked_result = vorrq_s32(res, maskedValues);
-
-			// Convert masked_result to float type
-			float32x4_t floatVec = vcvtq_f32_s32(masked_result);
-
-			// Scale integer representation to float representation
-			float32x4_t result = vmulq_f32(floatVec, audio_struct->factorVecReciprocal);
-
-			audio_struct->audioBuffer[n] = result[0];
-			audio_struct->audioBuffer[n + 1] = result[1];
-			audio_struct->audioBuffer[n + 2] = result[2];
-			audio_struct->audioBuffer[n + 3] = result[3];		
-	}
-}
 
 int checkCardFormats(struct pcm_params *params, unsigned int value)
 {
@@ -1046,142 +1042,147 @@ void resetGovernorMode()
 //-----------------------------------------------------------------------------------------------------
 // inline
 
-// combine all the bytes [1 or more, according to format] of a sample into an integer
-// little endian -> byte_0, byte_1, ..., byte_n-1 [more common format]
-inline int byteCombine_littleEndian(unsigned char *sampleBytes, struct audio_struct* audio_struct) 
-{
-	int value = 0;
-	for (int i = 0; i<audio_struct->bps; i++)
-		value += (int) (*(sampleBytes + i)) << i * 8;  // combines each sample [which stretches over 1 or more bytes, according to format] in single integer
-		
-	return value;
-}
-// big endian -> byte_n-1, byte_n-2, ..., byte_0
-inline int byteCombine_bigEndian(unsigned char *sampleBytes, struct audio_struct* audio_struct) {
-	int value = 0;
-	for (int i = 0; i<audio_struct->bps; i++)
-		value += (int) (*(sampleBytes  + audio_struct->physBps - 1 - i)) << i * 8; // combines each sample [which stretches over 1 or more bytes, according to format] in single integer, but reverses the order
-	return value;
-}
 
-// split an integer sample over more bytes [1 or more, according to format]
-// little endian -> byte_0, byte_1, ..., byte_n-1 [more common format]
-inline void byteSplit_littleEndian(unsigned char* sampleBytes, int value, struct audio_struct* audio_struct)
-{
-	for (int i = 0; i <audio_struct->bps; i++)
-		*(sampleBytes + i) = (value >>  i * 8) & 0xff;
-}
-// big endian -> byte_n-1, byte_n-2, ..., byte_0
-inline void byteSplit_bigEndian(unsigned char *sampleBytes, int value, struct audio_struct* audio_struct) 
-{
-	for (int i = 0; i <audio_struct->bps; i++)
-		*(sampleBytes + audio_struct->physBps - 1 - i) = (value >> i * 8) & 0xff; 
-}
 
-// NEON version of byteSplit littleEndian
-inline void byteSplit_littleEndian_NEON(unsigned char** sampleBytes, int32x4_t values, struct audio_struct* audio_struct)
-{
-	int bps = audio_struct->bps;
-	for (int i = 0; i < bps; i++) {
-		int32x4_t shiftAmountVec = vdupq_n_s32(-i*8); // Cannot be created elsewhere because it uses i
-		int32x4_t shifted_values = vshlq_s32(values, shiftAmountVec);
+#ifdef NEON_ENABLED
+	// NEON version of byteSplit littleEndian
+	inline void byteSplit_littleEndian(unsigned char** sampleBytes, int32x4_t values, struct audio_struct* audio_struct)
+	{
+		int bps = audio_struct->bps;
+		for (int i = 0; i < bps; i++) {
+			int32x4_t shiftAmountVec = vdupq_n_s32(-i*8); // Cannot be created elsewhere because it uses i
+			int32x4_t shifted_values = vshlq_s32(values, shiftAmountVec);
 
-		int32x4_t res = vandq_s32(shifted_values, audio_struct->byteSplit_maskVec);
+			int32x4_t res = vandq_s32(shifted_values, audio_struct->byteSplit_maskVec);
 
-		*(*sampleBytes + i) = res[0];
+			*(*sampleBytes + i) = res[0];
 
-		*(*sampleBytes + 1 * bps + i) = res[1];
+			*(*sampleBytes + 1 * bps + i) = res[1];
 
-		*(*sampleBytes + 2 * bps + i) = res[2];
+			*(*sampleBytes + 2 * bps + i) = res[2];
 
-		*(*sampleBytes + 3 * bps + i) = res[3];
+			*(*sampleBytes + 3 * bps + i) = res[3];
+		}
+		*sampleBytes += (4 *audio_struct->physBps);
 	}
-	*sampleBytes += (4 *audio_struct->physBps);
-}
 
-// NEON version of byteSplit bigEndian
-inline void byteSplit_bigEndian_NEON(unsigned char **sampleBytes, int32x4_t values, struct audio_struct* audio_struct) 
-/**
- *  ** Yet to be tested because we have no phones that support it**
-*/
-{
-	int bps = audio_struct->bps;
-	for (int i = 0; i < bps; i++) {
+	// NEON version of byteSplit bigEndian
+	inline void byteSplit_bigEndian(unsigned char **sampleBytes, int32x4_t values, struct audio_struct* audio_struct) 
+	/**
+	*  ** Yet to be tested because we have no phones that support it**
+	*/
+	{
+		int bps = audio_struct->bps;
+		for (int i = 0; i < bps; i++) {
+			
+			// NEON Right shift requires int to be a compile-time constant, so need to left shift by negative
+			int32x4_t shiftAmountVec = vdupq_n_s32(-i*8);
+			int32x4_t shifted_values = vshlq_s32(values, shiftAmountVec);
+
+			int res[4];
+
+			int32x4_t maskedValues = vandq_s32(shifted_values, audio_struct->byteSplit_maskVec);
+
+			vst1q_s32(res, maskedValues);
+
+			int physBps = audio_struct->physBps;
+			*(*sampleBytes + physBps - 1 - i) = res[0];
+
+			*(*sampleBytes + physBps - 1 + 1 * bps - i) = res[1];
+
+			*(*sampleBytes + physBps - 1 + 2 * bps - i) = res[2];
+
+			*(*sampleBytes + physBps - 1 + 3 * bps - i) = res[3];
+		}
+		*sampleBytes += (4 * audio_struct->physBps);
+	}
+
+	// NEON version of byteCombine littleEndian
+	int32x4_t byteCombine_littleEndian(unsigned char** sampleBytes, audio_struct* audio_struct)
+	{
+		int32x4_t values = vdupq_n_s32(0);
+
+		int32x4_t rawValues;
 		
-		// NEON Right shift requires int to be a compile-time constant, so need to left shift by negative
-		int32x4_t shiftAmountVec = vdupq_n_s32(-i*8);
-		int32x4_t shifted_values = vshlq_s32(values, shiftAmountVec);
-
-		int res[4];
-
-		int32x4_t maskedValues = vandq_s32(shifted_values, audio_struct->byteSplit_maskVec);
-
-	 	vst1q_s32(res, maskedValues);
-
 		int physBps = audio_struct->physBps;
-		*(*sampleBytes + physBps - 1 - i) = res[0];
+		for (int i = 0; i<physBps; i++) {
+			rawValues[0] = *(*sampleBytes + i);
+			rawValues[1] = *(*sampleBytes + 1 * physBps + i);
+			rawValues[2] = *(*sampleBytes + 2 * physBps + i);
+			rawValues[3] = *(*sampleBytes + 3 * physBps + i);
 
-		*(*sampleBytes + physBps - 1 + 1 * bps - i) = res[1];
+			int32x4_t shiftAmountVec = vdupq_n_s32(i*8);
+			int32x4_t shiftedValues = vshlq_s32(rawValues, shiftAmountVec);
 
-		*(*sampleBytes + physBps - 1 + 2 * bps - i) = res[2];
-
-		*(*sampleBytes + physBps - 1 + 3 * bps - i) = res[3];
+			values = vaddq_s32(values, shiftedValues);
+		}
+		*sampleBytes += (4 *audio_struct->physBps);
+		return values;
 	}
-	*sampleBytes += (4 * audio_struct->physBps);
-}
 
-// NEON version of byteCombine littleEndian
-int32x4_t byteCombine_littleEndian_NEON(unsigned char** sampleBytes, audio_struct* audio_struct)
-{
-	int32x4_t values = vdupq_n_s32(0);
+	// NEON implementation of byteCombine bigEndian
+	/*
+	* YET TO BE TESTED
+	*/
+	int32x4_t byteCombine_bigEndian(unsigned char** sampleBytes, audio_struct* audio_struct)
+	{
+		int32x4_t values = vdupq_n_s32(0);
 
-	int32x4_t rawValues;
-	
-	int physBps = audio_struct->physBps;
-	for (int i = 0; i<bps; i++) {
-		rawValues[0] = *(*sampleBytes + i);
-		rawValues[1] = *(*sampleBytes + 1 * physBps + i);
-		rawValues[2] = *(*sampleBytes + 2 * physBps + i);
-		rawValues[3] = *(*sampleBytes + 3 * physBps + i);
+		int32x4_t rawValues;
+		int bps = audio_struct->bps;
+		int physBps = audio_struct->physBps;
+		for (int i = 0; i<audio_struct->bps; i++) {
+			// rawValues[0] = *(*sampleBytes + 0 * physBps + physBps - 1 - i);
+			// rawValues[1] = *(*sampleBytes + 1 * physBps + physBps - 1 - i);
+			// rawValues[2] = *(*sampleBytes + 2 * physBps + physBps - 1 - i);
+			// rawValues[3] = *(*sampleBytes + 3 * physBps + physBps - 1 - i);
+			
+			// Above gets simplified to this:
+			rawValues[0] = *(*sampleBytes + 1 * physBps - 1 - i);
+			rawValues[1] = *(*sampleBytes + 2 * physBps - 1 - i);
+			rawValues[2] = *(*sampleBytes + 3 * physBps - 1 - i);
+			rawValues[3] = *(*sampleBytes + 4 * physBps - 1 - i);
 
-		int32x4_t shiftAmountVec = vdupq_n_s32(i*8);
-		int32x4_t shiftedValues = vshlq_s32(rawValues, shiftAmountVec);
+			int32x4_t shiftAmountVec = vdupq_n_s32(i*8);
+			int32x4_t shiftedValues = vshlq_s32(rawValues, shiftAmountVec);
 
-		values = vaddq_s32(values, shiftedValues);
+			values = vaddq_s32(values, shiftedValues);
+		}
+		*sampleBytes += (4 *audio_struct->physBps);
+		return values;
+
 	}
-	*sampleBytes += (4 *audio_struct->physBps);
-	return values;
-}
 
-// NEON implementation of byteCombine bigEndian
-/*
- * YET TO BE TESTED
-*/
-int32x4_t byteCombine_bigEndian_NEON(unsigned char** sampleBytes, audio_struct* audio_struct)
-{
-	int32x4_t values = vdupq_n_s32(0);
-
-	int32x4_t rawValues;
-	int bps = audio_struct->bps;
-	int physBps = audio_struct->physBps;
-	for (int i = 0; i<audio_struct->bps; i++) {
-		// rawValues[0] = *(*sampleBytes + 0 * physBps + physBps - 1 - i);
-		// rawValues[1] = *(*sampleBytes + 1 * physBps + physBps - 1 - i);
-		// rawValues[2] = *(*sampleBytes + 2 * physBps + physBps - 1 - i);
-		// rawValues[3] = *(*sampleBytes + 3 * physBps + physBps - 1 - i);
-		
-		// Above gets simplified to this:
-		rawValues[0] = *(*sampleBytes + 1 * physBps - 1 - i);
-		rawValues[1] = *(*sampleBytes + 2 * physBps - 1 - i);
-		rawValues[2] = *(*sampleBytes + 3 * physBps - 1 - i);
-		rawValues[3] = *(*sampleBytes + 4 * physBps - 1 - i);
-
-		int32x4_t shiftAmountVec = vdupq_n_s32(i*8);
-		int32x4_t shiftedValues = vshlq_s32(rawValues, shiftAmountVec);
-
-		values = vaddq_s32(values, shiftedValues);
+#else
+	// combine all the bytes [1 or more, according to format] of a sample into an integer
+	// little endian -> byte_0, byte_1, ..., byte_n-1 [more common format]
+	inline int byteCombine_littleEndian(unsigned char *sampleBytes, struct audio_struct* audio_struct) 
+	{
+		int value = 0;
+		for (int i = 0; i<audio_struct->bps; i++)
+			value += (int) (*(sampleBytes + i)) << i * 8;  // combines each sample [which stretches over 1 or more bytes, according to format] in single integer
+			
+		return value;
 	}
-	*sampleBytes += (4 *audio_struct->physBps);
-	return values;
+	// big endian -> byte_n-1, byte_n-2, ..., byte_0
+	inline int byteCombine_bigEndian(unsigned char *sampleBytes, struct audio_struct* audio_struct) {
+		int value = 0;
+		for (int i = 0; i<audio_struct->bps; i++)
+			value += (int) (*(sampleBytes  + audio_struct->physBps - 1 - i)) << i * 8; // combines each sample [which stretches over 1 or more bytes, according to format] in single integer, but reverses the order
+		return value;
+	}
 
-}
+	// split an integer sample over more bytes [1 or more, according to format]
+	// little endian -> byte_0, byte_1, ..., byte_n-1 [more common format]
+	inline void byteSplit_littleEndian(unsigned char* sampleBytes, int value, struct audio_struct* audio_struct)
+	{
+		for (int i = 0; i <audio_struct->bps; i++)
+			*(sampleBytes + i) = (value >>  i * 8) & 0xff;
+	}
+	// big endian -> byte_n-1, byte_n-2, ..., byte_0
+	inline void byteSplit_bigEndian(unsigned char *sampleBytes, int value, struct audio_struct* audio_struct) 
+	{
+		for (int i = 0; i <audio_struct->bps; i++)
+			*(sampleBytes + audio_struct->physBps - 1 - i) = (value >> i * 8) & 0xff; 
+	}
+#endif
