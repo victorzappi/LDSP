@@ -614,13 +614,6 @@ void cleanupLowLevelAudioStruct(LDSPpcmContext *pcmContext)
 
 void *audioLoop(void*)
 {
-
-	#ifdef NEON_ENABLED
-				std::cout << "Audio Loop: NEON EBALED" << std::endl;
-		#else
-				std::cout << "Audio Loop: NEON Disabled!" << std::endl;
-	#endif
-
     // set the affinity to ensure the thread runs on chosen CPU
 	if(cpuIndex > -1)
 		set_cpu_affinity(cpuIndex, "audio", audioVerbose);
@@ -734,8 +727,6 @@ void *audioLoop(void*)
 	//VIC on android, it seems that interleaved is the only way to go
 	void fromFloatToRaw_int(audio_struct *audio_struct)
 	{
-		std::cout << "Neon disabled!" << std::endl;
-		std::cout << "---------------------------------------!" << std::endl;
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 		{

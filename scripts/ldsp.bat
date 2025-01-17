@@ -182,7 +182,10 @@ rem End of :install_scripts
   set neon_setting=%neon_setting:,=%
   set neon_setting=%neon_setting: =%
 
-  if "%explicit_disable_neon%" == "false" (
+  if "%explicit_disable_neon%" == "--no-neon-audio-format" (
+    echo Configuring to not use NEON audio formatting
+    set "neon=OFF"
+  ) else (
     if "%neon_setting%" == "true" (
       set "neon=ON"
     ) else if "%neon_setting%" == "True" (
@@ -196,8 +199,6 @@ rem End of :install_scripts
     ) else (
       set "neon=OFF"
     )
-  ) else (
-    set "neon=OFF"
   )
 
 
@@ -500,7 +501,7 @@ rem End of :clean_phone
   rem Print usage information.
   echo usage:
   echo   ldsp.bat install_scripts
-  echo   ldsp.bat configure [configuration] [version] [project]
+  echo   ldsp.bat configure [configuration] [version] [project] [--no-neon-audio-format (optional)]
   echo   ldsp.bat build
   echo   ldsp.bat install
   echo   ldsp.bat run ^"[list of arguments]^"
@@ -515,6 +516,7 @@ rem End of :clean_phone
   echo                        the path to the folder containing the hardware configuration file of the chosen phone 
   echo                        Android version running on the phone
   echo                        the path to the project to build
+  echo                        the optional flag to disable neon for audio formatting (--no-neon-audio-format)
   echo   build              Build the configured project.
   echo   install            Install the configured project, LDSP hardware config, scripts and resources to the phone.
   echo   run                Run the configured project on the phone.

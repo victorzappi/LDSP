@@ -27,7 +27,6 @@ endif()
 if("${DEVICE_ARCH}" STREQUAL "aarch64" AND "${EXPLICIT_ARM_NEON}" STREQUAL "ON")
   set(NEON_SUPPORTED "ON")
 else()
-  message("IN OFF BRANCH")
   set(NEON_SUPPORTED "OFF")
 endif()
 
