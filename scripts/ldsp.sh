@@ -200,11 +200,17 @@ configure () {
 
   # support for NEON floating-point unit
   neon_setting=$(grep 'supports neon floating point unit' "$hw_config" | cut -d \" -f 4)
-  if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
+  if [[ $NO_NEON != "" ]]
   then
-    neon="ON"
-  else
-    neon="OFF"
+    echo Configuring to not use NEON audio formatting
+    neon = "OFF"
+  else 
+    if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
+    then
+      neon="ON"
+    else
+      neon="OFF"
+    fi
   fi
 
   if [[ $PROJECT == "" ]]; then
@@ -504,13 +510,17 @@ while [[ $# -gt 0 ]]; do
       shift
       shift
       ;;
+    --version|-a)
+      VERSION="$2"
+      shift
+      shift
+      ;;
     --version=*)
       VERSION="${1#*=}"
       shift
       ;;
-    --version|-a)
-      VERSION="$2"
-      shift
+    --no-neon-audio-format)
+      NO_NEON=1
       shift
       ;;
     --help|-h)

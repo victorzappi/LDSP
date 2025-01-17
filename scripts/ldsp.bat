@@ -119,7 +119,7 @@ rem End of :install_scripts
   set config=%~1
   set version=%~2
   set project=%~3
-  set explicit_disable_neon=%~4
+  set no_neon=%~4
 
   if "%config%" == "" (
     echo Cannot configure: harwdware configuration file path not specified
@@ -182,7 +182,7 @@ rem End of :install_scripts
   set neon_setting=%neon_setting:,=%
   set neon_setting=%neon_setting: =%
 
-  if "%explicit_disable_neon%" == "--no-neon-audio-format" (
+  if "%no_neon%" == "--no-neon-audio-format" (
     echo Configuring to not use NEON audio formatting
     set "neon=OFF"
   ) else (
