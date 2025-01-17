@@ -671,7 +671,6 @@ void *audioLoop(void*)
 	void fromFloatToRaw_int(audio_struct *audio_struct)
 	{
 
-		std::cout << "Neon enabled!" << std::endl;
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 

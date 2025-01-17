@@ -24,8 +24,11 @@ else()
 endif()
 
 # Add NEON_SUPPORTED flag for all aarch64
-if("${DEVICE_ARCH}" STREQUAL "aarch64")
+if("${DEVICE_ARCH}" STREQUAL "aarch64" AND "${EXPLICIT_ARM_NEON}" STREQUAL "ON")
   set(NEON_SUPPORTED "ON")
+else()
+  message("IN OFF BRANCH")
+  set(NEON_SUPPORTED "OFF")
 endif()
 
 add_compile_options(-fdiagnostics-color=always)

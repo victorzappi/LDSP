@@ -119,6 +119,7 @@ rem End of :install_scripts
   set config=%~1
   set version=%~2
   set project=%~3
+  set explicit_disable_neon=%~4
 
   if "%config%" == "" (
     echo Cannot configure: harwdware configuration file path not specified
@@ -181,16 +182,20 @@ rem End of :install_scripts
   set neon_setting=%neon_setting:,=%
   set neon_setting=%neon_setting: =%
 
-  if "%neon_setting%" == "true" (
-    set "neon=ON"
-  ) else if "%neon_setting%" == "True" (
-    set "neon=ON"
-  ) else if "%neon_setting%" == "yes" (
-    set "neon=ON"
-  ) else if "%neon_setting%" == "Yes" (
-    set "neon=ON"
-  ) else if "%neon_setting%" == "1" (
-    set "neon=ON"
+  if "%explicit_disable_neon%" == "false" (
+    if "%neon_setting%" == "true" (
+      set "neon=ON"
+    ) else if "%neon_setting%" == "True" (
+      set "neon=ON"
+    ) else if "%neon_setting%" == "yes" (
+      set "neon=ON"
+    ) else if "%neon_setting%" == "Yes" (
+      set "neon=ON"
+    ) else if "%neon_setting%" == "1" (
+      set "neon=ON"
+    ) else (
+      set "neon=OFF"
+    )
   ) else (
     set "neon=OFF"
   )
@@ -529,7 +534,7 @@ if "%1" == "install_scripts" (
   call :install_scripts
   exit /b %ERRORLEVEL%
 ) else if "%1" == "configure" (
-  call :configure %2 %3 %4
+  call :configure %2 %3 %4 %5
   exit /b %ERRORLEVEL%
 ) else if "%1" == "build" (
   call :build
