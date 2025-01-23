@@ -576,22 +576,40 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 
 
 	// #ifdef NEON_ENABLED
+	audio_struct->scaleVec = vdupq_n_u32(audio_struct->scaleVal);
 	audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal);
 	audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->scaleVal);
 	audio_struct->byteSplit_maskVec = vdupq_n_s32(0xff);
+	
+
 
 	// #endif
 
 	// this is used for capture only
 	// we compute the mask necessary to complete the two's complement of received raw samples
 	// in other words, we will use this to extend the sign of negative numbers that are composed of fewer bits than the int container
-	audio_struct->mask = 0x00000000;
+	audio_struct->captureMask = 0x00000000;
 	// for (int i = 0; i<sizeof(int)-audio_struct->bps; i++)
-	// 	audio_struct->mask |= (0xFF000000 >> i*8);
+	// 	audio_struct->captureMask |= (0xFF000000 >> i*8);
 	for(int i=audio_struct->formatBits; i < sizeof(int)*8; i++) 
-		audio_struct->mask |= (1 << i); // put a 1 in all bits that are beyond those used by the format
+		audio_struct->captureMask |= (1 << i); // put a 1 in all bits that are beyond those used by the format
 
+	audio_struct->capture_maskVec = vdupq_n_s32(audio_struct->captureMask);
 	std::cout << "Init low level end!" << std::endl;
+
+
+	// ** For pritning
+
+	// Cast the vector to an array of 4 integers
+    int32_t *elements = (int32_t *)&audio_struct->capture_maskVec;
+
+	printf("captureMask in hex: 0x%08X\n", audio_struct->captureMask);
+
+    // Print each element as hex
+    for (int i = 0; i < 4; i++) {
+        printf("Element %d: 0x%08X\n", i, elements[i]);
+    }
+
 	return 0;
 
 }
@@ -686,17 +704,55 @@ void *audioLoop(void*)
 	// NEON implementation of fromRawToFloat_int
 	void fromRawToFloat_int(audio_struct *audio_struct) 
 	{
+
+		// std::cout << "Neon disabled!" << std::endl;
+
+		
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
 		{
+
+				// std::cout << "________ ONE ITERATION _____________" << std::endl;
+
 				int32x4_t res = byteCombine(&sampleBytes, audio_struct);
 
+
+				// int32_t *resElements = (int32_t *)&res;
+
+				// printf("res in hex: 0x%08X, scaleVal: 0x%08X\n", res, audio_struct->scaleVal);
+
+				// Print each element as hex
+				// for (int i = 0; i < 4; i++) {
+				// 	printf("Res Element %d: %d, scaleVal: %d\n", i, resElements[i], audio_struct->scaleVal);
+				// }
+
 				// Perform the comparison (res > scaleVal)
-				uint32x4_t greaterThanMask = vcgtq_s32(res, audio_struct->factorVec);
+				uint32x4_t greaterThanMask = vcgtq_u32(res, audio_struct->scaleVec);
+
+				
+
+				// Cast the vector to an array of 4 integers
+				// int32_t *elements = (int32_t *)&greaterThanMask;
+
+				// printf("greaterThanMask in hex: 0x%08X\n", greaterThanMask);
+
+				// // Print each element as hex
+				// for (int i = 0; i < 4; i++) {
+				// 	printf("greaterThanMask Element %d: 0x%08X\n", i, elements[i]);
+				// }
 
 				// Prepare the mask by ANDing it with the captureMask
 				int32x4_t maskedValues = vandq_s32((int32x4_t)greaterThanMask, audio_struct->capture_maskVec);
+
+				// int32_t *maskedValElements = (int32_t *)&maskedValues;
+
+
+				// // Print each element as hex
+				// for (int i = 0; i < 4; i++) {
+				// 	printf("maskedVal element %d: 0x%08X\n", i, maskedValElements[i]);
+				// }
+
 
 				// Apply the mask using OR operation
 				int32x4_t masked_result = vorrq_s32(res, maskedValues);
@@ -751,7 +807,7 @@ void *audioLoop(void*)
 				// if retrieved value is greater than maximum value allowed within current format
 				// we have to manually complete the 2's complement, by extending the sign
 				if(res>audio_struct->scaleVal)
-					res |= audio_struct->mask;
+					res |= audio_struct->captureMask;
 				audio_struct->audioBuffer[n] = res/((float)(audio_struct->scaleVal)); // turn int sample into full scale normalized float
 
 				sampleBytes += audio_struct->bps; // jump to next sample

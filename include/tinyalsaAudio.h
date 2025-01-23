@@ -71,9 +71,10 @@ struct audio_struct {
 	unsigned int scaleVal;
 	unsigned int bps;
 	unsigned int physBps;
-    int mask; // used for capture only
+    int captureMask; // used for capture only
     // Define NEON fields only if needed
 // #ifdef NEON_ENABLED
+    uint32x4_t scaleVec;
     float32x4_t factorVec; // This must be byteAligned by byteAligning full audioStruct
     float32x4_t factorVecReciprocal;
     int32x4_t byteSplit_maskVec; // This must be byteAligned by byteAligning full audioStruct
