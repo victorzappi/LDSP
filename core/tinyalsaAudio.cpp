@@ -128,11 +128,11 @@ void setTaskToForeground();
 
 int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 {
-    if(!settings)
+	if(!settings)
 		return -1;
-    
+	
 	fullDuplex = !settings->captureOff;
-    audioVerbose = settings->verbose;
+	audioVerbose = settings->verbose;
 	perfModeOff = settings->perfModeOff;
 	sensorsOff_ = settings->sensorsOff;
 	ctrlInputsOff_ = settings->ctrlInputsOff;
@@ -140,39 +140,39 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 	cpuIndex = settings->cpuIndex;
 	
 
-    if(audioVerbose)
-        printf("\nLDSP_initAudio()\n");
+	if(audioVerbose)
+		printf("\nLDSP_initAudio()\n");
 
 	//TODO deactivate audio server
 
-    initAudioParams(settings, &pcmContext.playback, true);
-    initAudioParams(settings, &pcmContext.capture, false);
+	initAudioParams(settings, &pcmContext.playback, true);
+	initAudioParams(settings, &pcmContext.capture, false);
 
 	if(initFormatFunctions(settings->pcmFormatString)<0) // format is the same for playback and capture
-    {
-        cleanupAudioParams(&pcmContext);
+	{
+		cleanupAudioParams(&pcmContext);
 		return  -1;
-    }
+	}
 
-    if(initPcm(pcmContext.playback, pcmContext.capture)<0)
-    {
-        cleanupPcm(&pcmContext);
-        cleanupAudioParams(&pcmContext);
-        return  -2;
-    }
+	if(initPcm(pcmContext.playback, pcmContext.capture)<0)
+	{
+		cleanupPcm(&pcmContext);
+		cleanupAudioParams(&pcmContext);
+		return  -2;
+	}
 
 	// once the pcm device is open, we can check if the requested params have been set
 	// and update our variables according to the actual params
-    updateAudioParams(settings, &pcmContext.playback, true);
+	updateAudioParams(settings, &pcmContext.playback, true);
 	if(fullDuplex)
-    	updateAudioParams(settings, &pcmContext.capture, false);
+		updateAudioParams(settings, &pcmContext.capture, false);
 
-    if(initLowLevelAudioStruct(pcmContext.playback)<0)
-    {
-        // try partial deallocation
-        deallocateLowLevelAudioStruct(pcmContext.playback);
-        return -3;
-    }
+	if(initLowLevelAudioStruct(pcmContext.playback)<0)
+	{
+		// try partial deallocation
+		deallocateLowLevelAudioStruct(pcmContext.playback);
+		return -3;
+	}
 	if(fullDuplex)
 	{
 		if(initLowLevelAudioStruct(pcmContext.capture)<0)
@@ -191,7 +191,7 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 
 	// init context
 	intContext.projectName = settings->projectName;
-    intContext.audioIn = pcmContext.capture->audioBuffer;
+	intContext.audioIn = pcmContext.capture->audioBuffer;
 	intContext.audioOut = pcmContext.playback->audioBuffer;
 	intContext.audioFrames = pcmContext.playback->config.period_size;
 	intContext.audioInChannels = pcmContext.capture->config.channels;
@@ -199,14 +199,14 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 	intContext.audioSampleRate = (float)pcmContext.playback->config.rate;
 	userContext = (LDSPcontext*)&intContext;
 
-    return 0;
+	return 0;
 }
 
 int LDSP_startAudio(void *userData)
 {	
 	if(audioVerbose)
 	{
-    	printf("\nLDSP_startAudio()\n");
+		printf("\nLDSP_startAudio()\n");
 		printf("Starting audio thread...\n");
 	}
 
@@ -234,12 +234,12 @@ int LDSP_startAudio(void *userData)
 
 void LDSP_cleanupAudio()
 {
-    if(audioVerbose)
-        printf("LDSP_cleanupAudio()\n");
+	if(audioVerbose)
+		printf("LDSP_cleanupAudio()\n");
 
-    cleanupLowLevelAudioStruct(&pcmContext);
-    cleanupPcm(&pcmContext);	
-    cleanupAudioParams(&pcmContext); 
+	cleanupLowLevelAudioStruct(&pcmContext);
+	cleanupPcm(&pcmContext);	
+	cleanupAudioParams(&pcmContext); 
 
 	if(!perfModeOff)
 		resetGovernorMode();
@@ -259,66 +259,78 @@ int readCardParam(string info_path, string param_match, string &param);
 
 void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, bool is_playback)
 {
-	// ByteAlign audioStruct so that it is prepared for NEON
-	if (posix_memalign((void**)*&audioStruct, 16, sizeof(audio_struct)) != 0) {
-        perror("posix_memalign failed");
-    }
-    
-    (*audioStruct)->card = settings->card;
-    if(is_playback)
-    {
-        (*audioStruct)->flags = PCM_OUT;
-        (*audioStruct)->device = settings->deviceOutNum;
-        (*audioStruct)->config.channels = settings->numAudioOutChannels;
-    }
-    else
-    {
-        (*audioStruct)->flags = PCM_IN;
-        (*audioStruct)->device = settings->deviceInNum;
+	string audio_type = "";
+	if (is_playback) {
+		audio_type = "playback";
+	}
+	else {
+		audio_type = "capture";
+	}
+
+	#ifdef NEON_ENABLED
+		// ByteAlign audioStruct so that it is prepared for NEON
+		if (posix_memalign((void**)*&audioStruct, 16, sizeof(audio_struct)) != 0) {
+			printf("Warning! posix_memalign for audio_struct of %s failed\n", audio_type.c_str());
+		}
+	#else
+		*audioStruct = (audio_struct*) malloc(sizeof(audio_struct));
+	#endif
+	
+	(*audioStruct)->card = settings->card;
+	if(is_playback)
+	{
+		(*audioStruct)->flags = PCM_OUT;
+		(*audioStruct)->device = settings->deviceOutNum;
+		(*audioStruct)->config.channels = settings->numAudioOutChannels;
+	}
+	else
+	{
+		(*audioStruct)->flags = PCM_IN;
+		(*audioStruct)->device = settings->deviceInNum;
 		if(fullDuplex)
-        	(*audioStruct)->config.channels = settings->numAudioInChannels;
+			(*audioStruct)->config.channels = settings->numAudioInChannels;
 		else
 			(*audioStruct)->config.channels = 0;
-    }
+	}
 
-    (*audioStruct)->config.period_size = settings->periodSize;
-    (*audioStruct)->config.period_count =settings->periodCount;
-    (*audioStruct)->config.rate = settings->samplerate;
-    (*audioStruct)->config.format = (pcm_format) gFormats[settings->pcmFormatString];
+	(*audioStruct)->config.period_size = settings->periodSize;
+	(*audioStruct)->config.period_count =settings->periodCount;
+	(*audioStruct)->config.rate = settings->samplerate;
+	(*audioStruct)->config.format = (pcm_format) gFormats[settings->pcmFormatString];
 	(*audioStruct)->config.avail_min = 1;
 	(*audioStruct)->config.start_threshold = 1; //VIC 60 //settings->periodSize;
 	(*audioStruct)->config.stop_threshold = 0;
-    (*audioStruct)->config.silence_threshold = 1; //settings->periodSize * settings->periodCount; 
-    (*audioStruct)->config.silence_size = 0;
+	(*audioStruct)->config.silence_threshold = 1; //settings->periodSize * settings->periodCount; 
+	(*audioStruct)->config.silence_size = 0;
 
 
-    (*audioStruct)->pcm = nullptr;
-    (*audioStruct)->fd = (int)NULL; // needs C's NULL
+	(*audioStruct)->pcm = nullptr;
+	(*audioStruct)->fd = (int)NULL; // needs C's NULL
 
-    if( audioVerbose && 
+	if( audioVerbose && 
 		( is_playback || (!is_playback && fullDuplex) ) )
-    {
-        if(is_playback)
-	       printf("Playback");    
-        else
+	{
+		if(is_playback)
+		   printf("Playback");    
+		else
 			printf("Capture");    
-        printf(" card %d, device %d\n", (*audioStruct)->card, (*audioStruct)->device);
-        if(is_playback)
-            printf("\tid: %s\n", settings->deviceOutId.c_str());   
-        else
-            printf("\tid: %s\n", settings->deviceInId.c_str());
+		printf(" card %d, device %d\n", (*audioStruct)->card, (*audioStruct)->device);
+		if(is_playback)
+			printf("\tid: %s\n", settings->deviceOutId.c_str());   
+		else
+			printf("\tid: %s\n", settings->deviceInId.c_str());
 
 
 		checkAllCardParams((*audioStruct));
 
-        printf("Requested params:\n");
-        printf("\tPeriod size (Audio frames): %d\n", (*audioStruct)->config.period_size);
-        printf("\tPeriod count: %d\n", (*audioStruct)->config.period_count);
-        printf("\tChannels: %d\n", (*audioStruct)->config.channels);
-        printf("\tRate: %d\n", (*audioStruct)->config.rate);
-        printf("\tFormat: %s\n", settings->pcmFormatString.c_str());
-        printf("\n");
-    }
+		printf("Requested params:\n");
+		printf("\tPeriod size (Audio frames): %d\n", (*audioStruct)->config.period_size);
+		printf("\tPeriod count: %d\n", (*audioStruct)->config.period_count);
+		printf("\tChannels: %d\n", (*audioStruct)->config.channels);
+		printf("\tRate: %d\n", (*audioStruct)->config.rate);
+		printf("\tFormat: %s\n", settings->pcmFormatString.c_str());
+		printf("\n");
+	}
 }
 
 void updateAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, bool is_playback)
@@ -361,80 +373,80 @@ void updateAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, b
 			else
 				printf("\nCapture ");    
 		printf("assigned params:\n");
-        printf("\tPeriod size (Audio frames): %d\n", (*audioStruct)->config.period_size);
-        printf("\tPeriod count: %d\n", (*audioStruct)->config.period_count);
-        printf("\tChannels: %d\n", (*audioStruct)->config.channels);
-        printf("\tRate: %d\n", (*audioStruct)->config.rate);
-        printf("\tFormat: %s\n", settings->pcmFormatString.c_str());
+		printf("\tPeriod size (Audio frames): %d\n", (*audioStruct)->config.period_size);
+		printf("\tPeriod count: %d\n", (*audioStruct)->config.period_count);
+		printf("\tChannels: %d\n", (*audioStruct)->config.channels);
+		printf("\tRate: %d\n", (*audioStruct)->config.rate);
+		printf("\tFormat: %s\n", settings->pcmFormatString.c_str());
 	}
 }
 
 void cleanupAudioParams(LDSPpcmContext *pcmContext)
 {
-    if(pcmContext->playback != nullptr)
-        free(pcmContext->playback);
-    if(pcmContext->capture != nullptr)
-        free(pcmContext->capture);
+	if(pcmContext->playback != nullptr)
+		free(pcmContext->playback);
+	if(pcmContext->capture != nullptr)
+		free(pcmContext->capture);
 }
 
 int initFormatFunctions(string format)
 {
-    int f = gFormats[format];
-    
+	int f = gFormats[format];
+	
 	int err = 0;
-    switch(f)
-    {
-    	case LDSP_pcm_format::S16_LE:
-    	case LDSP_pcm_format::S32_LE:
-    	case LDSP_pcm_format::S8:  // but it doesn't really matter, single byte no need to split/combine
-    	case LDSP_pcm_format::S24_LE:
-    	case LDSP_pcm_format::S24_3LE:
+	switch(f)
+	{
+		case LDSP_pcm_format::S16_LE:
+		case LDSP_pcm_format::S32_LE:
+		case LDSP_pcm_format::S8:  // but it doesn't really matter, single byte no need to split/combine
+		case LDSP_pcm_format::S24_LE:
+		case LDSP_pcm_format::S24_3LE:
 			fromRawToFloat = fromRawToFloat_int;
 			fromFloatToRaw = fromFloatToRaw_int;
 			byteCombine = byteCombine_littleEndian;
 			byteSplit = byteSplit_littleEndian;
-    		break;
-    	case LDSP_pcm_format::S16_BE:
-    	case LDSP_pcm_format::S32_BE:
-    	case LDSP_pcm_format::S24_BE:
-    	case LDSP_pcm_format::S24_3BE:
+			break;
+		case LDSP_pcm_format::S16_BE:
+		case LDSP_pcm_format::S32_BE:
+		case LDSP_pcm_format::S24_BE:
+		case LDSP_pcm_format::S24_3BE:
 			fromRawToFloat = fromRawToFloat_int;
 			fromFloatToRaw = fromFloatToRaw_int;
 			byteCombine = byteCombine_bigEndian;
 			byteSplit = byteSplit_bigEndian;
-    		break;
-    	case LDSP_pcm_format::FLOAT_LE:
+			break;
+		case LDSP_pcm_format::FLOAT_LE:
 			// No support for NEON yet
 			byteCombine = byteCombine_littleEndian;
-    		byteSplit = byteSplit_littleEndian;
+			byteSplit = byteSplit_littleEndian;
 			fromRawToFloat = fromRawToFloat_float32;
-    		fromFloatToRaw = fromFloatToRaw_float32;
-    		break;
-    	case LDSP_pcm_format::FLOAT_BE:
-			// No support for NEON yet
-		    byteCombine = byteCombine_bigEndian;
-    	    byteSplit = byteSplit_bigEndian;
-			fromRawToFloat = fromRawToFloat_float32;
-    	    fromFloatToRaw = fromFloatToRaw_float32;
+			fromFloatToRaw = fromFloatToRaw_float32;
 			break;
-    	case LDSP_pcm_format::MAX:
-    	default:
-    		fprintf(stderr, "Invalid format %s\n", format.c_str());
-    		format = LDSP_pcm_format::MAX;
-    		err = -1;
-    		break;
-    }
+		case LDSP_pcm_format::FLOAT_BE:
+			// No support for NEON yet
+			byteCombine = byteCombine_bigEndian;
+			byteSplit = byteSplit_bigEndian;
+			fromRawToFloat = fromRawToFloat_float32;
+			fromFloatToRaw = fromFloatToRaw_float32;
+			break;
+		case LDSP_pcm_format::MAX:
+		default:
+			fprintf(stderr, "Invalid format %s\n", format.c_str());
+			format = LDSP_pcm_format::MAX;
+			err = -1;
+			break;
+	}
 
 	return err;
 }
 
 int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 {   	
-    // open playback card 
+	// open playback card 
 
-    pcm_config *config_p = (pcm_config *)&audio_struct_p->config;
-    
-    // open playback pcm handle
+	pcm_config *config_p = (pcm_config *)&audio_struct_p->config;
+	
+	// open playback pcm handle
 	audio_struct_p->pcm = pcm_open(audio_struct_p->card, audio_struct_p->device, audio_struct_p->flags, config_p);
 	audio_struct_p->fd = pcm_is_ready(audio_struct_p->pcm);
 	if (!audio_struct_p->pcm || !audio_struct_p->fd) 
@@ -443,7 +455,7 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 		return -1;
 	}
 
-    //VIC only added in later versions of tinyalsa, apparently not needed though
+	//VIC only added in later versions of tinyalsa, apparently not needed though
 	// last touch for playback
 	// if(pcm_prepare(audio_struct_p->pcm) < 0) 
 	// {
@@ -452,9 +464,9 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 	// }
 
 	audio_struct_p->frameBytes = pcm_frames_to_bytes(audio_struct_p->pcm, config_p->period_size); //VIC note that we are using period size, not buffer size
-    
-    if(audioVerbose)
-	    printf("Playback audio device opened\n");
+	
+	if(audioVerbose)
+		printf("Playback audio device opened\n");
 
 
 
@@ -491,7 +503,7 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 	audio_struct_c->rawBuffer = nullptr;
 	audio_struct_c->audioBuffer = nullptr;
 
-    return 0;
+	return 0;
 }
 
 void closePcm(audio_struct* audio_struct, bool is_playback)
@@ -502,30 +514,30 @@ void closePcm(audio_struct* audio_struct, bool is_playback)
 		if (pcm_is_ready(audio_struct->pcm))
 		{
 			if(!is_playback)
-            {
-			    LDSP_pcm_unlink(audio_struct);
-                if(audioVerbose)
-                    printf("Playback audio device unlinked from Capture audio device!\n");
-            }
+			{
+				LDSP_pcm_unlink(audio_struct);
+				if(audioVerbose)
+					printf("Playback audio device unlinked from Capture audio device!\n");
+			}
 
 			pcm_close(audio_struct->pcm);
-            if(audioVerbose)
-            {
-                if(is_playback)
-                    printf("Playback");    
-                else
-                    printf("Capture");    
-			    printf(" audio device closed\n");
-            }
+			if(audioVerbose)
+			{
+				if(is_playback)
+					printf("Playback");    
+				else
+					printf("Capture");    
+				printf(" audio device closed\n");
+			}
 		}
 	}
 }
 
 void cleanupPcm(LDSPpcmContext *pcmContext)
 {
-    closePcm(pcmContext->playback, true);
+	closePcm(pcmContext->playback, true);
 	if(fullDuplex)
-    	closePcm(pcmContext->capture, false);
+		closePcm(pcmContext->capture, false);
 }
 
 int initLowLevelAudioStruct(audio_struct *audio_struct)
@@ -537,15 +549,18 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	if(channels <=0)
 		channels = 1;
 
-	audio_struct->numOfSamples = channels*audio_struct->config.period_size;
-	audio_struct->numOfSamples4Multiple = audio_struct->numOfSamples + (4 - audio_struct->numOfSamples % 4) % 4;
-
-	/*
-	* Create a local var to replace frameBytes
-	* Closest multiple of 4 that is >= frameBytes
-	 */
-    int localFrames = audio_struct->frameBytes + (4 - audio_struct->frameBytes % 4) % 4;
-
+	#ifdef NEON_ENABLED
+		audio_struct->numOfSamples = channels*audio_struct->config.period_size + (4 - audio_struct->numOfSamples % 4) % 4;
+		/*
+		* Create a local var to replace frameBytes
+		* Closest multiple of 4 that is >= frameBytes
+		*/
+		int localFrames = audio_struct->frameBytes + (4 - audio_struct->frameBytes % 4) % 4;
+	#else
+		audio_struct->numOfSamples = channels*audio_struct->config.period_size;
+		int localFrames = audio_struct->frameBytes;
+	#endif
+	
 	// allocate buffers
 	audio_struct->rawBuffer = malloc(localFrames);
 	if(!audio_struct->rawBuffer)
@@ -554,13 +569,15 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		return -1;
 	}
 
-	audio_struct->audioBuffer = (float*)malloc(sizeof(float)*audio_struct->numOfSamples4Multiple);
+	// NEON requires a buffer size that is a multiple of 4. We do it even when NEON is not enabled,
+	// since the additional samples in the buffer will be ignored
+	audio_struct->audioBuffer = (float*)malloc(sizeof(float)*audio_struct->numOfSamples);
 	if(!audio_struct->audioBuffer)
 	{
 		fprintf(stderr, "Could not allocate audioBuffer\n");
 		return -2;
 	}
-	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples4Multiple*sizeof(float)); // quiet please!
+	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float)); // quiet please!
 
 	// finish audio initialization
 	//formatBits = LDSP_pcm_format_to_bits((int)audio_struct->config.format); // replaces/implements pcm_format_to_bits(), that is missing from old tinyalsa
@@ -603,7 +620,7 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 
 void deallocateLowLevelAudioStruct(audio_struct *audio_struct)
 {
-    // deallocate buffers
+	// deallocate buffers
 	if(audio_struct->rawBuffer != nullptr)
 		free(audio_struct->rawBuffer);
 	if(audio_struct->audioBuffer != nullptr) 
@@ -612,13 +629,13 @@ void deallocateLowLevelAudioStruct(audio_struct *audio_struct)
 
 void cleanupLowLevelAudioStruct(LDSPpcmContext *pcmContext)
 {
-    deallocateLowLevelAudioStruct(pcmContext->playback);
-    deallocateLowLevelAudioStruct(pcmContext->capture);
+	deallocateLowLevelAudioStruct(pcmContext->playback);
+	deallocateLowLevelAudioStruct(pcmContext->capture);
 }
 
 void *audioLoop(void*)
 {
-    // set the affinity to ensure the thread runs on chosen CPU
+	// set the affinity to ensure the thread runs on chosen CPU
 	if(cpuIndex > -1)
 		set_cpu_affinity(cpuIndex, "audio", audioVerbose);
 
@@ -671,7 +688,7 @@ void *audioLoop(void*)
 
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
-		for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
+		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
 		{	
 			// Load the four floating-point inputs into a NEON vector
 			float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
@@ -693,14 +710,14 @@ void *audioLoop(void*)
 	{
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
-		for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
+		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
 		{
 				int32x4_t res = byteCombine(&sampleBytes, audio_struct);
 
 				// Perform the comparison (res > scaleVal)
 				/* We are comparing 4 signed integer (res) with 4 unsigned integers (scaleVec)
 				   Note: If we are using a 32 bit format, negative numbers will still return 1 in this comparison,
-				   	     triggering the masking with capture_maskVec, BUT in that case, the capture_maskVec is 
+				   		 triggering the masking with capture_maskVec, BUT in that case, the capture_maskVec is 
 						 composed of 0's so, doing a logical OR with it will not matter
 				*/
 				uint32x4_t greaterThanMask = vcgtq_u32(res, audio_struct->scaleVec);
@@ -826,7 +843,7 @@ int checkCardFormats(struct pcm_params *params, unsigned int value)
 	{
 		int supported = pcm_params_format_test(params, (pcm_format)f);
 		LDSP_pcm_format ff = (LDSP_pcm_format::_enum)LDSP_pcm_format::_from_index(f);
-        string name = ff._to_string();		
+		string name = ff._to_string();		
 		if(supported)
 			printf("\t\t %s: supported\n", name.c_str());
 		else
@@ -840,7 +857,7 @@ int checkCardFormats(struct pcm_params *params, unsigned int value)
 	if(mismatch>=0)
 	{
 		LDSP_pcm_format ff = (LDSP_pcm_format::_enum)LDSP_pcm_format::_from_index(value);
-        string name = ff._to_string();	
+		string name = ff._to_string();	
 		fprintf(stderr, "Device does not support requested format %s!\n", name.c_str());
 		return -1;
 	}
@@ -911,7 +928,7 @@ int checkAllCardParams(audio_struct *audioStruct)
 	}
 
 
-    printf("\nSupported params:\n");
+	printf("\nSupported params:\n");
 
 	err = checkCardParam(params, PCM_PARAM_PERIOD_SIZE, audioStruct->config.period_size, "Period size", "Hz");
 	if(err==0)
@@ -939,43 +956,43 @@ void setGovernorMode()
 	unsigned int num_cpus = std::thread::hardware_concurrency();
 	governors.resize(num_cpus);
 
-    DIR *dir = opendir(GOVERNOR_BASE_DIR);
-    if (dir == nullptr) 
+	DIR *dir = opendir(GOVERNOR_BASE_DIR);
+	if (dir == nullptr) 
 	{
 		if(audioVerbose)
-        	printf("Could not open directory %s to set performance governor\n", GOVERNOR_BASE_DIR);
-        return;
-    }
+			printf("Could not open directory %s to set performance governor\n", GOVERNOR_BASE_DIR);
+		return;
+	}
 
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != nullptr)
+	struct dirent *entry;
+	while ((entry = readdir(dir)) != nullptr)
 	{
 		if (entry->d_type != DT_DIR)
 			continue;
 
 		string dir_name = entry->d_name;
 
-        // Check if directory is named cpuN, where N is an integer between 0 and 9
+		// Check if directory is named cpuN, where N is an integer between 0 and 9
 		if (dir_name.substr(0, 3) == "cpu" && dir_name.length() == 4)		
 		{
 			int N = stoi(dir_name.substr(3)); // number of current cpu
 	
-            string cpuDir = string(GOVERNOR_BASE_DIR) + entry->d_name;
-            DIR *cpuFreqDir = opendir((cpuDir + "/cpufreq").c_str());
-            if (cpuFreqDir != nullptr) 
+			string cpuDir = string(GOVERNOR_BASE_DIR) + entry->d_name;
+			DIR *cpuFreqDir = opendir((cpuDir + "/cpufreq").c_str());
+			if (cpuFreqDir != nullptr) 
 			{
-                // get current scaling_governor if it exists
-                string governorPath = cpuDir + "/cpufreq/scaling_governor";
-                ifstream governorFile(governorPath);
-                if (governorFile.good()) 
+				// get current scaling_governor if it exists
+				string governorPath = cpuDir + "/cpufreq/scaling_governor";
+				ifstream governorFile(governorPath);
+				if (governorFile.good()) 
 				{
 					governorFile >> governors[N]; // save current governor
-                    governorFile.close();
-                }
-                closedir(cpuFreqDir);
-            }
-        }
-    }
+					governorFile.close();
+				}
+				closedir(cpuFreqDir);
+			}
+		}
+	}
 
 	closedir(dir);
 
@@ -984,37 +1001,37 @@ void setGovernorMode()
 	// we need two loops, otherwise the modification of a governor of a cpu
 	// may change the governor of other cpus
 	dir = opendir(GOVERNOR_BASE_DIR);
-    while ((entry = readdir(dir)) != nullptr)
+	while ((entry = readdir(dir)) != nullptr)
 	{
 		if (entry->d_type != DT_DIR)
 			continue;
 
 		string dir_name = entry->d_name;
 
-        // Check if directory is named cpuN, where N is an integer between 0 and 9
+		// Check if directory is named cpuN, where N is an integer between 0 and 9
 		if (dir_name.substr(0, 3) == "cpu" && dir_name.length() == 4)		
 		{
 			int N = stoi(dir_name.substr(3)); // number of current cpu
 	
-            string cpuDir = string(GOVERNOR_BASE_DIR) + entry->d_name;
-            DIR *cpuFreqDir = opendir((cpuDir + "/cpufreq").c_str());
-            if (cpuFreqDir != nullptr) 
+			string cpuDir = string(GOVERNOR_BASE_DIR) + entry->d_name;
+			DIR *cpuFreqDir = opendir((cpuDir + "/cpufreq").c_str());
+			if (cpuFreqDir != nullptr) 
 			{
-                // Set scaling_governor to performance if it exists
-                string governorPath = cpuDir + "/cpufreq/scaling_governor";
-                ifstream governorFile(governorPath);
-                if (governorFile.good()) 
+				// Set scaling_governor to performance if it exists
+				string governorPath = cpuDir + "/cpufreq/scaling_governor";
+				ifstream governorFile(governorPath);
+				if (governorFile.good()) 
 				{
-                    ofstream outGovernorFile(governorPath);
-                    outGovernorFile << "performance"; // enable performance governor
-                    outGovernorFile.close();
-                }
-                closedir(cpuFreqDir);
-            }
-        }
-    }
+					ofstream outGovernorFile(governorPath);
+					outGovernorFile << "performance"; // enable performance governor
+					outGovernorFile.close();
+				}
+				closedir(cpuFreqDir);
+			}
+		}
+	}
 
-    closedir(dir);
+	closedir(dir);
 }
 
 void resetGovernorMode()

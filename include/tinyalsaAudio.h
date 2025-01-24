@@ -72,7 +72,6 @@ struct audio_struct {
 	unsigned int bps;
 	unsigned int physBps;
     int captureMask; // used for capture only
-    unsigned int numOfSamples4Multiple;
     // Define NEON fields only if needed
 #ifdef NEON_ENABLED
     uint32x4_t scaleVec;
