@@ -19,12 +19,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 if("${DEVICE_ARCH}" STREQUAL "armv7a" AND "${EXPLICIT_ARM_NEON}" STREQUAL "ON")
   add_compile_options(-mfpu=neon)
   set(NEON_SUPPORTED "ON")
-else()
-  set(NEON_SUPPORTED "OFF")
-endif()
-
 # Add NEON_SUPPORTED flag for all aarch64
-if("${DEVICE_ARCH}" STREQUAL "aarch64" AND "${EXPLICIT_ARM_NEON}" STREQUAL "ON")
+elseif("${DEVICE_ARCH}" STREQUAL "aarch64" AND "${EXPLICIT_ARM_NEON}" STREQUAL "ON")
   set(NEON_SUPPORTED "ON")
 else()
   set(NEON_SUPPORTED "OFF")

@@ -200,9 +200,10 @@ configure () {
 
   # support for NEON floating-point unit
   neon_setting=$(grep 'supports neon floating point unit' "$hw_config" | cut -d \" -f 4)
+  # Passing the --no-neon-audio-format flag configures to not use parallel processing with NEON
   if [[ $NO_NEON != "" ]]
   then
-    echo Configuring to not use NEON audio formatting
+    echo "Configuring to not use NEON audio formatting"
     neon = "OFF"
   else 
     if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
@@ -474,6 +475,7 @@ help () {
   echo -e "  --configuration=CONFIGURATION, -c CONFIGURATION\tThe path to the folder containing the hardware configuration file of the chosen phone."
   echo -e "  --version=VERSION, -a VERSION\tThe Android version running on the phone."
   echo -e "  --project=PROJECT, -p PROJECT\tThe path to the project to build."
+  echo -e "  --no-neon-audio-format\tConfigure to not use NEON parallel processing"
   echo -e "\nDescription:"
   echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone."
   echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone and project."

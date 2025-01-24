@@ -182,6 +182,7 @@ rem End of :install_scripts
   set neon_setting=%neon_setting:,=%
   set neon_setting=%neon_setting: =%
 
+  rem Passing the --no-neon-audio-format flag configures to not use parallel processing with NEON
   if "%no_neon%" == "--no-neon-audio-format" (
     echo Configuring to not use NEON audio formatting
     set "neon=OFF"
