@@ -575,15 +575,7 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	audio_struct->scaleVal = (1 << (audio_struct->formatBits - 1)) - 1;
 
 
-	// #ifdef NEON_ENABLED
-	audio_struct->scaleVec = vdupq_n_u32(audio_struct->scaleVal);
-	audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal);
-	audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->scaleVal);
-	audio_struct->byteSplit_maskVec = vdupq_n_s32(0xff);
-	
 
-
-	// #endif
 
 	// this is used for capture only
 	// we compute the mask necessary to complete the two's complement of received raw samples
@@ -594,24 +586,18 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	for(int i=audio_struct->formatBits; i < sizeof(int)*8; i++) 
 		audio_struct->captureMask |= (1 << i); // put a 1 in all bits that are beyond those used by the format
 
-	audio_struct->capture_maskVec = vdupq_n_s32(audio_struct->captureMask);
+
+		//ifdef
+	// These fields are only defined if NEON is enabled
+	#ifdef NEON_ENABLED
+		audio_struct->capture_maskVec = vdupq_n_s32(audio_struct->captureMask);
+		audio_struct->scaleVec = vdupq_n_u32(audio_struct->scaleVal);
+		audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal);
+		audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->scaleVal);
+		audio_struct->byteSplit_maskVec = vdupq_n_s32(0xff);
+	#endif
 	std::cout << "Init low level end!" << std::endl;
-
-
-	// ** For pritning
-
-	// Cast the vector to an array of 4 integers
-    int32_t *elements = (int32_t *)&audio_struct->capture_maskVec;
-
-	printf("captureMask in hex: 0x%08X\n", audio_struct->captureMask);
-
-    // Print each element as hex
-    for (int i = 0; i < 4; i++) {
-        printf("Element %d: 0x%08X\n", i, elements[i]);
-    }
-
 	return 0;
-
 }
 
 
@@ -681,6 +667,7 @@ void *audioLoop(void*)
 	// NEON implementation of fromFloatToRaw_int
 	void fromFloatToRaw_int(audio_struct *audio_struct)
 	{
+		std::cout << "NEON ENABLED" << std::endl;
 
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
@@ -704,55 +691,22 @@ void *audioLoop(void*)
 	// NEON implementation of fromRawToFloat_int
 	void fromRawToFloat_int(audio_struct *audio_struct) 
 	{
-
-		// std::cout << "Neon disabled!" << std::endl;
-
-		
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples4Multiple; n = n + 4) 
 		{
-
-				// std::cout << "________ ONE ITERATION _____________" << std::endl;
-
 				int32x4_t res = byteCombine(&sampleBytes, audio_struct);
 
-
-				// int32_t *resElements = (int32_t *)&res;
-
-				// printf("res in hex: 0x%08X, scaleVal: 0x%08X\n", res, audio_struct->scaleVal);
-
-				// Print each element as hex
-				// for (int i = 0; i < 4; i++) {
-				// 	printf("Res Element %d: %d, scaleVal: %d\n", i, resElements[i], audio_struct->scaleVal);
-				// }
-
 				// Perform the comparison (res > scaleVal)
+				/* We are comparing 4 signed integer (res) with 4 unsigned integers (scaleVec)
+				   Note: If we are using a 32 bit format, negative numbers will still return 1 in this comparison,
+				   	     triggering the masking with capture_maskVec, BUT in that case, the capture_maskVec is 
+						 composed of 0's so, doing a logical OR with it will not matter
+				*/
 				uint32x4_t greaterThanMask = vcgtq_u32(res, audio_struct->scaleVec);
-
-				
-
-				// Cast the vector to an array of 4 integers
-				// int32_t *elements = (int32_t *)&greaterThanMask;
-
-				// printf("greaterThanMask in hex: 0x%08X\n", greaterThanMask);
-
-				// // Print each element as hex
-				// for (int i = 0; i < 4; i++) {
-				// 	printf("greaterThanMask Element %d: 0x%08X\n", i, elements[i]);
-				// }
 
 				// Prepare the mask by ANDing it with the captureMask
 				int32x4_t maskedValues = vandq_s32((int32x4_t)greaterThanMask, audio_struct->capture_maskVec);
-
-				// int32_t *maskedValElements = (int32_t *)&maskedValues;
-
-
-				// // Print each element as hex
-				// for (int i = 0; i < 4; i++) {
-				// 	printf("maskedVal element %d: 0x%08X\n", i, maskedValElements[i]);
-				// }
-
 
 				// Apply the mask using OR operation
 				int32x4_t masked_result = vorrq_s32(res, maskedValues);
@@ -783,6 +737,7 @@ void *audioLoop(void*)
 	//VIC on android, it seems that interleaved is the only way to go
 	void fromFloatToRaw_int(audio_struct *audio_struct)
 	{
+		std::cout << "NEON DISABLED" << std::endl;
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 		{
@@ -1089,7 +1044,6 @@ void resetGovernorMode()
 // inline
 
 
-
 #ifdef NEON_ENABLED
 	// NEON version of byteSplit littleEndian
 	inline void byteSplit_littleEndian(unsigned char** sampleBytes, int32x4_t values, struct audio_struct* audio_struct)
@@ -1113,10 +1067,8 @@ void resetGovernorMode()
 	}
 
 	// NEON version of byteSplit bigEndian
+	// ** This has yet ot be tested since we do not have a bigEndian phone
 	inline void byteSplit_bigEndian(unsigned char **sampleBytes, int32x4_t values, struct audio_struct* audio_struct) 
-	/**
-	*  ** Yet to be tested because we have no phones that support it**
-	*/
 	{
 		int bps = audio_struct->bps;
 		for (int i = 0; i < bps; i++) {
@@ -1167,9 +1119,7 @@ void resetGovernorMode()
 	}
 
 	// NEON implementation of byteCombine bigEndian
-	/*
-	* YET TO BE TESTED
-	*/
+	// ** This has yet ot be tested since we do not have a bigEndian phone
 	int32x4_t byteCombine_bigEndian(unsigned char** sampleBytes, audio_struct* audio_struct)
 	{
 		int32x4_t values = vdupq_n_s32(0);
