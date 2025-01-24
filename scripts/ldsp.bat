@@ -182,7 +182,7 @@ rem End of :install_scripts
   set neon_setting=%neon_setting:,=%
   set neon_setting=%neon_setting: =%
 
-  rem Passing the --no-neon-audio-format flag configures to not use parallel processing with NEON
+  rem Passing the --no-neon-audio-format flag configures to not use parallel sample formatting with NEON
   if "%no_neon%" == "--no-neon-audio-format" (
     echo Configuring to not use NEON audio formatting
     set "neon=OFF"
@@ -517,7 +517,7 @@ rem End of :clean_phone
   echo                        the path to the folder containing the hardware configuration file of the chosen phone 
   echo                        Android version running on the phone
   echo                        the path to the project to build
-  echo                        the optional flag to disable neon for audio formatting (--no-neon-audio-format)
+  echo                        the optional flag to not use NEON parallel sample formatting (--no-neon-audio-format)
   echo   build              Build the configured project.
   echo   install            Install the configured project, LDSP hardware config, scripts and resources to the phone.
   echo   run                Run the configured project on the phone.
