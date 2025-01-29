@@ -770,7 +770,7 @@ void *audioLoop(void*)
 
 			// cast resVec to an float32x4_t type so we can share a byteCombine declaration
 			// the bits in resVec itself are not changing
-			float32x4_t intValues = vreinterpretq_f32_s32(inputVec);
+			float32x4_t result = vreinterpretq_f32_s32(resVec);
 
 			audio_struct->audioBuffer[n] = result[0];
 			audio_struct->audioBuffer[n + 1] = result[1];
