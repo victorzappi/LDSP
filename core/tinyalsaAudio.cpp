@@ -589,7 +589,7 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		audio_struct->bps = 3;
 
 	audio_struct->formatBits = audio_struct->bps * 8;
-	audio_struct->scaleVal = (1 << (audio_struct->formatBits - 1)) - 1;
+	audio_struct->maxVal = (1 << (audio_struct->formatBits - 1)) - 1;
 
 
 
@@ -608,9 +608,9 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	// These fields are only defined if NEON is enabled
 	#ifdef NEON_ENABLED
 		audio_struct->capture_maskVec = vdupq_n_s32(audio_struct->captureMask);
-		audio_struct->scaleVec = vdupq_n_u32(audio_struct->scaleVal);
-		audio_struct->factorVec = vdupq_n_f32(audio_struct->scaleVal);
-		audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->scaleVal);
+		audio_struct->maxVec = vdupq_n_u32(audio_struct->maxVal);
+		audio_struct->factorVec = vdupq_n_f32(audio_struct->maxVal);
+		audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->maxVal);
 		audio_struct->byteSplit_maskVec = vdupq_n_s32(0xff);
 	#endif
 	std::cout << "Init low level end!" << std::endl;
@@ -715,12 +715,12 @@ void *audioLoop(void*)
 				int32x4_t res = byteCombine(&sampleBytes, audio_struct);
 
 				// Perform the comparison (res > scaleVal)
-				/* We are comparing 4 signed integer (res) with 4 unsigned integers (scaleVec)
-				   Note: If we are using a 32 bit format, negative numbers will still return 1 in this comparison,
-				   		 triggering the masking with capture_maskVec, BUT in that case, the capture_maskVec is 
-						 composed of 0's so, doing a logical OR with it will not matter
-				*/
-				uint32x4_t greaterThanMask = vcgtq_u32(res, audio_struct->scaleVec);
+				// We are comparing 4 signed integers (res) with 4 unsigned integers (scaleVec) to identify negative
+				// numbers, and apply sign extension with the captureMask
+				// Note: If we are using a 32 bit format, there is no need for sign extension, but negative numbers
+				//       will still return 1 in this comparison, triggering the masking with capture_maskVec,
+				// BUT in that case, the capture_maskVec is composed of 0's so, doing a logical OR with it will not matter
+				uint32x4_t greaterThanMask = vcgtq_u32(res, audio_struct->maxVec);
 
 				// Prepare the mask by ANDing it with the captureMask
 				int32x4_t maskedValues = vandq_s32((int32x4_t)greaterThanMask, audio_struct->capture_maskVec);
@@ -743,10 +743,40 @@ void *audioLoop(void*)
 
 	void fromFloatToRaw_float32(audio_struct *audio_struct) {
 		throw std::runtime_error("NEON is not supported for float32 type! Please disable NEON.");
+
+		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
+		{	
+			// Load the four floating-point inputs into a NEON vector
+			float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
+
+			// cast inputVec to an int32x4_t type so we can share a byteSplit declaration
+			// the bits in inputVec itself are not changing
+			int32x4_t intValues = vreinterpretq_s32_f32(inputVec);
+
+			byteSplit(&sampleBytes, intValues, audio_struct);
+		}
+
+		// clean up buffer for next period
+		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 	}
 
 	void fromRawToFloat_float32(audio_struct *audio_struct) {
-		throw std::runtime_error("NEON is not supported for float32 type! Please disable NEON.");
+		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) {
+			int32x4_t resVec = byteCombine(&sampleBytes, audio_struct);
+
+			// cast resVec to an float32x4_t type so we can share a byteCombine declaration
+			// the bits in resVec itself are not changing
+			float32x4_t intValues = vreinterpretq_f32_s32(inputVec);
+
+			audio_struct->audioBuffer[n] = result[0];
+			audio_struct->audioBuffer[n + 1] = result[1];
+			audio_struct->audioBuffer[n + 2] = result[2];
+			audio_struct->audioBuffer[n + 3] = result[3];
+		}
 	}
 
 #else
@@ -758,7 +788,7 @@ void *audioLoop(void*)
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 		{
-			int res = audio_struct->scaleVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
+			int res = audio_struct->maxVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
 			
 			byteSplit(sampleBytes, res, audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
 
@@ -778,9 +808,9 @@ void *audioLoop(void*)
 				int res = byteCombine(sampleBytes, audio_struct); // function pointer, gets sample value by combining the consecutive bytes, organized in either little or big endian
 				// if retrieved value is greater than maximum value allowed within current format
 				// we have to manually complete the 2's complement, by extending the sign
-				if(res>audio_struct->scaleVal)
+				if(res>audio_struct->maxVal)
 					res |= audio_struct->captureMask;
-				audio_struct->audioBuffer[n] = res/((float)(audio_struct->scaleVal)); // turn int sample into full scale normalized float
+				audio_struct->audioBuffer[n] = res/((float)(audio_struct->maxVal)); // turn int sample into full scale normalized float
 
 				sampleBytes += audio_struct->bps; // jump to next sample
 		}
