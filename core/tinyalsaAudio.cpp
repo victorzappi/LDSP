@@ -542,8 +542,6 @@ void cleanupPcm(LDSPpcmContext *pcmContext)
 
 int initLowLevelAudioStruct(audio_struct *audio_struct)
 {    
-
-	std::cout << "Init low level start!" << std::endl;
 	int channels = audio_struct->config.channels;
 	// to cover the case of capture when non full duplex engine
 	if(channels <=0)
@@ -604,7 +602,6 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		audio_struct->captureMask |= (1 << i); // put a 1 in all bits that are beyond those used by the format
 
 
-		//ifdef
 	// These fields are only defined if NEON is enabled
 	#ifdef NEON_ENABLED
 		audio_struct->capture_maskVec = vdupq_n_s32(audio_struct->captureMask);
@@ -613,7 +610,6 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->maxVal);
 		audio_struct->byteSplit_maskVec = vdupq_n_s32(0xff);
 	#endif
-	std::cout << "Init low level end!" << std::endl;
 	return 0;
 }
 
@@ -684,8 +680,6 @@ void *audioLoop(void*)
 	// NEON implementation of fromFloatToRaw_int
 	void fromFloatToRaw_int(audio_struct *audio_struct)
 	{
-		std::cout << "NEON ENABLED" << std::endl;
-
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
@@ -700,6 +694,8 @@ void *audioLoop(void*)
 			int32x4_t intValues = vcvtq_s32_f32(resultVec);
 
 			byteSplit(&sampleBytes, intValues, audio_struct);
+
+			sampleBytes += (4 *audio_struct->physBps);
 		}
 		// clean up buffer for next period
 		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
@@ -713,6 +709,8 @@ void *audioLoop(void*)
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
 		{
 				int32x4_t res = byteCombine(&sampleBytes, audio_struct);
+
+				sampleBytes += (4 *audio_struct->physBps);
 
 				// Perform the comparison (res > scaleVal)
 				// We are comparing 4 signed integers (res) with 4 unsigned integers (scaleVec) to identify negative
@@ -741,9 +739,8 @@ void *audioLoop(void*)
 		}
 	}
 
+	// ** This has yet ot be tested since we do not have a bigEndian phone
 	void fromFloatToRaw_float32(audio_struct *audio_struct) {
-		throw std::runtime_error("NEON is not supported for float32 type! Please disable NEON.");
-
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
@@ -762,6 +759,7 @@ void *audioLoop(void*)
 		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 	}
 
+	// ** This has yet ot be tested since we do not have a bigEndian phone
 	void fromRawToFloat_float32(audio_struct *audio_struct) {
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 
@@ -784,7 +782,6 @@ void *audioLoop(void*)
 	//VIC on android, it seems that interleaved is the only way to go
 	void fromFloatToRaw_int(audio_struct *audio_struct)
 	{
-		std::cout << "NEON DISABLED" << std::endl;
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 		{
@@ -792,7 +789,7 @@ void *audioLoop(void*)
 			
 			byteSplit(sampleBytes, res, audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
 
-			sampleBytes += audio_struct->bps; // jump to next sample
+			sampleBytes += audio3_struct->bps; // jump to next sample
 		}
 		// clean up buffer for next period
 		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
@@ -1109,8 +1106,7 @@ void resetGovernorMode()
 			*(*sampleBytes + 2 * bps + i) = res[2];
 
 			*(*sampleBytes + 3 * bps + i) = res[3];
-		}
-		*sampleBytes += (4 *audio_struct->physBps);
+		}	
 	}
 
 	// NEON version of byteSplit bigEndian
@@ -1139,7 +1135,6 @@ void resetGovernorMode()
 
 			*(*sampleBytes + physBps - 1 + 3 * bps - i) = res[3];
 		}
-		*sampleBytes += (4 * audio_struct->physBps);
 	}
 
 	// NEON version of byteCombine littleEndian
@@ -1161,7 +1156,6 @@ void resetGovernorMode()
 
 			values = vaddq_s32(values, shiftedValues);
 		}
-		*sampleBytes += (4 *audio_struct->physBps);
 		return values;
 	}
 
@@ -1191,9 +1185,7 @@ void resetGovernorMode()
 
 			values = vaddq_s32(values, shiftedValues);
 		}
-		*sampleBytes += (4 *audio_struct->physBps);
 		return values;
-
 	}
 
 #else
