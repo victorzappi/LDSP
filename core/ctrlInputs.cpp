@@ -29,7 +29,7 @@ bool ctrlInputsOff = false;
 const char *ctrlInput_devPath = "/dev/input";
 
 extern bool gShouldStop; // extern from tinyalsaAudio.cpp
-pthread_t ctrlInput_thread;
+pthread_t ctrlInput_thread = 0;
 
 
 
@@ -102,8 +102,12 @@ void LDSP_cleanupCtrlInputs()
     // if control inputs were off, not much to do here
     if(!ctrlInputsOff)
     {
-        if(ctrlInput_thread != 0)
+        if(ctrlInput_thread != 0) 
+        {
+            if(!gShouldStop)
+                gShouldStop = true;
             pthread_join(ctrlInput_thread, NULL);
+        }
 
         closeCtrlInputDevices();
     }
