@@ -119,6 +119,7 @@ rem End of :install_scripts
   set config=%~1
   set version=%~2
   set project=%~3
+  set no_neon=%~4
 
   if "%config%" == "" (
     echo Cannot configure: harwdware configuration file path not specified
@@ -181,18 +182,24 @@ rem End of :install_scripts
   set neon_setting=%neon_setting:,=%
   set neon_setting=%neon_setting: =%
 
-  if "%neon_setting%" == "true" (
-    set "neon=-DANDROID_ARM_NEON=ON"
-  ) else if "%neon_setting%" == "True" (
-    set "neon=-DANDROID_ARM_NEON=ON"
-  ) else if "%neon_setting%" == "yes" (
-    set "neon=-DANDROID_ARM_NEON=ON"
-  ) else if "%neon_setting%" == "Yes" (
-    set "neon=-DANDROID_ARM_NEON=ON"
-  ) else if "%neon_setting%" == "1" (
-    set "neon=-DANDROID_ARM_NEON=ON"
+  rem Passing the --no-neon-audio-format flag configures to not use parallel sample formatting with NEON
+  if "%no_neon%" == "--no-neon-audio-format" (
+    echo Configuring to not use NEON audio formatting
+    set "neon=OFF"
   ) else (
-    set "neon="
+    if "%neon_setting%" == "true" (
+      set "neon=ON"
+    ) else if "%neon_setting%" == "True" (
+      set "neon=ON"
+    ) else if "%neon_setting%" == "yes" (
+      set "neon=ON"
+    ) else if "%neon_setting%" == "Yes" (
+      set "neon=ON"
+    ) else if "%neon_setting%" == "1" (
+      set "neon=ON"
+    ) else (
+      set "neon=OFF"
+    )
   )
 
 
@@ -255,7 +262,7 @@ rem End of :install_scripts
   rem Run CMake configuration
   cmake -DCMAKE_TOOLCHAIN_FILE=%NDK%/build/cmake/android.toolchain.cmake ^
         -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% ^
-        "-DANDROID_NDK=%NDK%" %neon% "-DLDSP_PROJECT=%project_dir%" "-DONNX_VERSION=%onnx_version%" ^
+        "-DANDROID_NDK=%NDK%" "-DEXPLICIT_ARM_NEON=%neon%" "-DLDSP_PROJECT=%project_dir%" "-DONNX_VERSION=%onnx_version%" ^
         -G Ninja -B"%build_dir%" -S".."
 
   if not %ERRORLEVEL% == 0 (
@@ -495,7 +502,7 @@ rem End of :clean_phone
   rem Print usage information.
   echo usage:
   echo   ldsp.bat install_scripts
-  echo   ldsp.bat configure [configuration] [version] [project]
+  echo   ldsp.bat configure [configuration] [version] [project] [--no-neon-audio-format (optional)]
   echo   ldsp.bat build
   echo   ldsp.bat install
   echo   ldsp.bat run ^"[list of arguments]^"
@@ -510,6 +517,7 @@ rem End of :clean_phone
   echo                        the path to the folder containing the hardware configuration file of the chosen phone 
   echo                        Android version running on the phone
   echo                        the path to the project to build
+  echo                        the optional flag to not use NEON parallel sample formatting (--no-neon-audio-format)
   echo   build              Build the configured project.
   echo   install            Install the configured project, LDSP hardware config, scripts and resources to the phone.
   echo   run                Run the configured project on the phone.
@@ -529,7 +537,7 @@ if "%1" == "install_scripts" (
   call :install_scripts
   exit /b %ERRORLEVEL%
 ) else if "%1" == "configure" (
-  call :configure %2 %3 %4
+  call :configure %2 %3 %4 %5
   exit /b %ERRORLEVEL%
 ) else if "%1" == "build" (
   call :build

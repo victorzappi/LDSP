@@ -16,8 +16,14 @@ set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 # set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
 
 # aarch64 has neon always active
-if("${DEVICE_ARCH}" STREQUAL "armv7a" AND ANDROID_ARM_NEON)
+if("${DEVICE_ARCH}" STREQUAL "armv7a" AND "${EXPLICIT_ARM_NEON}" STREQUAL "ON")
   add_compile_options(-mfpu=neon)
+  set(NEON_SUPPORTED "ON")
+# Add NEON_SUPPORTED flag for all aarch64
+elseif("${DEVICE_ARCH}" STREQUAL "aarch64" AND "${EXPLICIT_ARM_NEON}" STREQUAL "ON")
+  set(NEON_SUPPORTED "ON")
+else()
+  set(NEON_SUPPORTED "OFF")
 endif()
 
 add_compile_options(-fdiagnostics-color=always)

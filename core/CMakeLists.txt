@@ -43,6 +43,30 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin/)
 add_executable(ldsp ${SOURCES})
 
 
+# get NEON_SUPPORTED Flag
+if (${NEON_SUPPORTED} STREQUAL "ON")
+  # # Set NEON_ENABLED preprocessor macro for tinyalsaAudio.cpp
+  # set_property(
+  #   SOURCE ${CMAKE_CURRENT_LIST_DIR}/tinyalsaAudio.cpp 
+  #   PROPERTY COMPILE_DEFINITIONS NEON_ENABLED="ON" 
+  #   # In the future, NEON_ENABLED will only be true if NEON_ENABLED and NEON_SUPPORTED flags are true
+  # )
+  # Set NEON_ENABLED preprocessor macro for tinyalsaAudio.h
+  # set_property(
+    # SOURCE ${CMAKE_CURRENT_LIST_DIR}/../include/tinyalsaAudio.h
+    # PROPERTY COMPILE_DEFINITIONS NEON_ENABLED="ON" 
+    # In the future, NEON_ENABLED will only be true if NEON_ENABLED and NEON_SUPPORTED flags are true
+  # )
+
+  # We cannot use the above because set_property cannot target header files, only .cpp or .c
+
+  # Include header files - We do not need this line! Are header directories getting included to LDSP elsewhere?
+  # target_include_directories(ldsp PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../include)
+
+  # Define NEON_ENABLED macro for the target
+  target_compile_definitions(ldsp PRIVATE NEON_ENABLED="ON")
+endif()
+
 
 # Check if we should add libpd
 if(ADD_LIBPD)
