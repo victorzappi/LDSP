@@ -752,6 +752,7 @@ void *audioLoop(void*)
 				audio_struct->audioBuffer[n + 3] = result[3];		
 		}
 	}
+	
 
 	// ** This has yet ot be tested since we do not have a bigEndian phone
 	void fromFloatToRaw_float32(audio_struct *audio_struct) {
