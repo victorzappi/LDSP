@@ -803,7 +803,7 @@ void *audioLoop(void*)
 			
 			byteSplit(sampleBytes, res, audio_struct); // function pointer, splits int into consecutive bytes in either little or big endian
 
-			sampleBytes += audio3_struct->bps; // jump to next sample
+			sampleBytes += audio_struct->bps; // jump to next sample
 		}
 		// clean up buffer for next period
 		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));

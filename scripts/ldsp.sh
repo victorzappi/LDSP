@@ -204,7 +204,7 @@ configure () {
   if [[ $NO_NEON != "" ]]
   then
     echo "Configuring to not use NEON audio formatting"
-    neon = "OFF"
+    neon="OFF"
   else 
     if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
     then
