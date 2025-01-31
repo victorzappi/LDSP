@@ -792,8 +792,6 @@ void *audioLoop(void*)
 	}
 
 #else
-	//TODO optimize: loop unrolling and, when possible, NEON
-	//VIC on android, it seems that interleaved is the only way to go
 	void fromFloatToRaw_int(audio_struct *audio_struct)
 	{
 		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
