@@ -163,7 +163,7 @@ rem End of :install_scripts
   if "%arch%" == "x86" set "abi=x86"
   if "%arch%" == "x86_64" set "abi=x86_64"
   if "%abi%" == "" (
-    echo Cannot configure: Unknown target architecture "%arch%
+    echo Cannot configure: unknown target architecture "%arch%
     exit /b 1
   )
 
@@ -171,7 +171,7 @@ rem End of :install_scripts
   call :get_api_level
   set "api_level=%ERRORLEVEL%"
   if "%api_level%" == "0" (
-    echo Cannot configure: Unknown Android version "%version%
+    echo Cannot configure: unknown Android version "%version%
     exit /b 1
   )
 
@@ -204,7 +204,7 @@ rem End of :install_scripts
 
 
   if "%project%" == "" (
-    echo Cannot configure: Project path not specified
+    echo Cannot configure: project path not specified
     echo Please specify a project path with --project
     exit /b 1
   )
@@ -220,7 +220,7 @@ rem End of :install_scripts
   popd
 
   if not exist "%project_dir%" (
-    echo Cannot configure: Project path not found
+    echo Cannot configure: project path not found
     echo Please ensure that the project path exists
     exit /b 1
   )
@@ -278,6 +278,7 @@ rem End of :install_scripts
   echo project_name="%project_name%">>"%settings_file%"
   echo hw_config="%hw_config%">>"%settings_file%"
   echo arch="%arch%">>"%settings_file%"
+  echo ndk="%NDK%">>"%settings_file%"
   echo api_level="%api_level%">>"%settings_file%"
   echo onnx_version="%onnx_version%">>"%settings_file%"
 
@@ -290,7 +291,7 @@ rem End of :configure
   
   rem Check if settings file exists
   IF NOT EXIST "%settings_file%" (
-    echo Cannot build: project not configured. Please run "ldsp.bat configure [settings]" first.
+    echo Cannot build: project not configured. Please run "ldsp.bat configure" first.
     exit /b 1
   )
 
@@ -317,7 +318,6 @@ rem End of :build
   exit /b
 rem End of :push_scripts
 
-
 :push_resources
   if /i "%ADD_SEASOCKS%"=="TRUE" (
     rem Create a directory on the SD card using `adb shell` with `mkdir`
@@ -328,6 +328,31 @@ rem End of :push_scripts
   )
   exit /b
 rem End of :push_resources
+
+:push_debugserver
+  rem Create a directory on the SD card using `adb shell` with `mkdir`
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/debugserver'"
+
+  rem Different versions of the lldb-server bin can be found in the NDK, depending on the arch
+  if "%arch%"=="armv7a" (
+    set "dir=arm"
+  ) else if "%arch%"=="aarch64" (
+    set "dir=aarch64"
+  ) else if "%arch%"=="x86" (
+    set "dir=i386"
+  ) else if "%arch%"=="x86_64" (
+    set "dir=x86_64"
+  ) else (
+    echo Error: Unsupported architecture "%arch%"
+    exit /b 1
+  )
+  set "debugserver=%ndk%\toolchains\llvm\prebuilt\linux-x86_64\lib64\clang\14.0.6\lib\linux\%dir%\lldb-server"
+
+  adb push "%debugserver%" /sdcard/ldsp/debugserver
+
+  exit /b
+rem End of :push_debugserver
+
 
 :push_onnxruntime
   if /i "%ADD_ONNX%" == "TRUE" (
@@ -346,26 +371,37 @@ rem End of :push_onnxruntime
 :install
   rem Install the user project, LDSP hardware config and resources to the phone.
   if not exist "build\bin\ldsp" (
-    echo Cannot push: No ldsp executable found. Please run "ldsp.bat build" first.
+    echo Cannot install: no ldsp executable found. Please run "ldsp.bat configure" and "ldsp.bat build" first.
     exit /b 1
   )
 
   rem Retrieve variables from settings file
-  FOR /F "tokens=1* delims==" %%G IN (%settings_file%) DO (
-    IF "%%G"=="project_dir" set "project_dir=%%H"
-    IF "%%G"=="project_name" set "project_name=%%H"
-    IF "%%G"=="hw_config" set "hw_config=%%H"
-    IF "%%G"=="arch" set "arch=%%H"
-    IF "%%G"=="api_level" set "api_level=%%H"
-    IF "%%G"=="onnx_version" set "onnx_version=%%H"
+  IF EXIST "%settings_file%" (
+    FOR /F "tokens=1* delims==" %%G IN ("%settings_file%") DO (
+      IF "%%G"=="project_dir" set "project_dir=%%H"
+      IF "%%G"=="project_name" set "project_name=%%H"
+      IF "%%G"=="hw_config" set "hw_config=%%H"
+      IF "%%G"=="arch" set "arch=%%H"
+      IF "%%G"=="ndk" set "ndk=%%H"
+      IF "%%G"=="api_level" set "api_level=%%H"
+      IF "%%G"=="onnx_version" set "onnx_version=%%H"
+    )
+  ) ELSE (
+    echo Cannot install: project not configured (no ldsp_settings.conf found). Please run "ldsp.bat configure" first.
+    exit /b 1
   )
 
   rem Retrieve variables from dependencies file
-  FOR /F "tokens=1* delims==" %%G IN (%dependencies_file%) DO (
-    IF "%%G"=="ADD_SEASOCKS" set "ADD_SEASOCKS=%%H"
-    IF "%%G"=="ADD_FFTW3" set "ADD_FFTW3=%%H"
-    IF "%%G"=="ADD_ONNX" set "ADD_ONNX=%%H"
-    IF "%%G"=="ADD_LIBPD" set "ADD_LIBPD=%%H"
+  IF EXIST "%dependencies_file%" (
+    FOR /F "tokens=1* delims==" %%G IN ("%dependencies_file%") DO (
+      IF "%%G"=="ADD_SEASOCKS" set "ADD_SEASOCKS=%%H"
+      IF "%%G"=="ADD_FFTW3" set "ADD_FFTW3=%%H"
+      IF "%%G"=="ADD_ONNX" set "ADD_ONNX=%%H"
+      IF "%%G"=="ADD_LIBPD" set "ADD_LIBPD=%%H"
+    )
+  ) ELSE (
+    echo Cannot install: project not configured (no ldsp_dependencies.conf found). Please run "ldsp.bat configure" first.
+    exit /b 1
   )
 
   rem create temp ldsp folder on sdcard
@@ -405,6 +441,7 @@ rem End of :push_onnxruntime
       rem Call functions to push all resources
       call :push_scripts
       call :push_resources
+      call :push_debugserver
       call :push_onnxruntime
 
   ) else (
@@ -416,6 +453,10 @@ rem End of :push_onnxruntime
       rem Check for `resources`
       adb shell "su -c 'ls /data/ldsp' 2>/dev/null" | find "resources" > nul 2>&1
       if %ERRORLEVEL% neq 0 call :push_resources
+
+      rem Check for `debugserver`
+      adb shell "su -c 'ls /data/ldsp' 2>/dev/null" | find "debugserver" > nul 2>&1
+      if %ERRORLEVEL% neq 0 call :push_debugserver
 
       rem Check for `onnxruntime`
       adb shell "su -c 'ls /data/ldsp' 2>/dev/null" | find "onnxruntime" > nul 2>&1
@@ -441,8 +482,13 @@ rem End of :install
   set args=%~1
 
   rem Retrieve variables from settings file
-  FOR /F "tokens=1* delims==" %%G IN (%settings_file%) DO (
-    IF "%%G"=="project_name" set "project_name=%%H"
+  IF EXIST "%settings_file%" (
+    FOR /F "tokens=1* delims==" %%G IN ("%settings_file%") DO (
+      IF "%%G"=="project_name" set "project_name=%%H"
+    )
+  ) ELSE (
+    echo Cannot run: project not configured. Please run "ldsp.bat configure" first, then build, install and run.
+    exit /b 1
   )
 
   adb shell "su -c 'cd /data/ldsp/projects/%project_name%  && export LD_LIBRARY_PATH=\"/data/ldsp/onnxruntime\" && ./ldsp %args%'"
@@ -476,12 +522,12 @@ rem End of :clean
 
   rem Check if settings file exists
   IF NOT EXIST "%settings_file%" (
-    echo Cannot clean phone: project not configured. Please run "ldsp.bat configure [settings]" first.
+    echo Cannot clean phone: project not configured. Please run "ldsp.bat configure" first.
     exit /b 1
   )
 
   rem Retrieve variable from settings file
-  FOR /F "tokens=1* delims==" %%G IN (%settings_file%) DO (
+  FOR /F "tokens=1* delims==" %%G IN ("%settings_file%") DO (
     IF "%%G"=="project_name" set "project_name=%%H"
   )
 
@@ -497,6 +543,50 @@ rem End of :clean_phone
 
   exit /b 0
 rem End of :clean_phone
+
+:debugserver_start
+  rem Prepare for remote debugging
+
+  rem Retrieve variables from settings file
+  if exist "%settings_file%" (
+      for /f "tokens=1,* delims==" %%G in ("%settings_file%") do (
+          if "%%G"=="project_name" set "project_name=%%H"
+      )
+  ) else (
+      echo Cannot start debug server on phone: project not configured. Please run "ldsp.bat configure" first.
+      exit /b 1
+  )
+
+  rem We're going to work on port 12345, which incidentally is also my Wi-Fi pwd
+  set port=12345
+  adb forward tcp:%port% tcp:%port%
+
+  rem The debugger can only run bins that are in an accessible directory on the phone
+  adb shell "su -c 'cp /data/ldsp/projects/%project_name%/ldsp /data/local/tmp'"
+
+  rem Start the debug server on the phone
+  adb shell "su -c '/data/ldsp/debugserver/lldb-server platform --server --listen *:%port%'"
+
+  exit /b
+rem End of :debugserver_start
+
+:debugserver_stop
+  rem Clean up remote debugging
+
+  echo Stopping debug server...
+  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_debugserver_stop.sh'"
+
+  rem Remove the copied binary from the phone
+  adb shell "su -c 'rm /data/local/tmp/ldsp'"
+
+  rem Make sure this is the same port used in debugserver_start
+  set port=12345
+  adb forward --remove tcp:%port%
+
+exit /b
+rem End of :debugserver_stop
+
+
 
 :help
   rem Print usage information.
@@ -526,6 +616,8 @@ rem End of :clean_phone
   echo   clean              Clean the configured project.
   echo   clean_phone        Remove all project files from phone.
   echo   clean_ldsp         Remove all LDSP files from phone.
+  echo   debugserver_start  Prepare and run the remote debug server (lldb-server).
+  echo   debugserver_stop   Stop the remote debug server.
   exit /b 0
 rem End of :help
 
@@ -559,6 +651,12 @@ if "%1" == "install_scripts" (
   exit /b %ERRORLEVEL%
 ) else if "%1" == "clean_ldsp" (
   call :clean_ldsp
+  exit /b %ERRORLEVEL%
+) else if "%1" == "debugserver_start" (
+  call :debugserver_start
+  exit /b %ERRORLEVEL%
+) else if "%1" == "debugserver_stop" (
+  call :debugserver_stop
   exit /b %ERRORLEVEL%
 ) else if "%1" == "help" (
   call :help

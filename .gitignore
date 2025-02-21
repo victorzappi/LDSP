@@ -42,6 +42,7 @@ obj/
 # IDE/Editor project files
 # -vscode
 .vscode/
+.vscode
 LDSP.code-workspace
 
 # CMake
@@ -68,4 +69,5 @@ ldsp_dependencies.conf
 **/LDSP-Extras
 
 # Temporary local projects
+_projects
 _projects/

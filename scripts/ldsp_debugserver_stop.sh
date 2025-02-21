@@ -1,23 +1,23 @@
 #!/bin/bash
 #
-# This script stops the LDSP program ('ldsp') running on the phone
+# This script stops the remote debugger ('lldb-server') running on the phone
 # usage:
-# sh ldsp_stop.sh
+# sh ldsp_debugserver_stop.sh
 
 # for older phones
-PID=$(ps | grep ldsp | grep -Eo '[0-9]{2,5}' | grep -Eo '[0-9]{2,5}' -m 1)
+PID=$(ps | grep lldb-server | grep -Eo '[0-9]{2,5}' | grep -Eo '[0-9]{2,5}' -m 1)
 if [[ -n "$PID" ]]; then
   kill "$PID"
 fi
 
 # for android >= 9 we need to add -A
 # unfortunately this extra argument breaks ps on older phones, so we run both versions
-PID=$(ps -A | grep ldsp | grep -Eo '[0-9]{2,5}' | grep -Eo '[0-9]{2,5}' -m 1)
+PID=$(ps -A | grep lldb-server | grep -Eo '[0-9]{2,5}' | grep -Eo '[0-9]{2,5}' -m 1)
 if [[ -n "$PID" ]]; then
   kill "$PID"
 fi 
 # ps -> prints all running processes
-# grep ldsp -> prints all info of ldsp process as a line
+# grep lldb-server -> prints all info of lldb-server process as a line
 # grep -Eo '[0-9]{2,5}' -> extracts all numerical entries [including pid] as different lines [pid is first one]
 # grep -Eo '[0-9]{2,5}' -m 1 -> extracts numerical entries but only on first line, effectively returning pid
 

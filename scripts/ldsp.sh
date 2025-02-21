@@ -269,13 +269,14 @@ configure () {
   echo "hw_config=\"$hw_config\"" >> $settings_file
   echo "arch=\"$arch\"" >> $settings_file
   echo "api_level=\"$api_level\"" >> $settings_file
+  echo "ndk=\"$NDK\"" >> $settings_file
   echo "onnx_version=\"$onnx_version\"" >> $settings_file
 }
 
 # Build the user project.
 build () {
   if ! [[ -f $settings_file ]]; then
-    echo "Cannot build: project not configured. Please run \"ldsp.sh configure [settings] first.\""
+    echo "Cannot build: project not configured. Please run \"ldsp.sh configure\" first."
   fi
 
   cd build
@@ -298,8 +299,26 @@ push_resources() {
   # push only if dependency is in use
   if [[ $ADD_SEASOCKS =~ ^(TRUE)$ ]]; then
     adb shell "su -c 'mkdir -p /sdcard/ldsp/resources'" # create temp folder on sdcard
-    adb push resources //sdcard/ldsp/ #double slash needed by Git Bash
+    adb push resources //sdcard/ldsp/ # double slash needed by Git Bash
   fi
+}
+
+push_debugserver() {
+  adb shell "su -c 'mkdir -p /sdcard/ldsp/debugserver'" # create temp folder on sdcard
+
+  # different versions of the lldb-server bin can be found in the NDK, depending on the arch
+  if [[ $arch == "armv7a" ]]; then
+    dir="arm"
+  elif [[ $arch == "aarch64" ]]; then
+    dir="aarch64"
+  elif [[ $arch == "x86" ]]; then
+    dir="i386"
+  elif [[ $arch == "x86_64" ]]; then
+    dir="x86_64"
+  fi
+  debugserver=$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/$dir/lldb-server
+  
+  adb push $debugserver //sdcard/ldsp/debugserver # double slash needed by Git Bash
 }
 
 push_onnxruntime() {
@@ -307,25 +326,31 @@ push_onnxruntime() {
   if [[ $ADD_ONNX =~ ^(TRUE)$ ]]; then
     adb shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'" # create temp folder on sdcard
     onnx_path="./dependencies/onnxruntime/$arch/$onnx_version/libonnxruntime.so"
-    adb push $onnx_path //sdcard/ldsp/onnxruntime/libonnxruntime.so #double slash needed by Git Bash
+    adb push $onnx_path //sdcard/ldsp/onnxruntime/libonnxruntime.so # double slash needed by Git Bash
   fi
 }
 
 # Install the user project, LDSP hardware config and resources to the phone
 install () {
   if [[ ! -f build/bin/ldsp ]]; then
-    echo "Cannot install: no ldsp executable found. Please run \"ldsp.sh build\" first."
+    echo "Cannot install: no ldsp executable found. Please run \"ldsp.sh configure\" and \"ldsp.sh build\" first."
     exit 1
   fi
   
   # Retrieve variables from settings file
   if [[ -f $settings_file ]]; then
-      source $settings_file
+    source $settings_file
+  else
+    echo "Cannot install: project not configured (no ldsp_settings.conf found). Please run \"ldsp.sh configure\" first."
+    exit 1
   fi
 
   # Retrieve variables from dependencies file
   if [[ -f $dependencies_file ]]; then
-      source $dependencies_file
+    source $dependencies_file
+  else
+    echo "Cannot install: project not configured (no ldsp_dependencies.conf found). Please run \"ldsp.sh configure\" first."
+    exit 1
   fi
 
   adb shell "su -c 'mkdir -p /sdcard/ldsp/projects/$project_name'" # create temp ldsp folder on sdcard
@@ -352,6 +377,7 @@ install () {
     # Call functions to push all resources
     push_scripts
     push_resources
+    push_debugserver
     push_onnxruntime
 
   else
@@ -366,6 +392,11 @@ install () {
       push_resources
     fi
 
+    # Check and push debug server if not there
+    if ! adb shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "debugserver"; then
+      push_debugserver
+    fi
+
     # Check and push onnxruntime if not there
     if ! adb shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "onnxruntime"; then
       push_onnxruntime
@@ -375,7 +406,8 @@ install () {
   adb shell "su -c 'mkdir -p /data/ldsp/projects/$project_name'" # create ldsp and project folders
   adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" # cp all files from sd card temp folder to ldsp folder
   adb shell "su -c 'chmod 777 /data/ldsp/projects/$project_name/ldsp'" # add exe flag to ldsp bin
-  
+  adb shell "su -c 'chmod 777 /data/ldsp/debugserver/lldb-server'" # add exe flag to server bin
+
   adb shell "su -c 'rm -r /sdcard/ldsp'" # remove the temp /sdcard/ldsp directory from the device
 }
 
@@ -384,7 +416,11 @@ run () {
   # Retrieve variables from settings file
   if [[ -f $settings_file ]]; then
       source $settings_file
+  else
+    echo "Cannot run: project not configured. Please run \"ldsp.sh configure\" first, then build, install and run."
+    exit 1
   fi
+
 
   # Run adb shell in a subshell, so that it doesn't receive the SIGINT signal
   (
@@ -406,7 +442,11 @@ run_persistent () {
   # Retrieve variables from settings file
   if [[ -f $settings_file ]]; then
       source $settings_file
+  else
+    echo "Cannot run: project not configured. Please run \"ldsp.sh configure\" first, then build, install and run."
+    exit 1
   fi
+
 
   cat <<EOF | adb shell > /dev/null 2>&1
   su -c '
@@ -442,13 +482,12 @@ clean () {
 
 # Remove current project from directory from the device
 clean_phone () {
-  if ! [[ -f $settings_file ]]; then
-    echo "Cannot clean phone: project not configured. Please run \"ldsp.sh configure [settings] first.\""
-  fi
-
   # Retrieve variables from settings file
   if [[ -f $settings_file ]]; then
       source $settings_file
+  else
+    echo "Cannot clean phone: project not configured. Please run \"ldsp.sh configure\" first."
+    exit 1
   fi
 
   adb shell "su -c 'rm -r /data/ldsp/projects/$project_name'" 
@@ -457,6 +496,39 @@ clean_phone () {
 # Remove the ldsp directory from the device
 clean_ldsp () {
   adb shell "su -c 'rm -r /data/ldsp/'" 
+}
+
+# Prepare for remote debugging
+debugserver_start () {
+  # Retrieve variables from settings file
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  else
+    echo "Cannot start debug server on phone: project not configured. Please run \"ldsp.sh configure\" first."
+    exit 1
+  fi
+
+  # we're going to work on port 12345, which incidentally is also my Wi-Fi pwd
+  port=12345
+  adb forward tcp:$port tcp:$port
+
+  # the debugger can only run bins that are in an accessible directory on the phone
+  adb shell "su -c 'cp /data/ldsp/projects/$project_name/ldsp /data/local/tmp'" 
+
+  adb shell "su -c '/data/ldsp/debugserver/lldb-server platform --server --listen *:$port'"   
+}
+
+# Clean up remote debugging
+debugserver_stop () {
+
+  echo "Stopping debug server..."
+  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_debugserver_stop.sh'"
+
+  adb shell "su -c 'rm /data/local/tmp/ldsp'" 
+
+  # make sure this is the same port you used in debugserver_start, in case you changed it!
+  port=12345
+  adb forward --remove tcp:$port
 }
 
 # Print usage information.
@@ -471,6 +543,8 @@ help () {
   echo -e "ldsp.sh clean"
   echo -e "ldsp.sh clean_phone"
   echo -e "ldsp.sh clean_ldsp"
+  echo -e "ldsp.sh debugserver_start"
+  echo -e "ldsp.sh debugserver_stop"
   echo -e "\nSettings (used with the 'configure' step):"
   echo -e "  --configuration=CONFIGURATION, -c CONFIGURATION\tThe path to the folder containing the hardware configuration file of the chosen phone."
   echo -e "  --version=VERSION, -a VERSION\tThe Android version running on the phone."
@@ -488,6 +562,8 @@ help () {
   echo -e "  clean\t\t\t\tClean the configured project."
   echo -e "  clean_phone\t\t\tRemove all project files from phone."
   echo -e "  clean_ldsp\t\t\tRemove all LDSP files from phone."
+  echo -e "  debugserver_start\t\t\tPrepare and run the remote debug server (lldb-server)."
+  echo -e "  debugserver_stop\t\t\tStop the remote debug server."
 }
 
 STEPS=()
@@ -586,6 +662,12 @@ for i in "${STEPS[@]}"; do
       ;;
     clean_ldsp)
       clean_ldsp
+      ;;
+    debugserver_start)
+      debugserver_start
+      ;;
+    debugserver_stop)
+      debugserver_stop
       ;;
     help)
       help

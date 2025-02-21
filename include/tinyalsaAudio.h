@@ -20,7 +20,9 @@
 #ifndef TINY_ALSA_AUDIO_H_
 #define TINY_ALSA_AUDIO_H_
 
+#ifdef NEON_AUDIO_FORMAT
 #include <arm_neon.h>
+#endif
 
 #include"LDSP.h"
 
