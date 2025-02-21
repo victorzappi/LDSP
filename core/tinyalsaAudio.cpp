@@ -246,7 +246,6 @@ void LDSP_cleanupAudio()
 	if(audioVerbose)
 		printf("LDSP_cleanupAudio()\n");
 
-	//VIC problem here! with ASUS  go
 	cleanupLowLevelAudioStruct(&pcmContext);
 	cleanupPcm(&pcmContext);	
 	cleanupAudioParams(&pcmContext); 
