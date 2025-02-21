@@ -80,7 +80,7 @@ int cpuIndex = -1;
 // function pointers set up in initFormatFunctions()
 // capture
 
-// Depending on if NEON_ENABLED, fromRawToFloat_int and fromFloatToRaw_int will be implenented with NEON or not
+// Depending on if NEON_AUDIO_FORMAT, fromRawToFloat_int and fromFloatToRaw_int will be implenented with NEON or not
 
 // playback
 void (*fromRawToFloat)(audio_struct*);
@@ -93,7 +93,7 @@ void fromFloatToRaw_int(audio_struct*);
 void fromRawToFloat_float32(audio_struct*);
 void fromFloatToRaw_float32(audio_struct*);
 
-#ifdef NEON_ENABLED
+#ifdef NEON_AUDIO_FORMAT
 	void (*byteSplit)(unsigned char**, int32x4_t, audio_struct*);
 	int32x4_t (*byteCombine)(unsigned char**, audio_struct*);
 	void byteSplit_littleEndian(unsigned char**, int32x4_t, audio_struct*);
@@ -246,6 +246,7 @@ void LDSP_cleanupAudio()
 	if(audioVerbose)
 		printf("LDSP_cleanupAudio()\n");
 
+	//VIC problem here! with ASUS  go
 	cleanupLowLevelAudioStruct(&pcmContext);
 	cleanupPcm(&pcmContext);	
 	cleanupAudioParams(&pcmContext); 
@@ -276,7 +277,7 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
 		audio_type = "capture";
 	}
 
-	#ifdef NEON_ENABLED
+	#ifdef NEON_AUDIO_FORMAT
 		// ByteAlign audioStruct so that it is prepared for NEON
 		if (posix_memalign((void**)*&audioStruct, 16, sizeof(audio_struct)) != 0) {
 			printf("Warning! posix_memalign for audio_struct of %s failed\n", audio_type.c_str());
@@ -561,7 +562,7 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	if(channels <=0)
 		channels = 1;
 
-	#ifdef NEON_ENABLED
+	#ifdef NEON_AUDIO_FORMAT
 		audio_struct->numOfSamples = channels*audio_struct->config.period_size + (4 - audio_struct->numOfSamples % 4) % 4;
 		/*
 		* Create a local var to replace frameBytes
@@ -617,7 +618,7 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 
 
 	// These fields are only defined if NEON is enabled
-	#ifdef NEON_ENABLED
+	#ifdef NEON_AUDIO_FORMAT
 		audio_struct->capture_maskVec = vdupq_n_s32(audio_struct->captureMask);
 		audio_struct->maxVec = vdupq_n_u32(audio_struct->maxVal);
 		audio_struct->factorVec = vdupq_n_f32(audio_struct->maxVal);
@@ -690,7 +691,7 @@ void *audioLoop(void*)
 	return (void *)0;
 }
 
-#ifdef NEON_ENABLED
+#ifdef NEON_AUDIO_FORMAT
 	// NEON implementation of fromFloatToRaw_int
 	void fromFloatToRaw_int(audio_struct *audio_struct)
 	{
@@ -1100,7 +1101,7 @@ void resetGovernorMode()
 // inline
 
 
-#ifdef NEON_ENABLED
+#ifdef NEON_AUDIO_FORMAT
 	// NEON version of byteSplit littleEndian
 	inline void byteSplit_littleEndian(unsigned char** sampleBytes, int32x4_t values, struct audio_struct* audio_struct)
 	{

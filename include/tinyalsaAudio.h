@@ -73,7 +73,7 @@ struct audio_struct {
 	unsigned int physBps;
     int captureMask; // used for capture only
     // Define NEON fields only if needed
-#ifdef NEON_ENABLED
+#ifdef NEON_AUDIO_FORMAT
     uint32x4_t maxVec;
     float32x4_t factorVec; // This must be byteAligned by byteAligning full audioStruct
     float32x4_t factorVecReciprocal;
