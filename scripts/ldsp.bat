@@ -405,8 +405,8 @@ rem End of :push_onnxruntime
   )
 
   rem create temp ldsp folder on sdcard
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/projects/%project_name%'" 
-
+  adb shell "su -c \"mkdir -p '/sdcard/ldsp/projects/%project_name%'\""
+  
   rem push hardware config file
   adb push %hw_config% /sdcard/ldsp/
 
@@ -416,19 +416,18 @@ rem End of :push_onnxruntime
   for /F "delims=" %%i in ('dir /B /A:D "%project_dir%"') do (
       dir /B /A "%project_dir%\%%i\*.cpp" "%project_dir%\%%i\*.c" "%project_dir%\%%i\*.h" "%project_dir%\%%i\*.hpp" "%project_dir%\%%i\*.S" "%project_dir%\%%i\*.s" "%project_dir%\%%i\*.sh" >nul 2>&1
       if errorlevel 1 (
-          adb push "%project_dir%\%%i" /sdcard/ldsp/projects/%project_name%/
+          adb push "%project_dir%\%%i" "/sdcard/ldsp/projects/%project_name%/"
       )
   )
   rem then files
   for %%i in ("%project_dir%\*") do (
       if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" if /I not "%%~xi" == ".sh" (
-          adb push "%%i" /sdcard/ldsp/projects/%project_name%/
+          adb push "%%i" "/sdcard/ldsp/projects/%project_name%/"
       )
   )
 
   rem now the ldsp bin
-  adb push build\bin\ldsp /sdcard/ldsp/projects/%project_name%/
-
+  adb push build\bin\ldsp "/sdcard/ldsp/projects/%project_name%/"
 
   rem now all resources that do not need to be updated at every build
   rem first check if /data/ldsp exists
@@ -464,12 +463,12 @@ rem End of :push_onnxruntime
   )
 
   rem create ldsp folder
-  adb shell "su -c 'mkdir -p /data/ldsp/projects/%project_name%'" 
+  adb shell "su -c \"mkdir -p '/data/ldsp/projects/%project_name%'\""
   rem cp all files from sd card temp folder to ldsp folder
   adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" 
   rem add exe flag to ldsp bin
-  adb shell "su -c 'chmod 777 /data/ldsp/projects/%project_name%/ldsp'" 
-  
+  adb shell "su -c \"chmod 777 '/data/ldsp/projects/%project_name%/ldsp'\""
+
   rem remove temp folder from sdcard
   adb shell "su -c 'rm -r /sdcard/ldsp'" 
 
@@ -491,7 +490,7 @@ rem End of :install
     exit /b 1
   )
 
-  adb shell "su -c 'cd /data/ldsp/projects/%project_name%  && export LD_LIBRARY_PATH=\"/data/ldsp/onnxruntime\" && ./ldsp %args%'"
+  adb shell "su -c \"cd '/data/ldsp/projects/%project_name%' && export LD_LIBRARY_PATH='/data/ldsp/onnxruntime' && ./ldsp %args%\""
   exit /b 0
 rem End of :run
 

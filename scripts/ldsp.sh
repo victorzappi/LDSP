@@ -353,20 +353,21 @@ install () {
     exit 1
   fi
 
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/projects/$project_name'" # create temp ldsp folder on sdcard
-
+  
+  adb shell "su -c 'mkdir -p \"/sdcard/ldsp/projects/$project_name\"'" # create temp ldsp folder on sdcard
+  
   # push hardware config file, double slash needed by Git Bash
   adb push "$hw_config" //sdcard/ldsp/
 
   # Push all project resources, including Pd files in Pd projects, but excluding C/C++ and assembly files, folders that contain those files
   # double slash needed by Git Bash
   # first folders
-  find "$project_dir"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp "{}"/*.S "{}"/*.s 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} //sdcard/ldsp/projects/$project_name
+  find "$project_dir"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp "{}"/*.S "{}"/*.s 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} "//sdcard/ldsp/projects/$project_name"
   # then files
-  find "$project_dir" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} //sdcard/ldsp/projects/$project_name \;
+  find "$project_dir" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} "//sdcard/ldsp/projects/$project_name" \;
 
-  # now the ldsp bin, double slash needed by Git Bash
-  adb push build/bin/ldsp //sdcard/ldsp/projects/$project_name/
+  # now the ldsp bin, double slash needed by Git Bash  
+  adb push build/bin/ldsp "//sdcard/ldsp/projects/$project_name/"
 
   # now all resources that do not need to be updated at every build
   # first check if /data/ldsp exists
@@ -403,9 +404,9 @@ install () {
     fi
   fi
   
-  adb shell "su -c 'mkdir -p /data/ldsp/projects/$project_name'" # create ldsp and project folders
+  adb shell "su -c 'mkdir -p \"/data/ldsp/projects/$project_name\"'" # create ldsp and project folders
   adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" # cp all files from sd card temp folder to ldsp folder
-  adb shell "su -c 'chmod 777 /data/ldsp/projects/$project_name/ldsp'" # add exe flag to ldsp bin
+  adb shell "su -c 'chmod 777 \"/data/ldsp/projects/$project_name/ldsp\"'" # add exe flag to ldsp bin
   adb shell "su -c 'chmod 777 /data/ldsp/debugserver/lldb-server'" # add exe flag to server bin
 
   adb shell "su -c 'rm -r /sdcard/ldsp'" # remove the temp /sdcard/ldsp directory from the device
@@ -425,7 +426,7 @@ run () {
   # Run adb shell in a subshell, so that it doesn't receive the SIGINT signal
   (
     trap "" INT
-    adb shell "su -c 'cd /data/ldsp/projects/$project_name && export LD_LIBRARY_PATH="/data/ldsp/onnxruntime/" && ./ldsp $@'" # we invoke su before running the bin
+    adb shell "su -c 'cd \"/data/ldsp/projects/$project_name\" && export LD_LIBRARY_PATH="/data/ldsp/onnxruntime/" && ./ldsp $@'" # we invoke su before running the bin
   ) &
 
 
@@ -450,11 +451,12 @@ run_persistent () {
 
   cat <<EOF | adb shell > /dev/null 2>&1
   su -c '
-  cd /data/ldsp/projects/$project_name
-  nohup ./ldsp $@ > /dev/null 2>&1 &
+  cd "/data/ldsp/projects/$project_name" || exit 1
+  nohup ./ldsp "$@" > /dev/null 2>&1 &
   '
   exit
 EOF
+
 }
 
 # Stop the currently-running user project on the phone.
