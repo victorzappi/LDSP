@@ -200,19 +200,27 @@ configure () {
 
   # support for NEON floating-point unit
   neon_setting=$(grep 'supports neon floating point unit' "$hw_config" | cut -d \" -f 4)
-  # Passing the --no-neon-audio-format flag configures to not use parallel sample formatting with NEON
-  if [[ $NO_NEON != "" ]]
+  
+  if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
   then
-    echo "Configuring to not use NEON audio formatting"
-    neon="OFF"
-  else 
-    if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
+    neon="ON"
+    
+    # Passing the --no-neon-audio-format flag configures to not use parallel sample formatting with NEON
+    if [[ $NO_NEON_AUDIO != "" ]]
     then
-      neon="ON"
-    else
-      neon="OFF"
+      echo "Configuring to not use NEON audio formatting"
+      neon_audio_format="OFF"
+    else  
+      neon_audio_format="ON"
     fi
+
+  else
+    echo "NEON floating-point unit not present on phone"
+    neon="OFF"
+    neon_audio_format="OFF"  
   fi
+  
+
 
   if [[ $PROJECT == "" ]]; then
     echo "Cannot configure: project path not specified"
@@ -249,10 +257,12 @@ configure () {
   build_dir=$(pwd)
 
   # run CMake configuration 
-  cmake -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
-        -DDEVICE_ARCH=$arch -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-$api_level \
-        "-DANDROID_NDK=$NDK" "-DEXPLICIT_ARM_NEON=$neon" "-DLDSP_PROJECT=$project_dir" "-DONNX_VERSION=$onnx_version" \
+  cmake -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+        -DDEVICE_ARCH="$arch" -DANDROID_ABI="$abi" -DANDROID_PLATFORM="android-$api_level" \
+        -DANDROID_NDK="$NDK" -DEXPLICIT_ARM_NEON="$neon" -DNEON_AUDIO_FORMAT="$neon_audio_format" \
+        -DLDSP_PROJECT="$project_dir" -DONNX_VERSION="$onnx_version" \
         -G Ninja -B"$build_dir" -S".."
+
 
   exit_code=$?
   if [[ $exit_code != 0 ]]; then
@@ -600,7 +610,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --no-neon-audio-format)
-      NO_NEON=1
+      NO_NEON_AUDIO=1
       shift
       ;;
     --help|-h)

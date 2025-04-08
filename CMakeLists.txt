@@ -27,6 +27,7 @@ else()
   set(NEON_SUPPORTED "OFF")
 endif()
 
+
 add_compile_options(-fdiagnostics-color=always)
 
 
