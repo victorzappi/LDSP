@@ -36,9 +36,11 @@ struct LDSPhwConfig {
     string xml_paths_file;
     string xml_volumes_file;
     unordered_map<string, string> paths_p;
-    vector<string> paths_p_order;
+    unordered_map<string, int> paths_p_order;
+    unordered_map<int, string> paths_p_rank;
     unordered_map<string, string> paths_c;
-    vector<string> paths_c_order;
+    unordered_map<string, int> paths_c_order;
+    unordered_map<int, string> paths_c_rank;
     int default_dev_num_p;
     int default_dev_num_c;
     string default_dev_id_p;
@@ -48,8 +50,13 @@ struct LDSPhwConfig {
     int default_chn_num_c;
     string dev_activation_ctl_p;
     string dev_activation_ctl_c;
-    string dev_activation_ctl2_p; // secondary playback device activation control, mostly used for line-out
-    string dev_activation_ctl2_c; // secondary capture device activation control, mostly used for line-in
+    
+    //string dev_activation_ctl2_p; // secondary playback device activation control, mostly used for line-out
+    //string dev_activation_ctl2_c; // secondary capture device activation control, mostly used for line-in
+    
+    vector<string> dev_activation_ctl2_p;
+    vector<string> dev_activation_ctl2_c;
+    
     string *ctrl_outputs[2]; // control file and max value (or max file)
 };
 
