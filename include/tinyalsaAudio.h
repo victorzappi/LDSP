@@ -64,6 +64,8 @@ struct audio_struct {
     int flags;
     /* LDSP_ */pcm_config config;
     unsigned int frameBytes;
+    unsigned int bytesPerFrame;
+    unsigned int numOfFrames;
     unsigned int numOfSamples;
     pcm *pcm;
 	int fd;
@@ -133,6 +135,16 @@ ENUM(LDSP_pcm_format, short,
     FLOAT_LE,   /** 32-bit float, little endian */
     FLOAT_BE,   /** 32-bit float, big endian */
     MAX         /** Max of the enumeration list, not an actual format. */ //VIC for now
+)
+
+// same for access types
+ENUM(LDSP_pcm_access, short, 
+    MMAP_INTERLEAVED = 0,
+    MMAP_NONINTERLEAVED,
+    MMAP_COMPLEX,
+    RW_INTERLEAVED,
+    RW_NONINTERLEAVED, 
+    MAX
 )
 
 

@@ -82,16 +82,18 @@ int cpuIndex = -1;
 
 // Depending on if NEON_AUDIO_FORMAT, fromRawToFloat_int and fromFloatToRaw_int will be implenented with NEON or not
 
-// playback
-void (*fromRawToFloat)(audio_struct*);
-void fromRawToFloat_int(audio_struct*);
-
 // capture
-void (*fromFloatToRaw)(audio_struct*);
-void fromFloatToRaw_int(audio_struct*);
+void (*fromRawToFloat)(audio_struct*, unsigned int);
+void fromRawToFloat_int(audio_struct*, unsigned int);
+void fromRawToFloat_float32(audio_struct*, unsigned int);
 
-void fromRawToFloat_float32(audio_struct*);
-void fromFloatToRaw_float32(audio_struct*);
+// playback
+void (*fromFloatToRaw)(audio_struct*, unsigned int);
+void fromFloatToRaw_int(audio_struct*, unsigned int);
+void fromFloatToRaw_float32(audio_struct*, unsigned int);
+
+
+
 
 #ifdef NEON_AUDIO_FORMAT
 	void (*byteSplit)(unsigned char**, int32x4_t, audio_struct*);
@@ -288,13 +290,13 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
 	(*audioStruct)->card = settings->card;
 	if(is_playback)
 	{
-		(*audioStruct)->flags = PCM_OUT;
+		(*audioStruct)->flags = PCM_OUT | PCM_MMAP | PCM_NOIRQ;
 		(*audioStruct)->device = settings->deviceOutNum;
 		(*audioStruct)->config.channels = settings->numAudioOutChannels;
 	}
 	else
 	{
-		(*audioStruct)->flags = PCM_IN;
+		(*audioStruct)->flags = PCM_IN | PCM_MMAP | PCM_NOIRQ;
 		(*audioStruct)->device = settings->deviceInNum;
 		if(fullDuplex)
 			(*audioStruct)->config.channels = settings->numAudioInChannels;
@@ -450,6 +452,7 @@ int initFormatFunctions(string format)
 	return err;
 }
 
+
 int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 {   	
 	// open playback card 
@@ -466,6 +469,7 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 	}
 
 	audio_struct_p->frameBytes = pcm_frames_to_bytes(audio_struct_p->pcm, config_p->period_size); //VIC note that we are using period size, not buffer size
+	audio_struct_p->bytesPerFrame = pcm_frames_to_bytes(audio_struct_p->pcm, 1); // or audio_struct_p->frameBytes/config_p->period_size
 	
 	if(audioVerbose)
 		printf("Playback audio device opened\n");
@@ -487,6 +491,7 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 		}
 
 		audio_struct_c->frameBytes =  pcm_frames_to_bytes(audio_struct_c->pcm, config_c->period_size); //VIC note that we are using period size, not buffer size
+		audio_struct_c->bytesPerFrame = pcm_frames_to_bytes(audio_struct_c->pcm, 1); // or audio_struct_c->frameBytes/config_c->period_size
 
 		if(audioVerbose)
 			printf("Capture audio device opened\n");
@@ -510,6 +515,28 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 		fprintf(stderr, "Failed to prepare capture audio device. %s\n", pcm_get_error(audio_struct_c->pcm));
 		return -3;
 	}
+
+	// Start the PCM stream explicitly.
+	// if (pcm_start(audio_struct_p->pcm) < 0) {
+	// 	printf("pcm_start() failed - %s\n", pcm_get_error(audio_struct_p->pcm));
+	// 	return -4;
+	// }
+
+	unsigned int bufferSize = audio_struct_c->frameBytes;
+	void *zeroBuffer = calloc(1, bufferSize);
+
+	//VIC these are called only to start pcm when not running
+	// unfortunately, this version of tinyalsa does not seem to expose the proper functions to do this otherwise
+	if(fullDuplex) 
+	{
+		pcm_mmap_read(audio_struct_c->pcm, zeroBuffer, audio_struct_c->frameBytes);
+		pcm_mmap_read(audio_struct_c->pcm, zeroBuffer, audio_struct_c->frameBytes);
+	}
+
+	pcm_mmap_write(audio_struct_p->pcm, zeroBuffer, audio_struct_p->frameBytes);
+	pcm_mmap_write(audio_struct_p->pcm, zeroBuffer, audio_struct_p->frameBytes);
+
+	free(zeroBuffer);
 
 
 	audio_struct_p->rawBuffer = nullptr;
@@ -572,14 +599,17 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		audio_struct->numOfSamples = channels*audio_struct->config.period_size;
 		int localFrames = audio_struct->frameBytes;
 	#endif
+
+	audio_struct->numOfFrames = audio_struct->config.period_size; // not used in NEON
 	
+	//VIC 
 	// allocate buffers
-	audio_struct->rawBuffer = malloc(localFrames);
-	if(!audio_struct->rawBuffer)
-	{
-		fprintf(stderr, "Could not allocate rawBuffer\n");
-		return -1;
-	}
+	// audio_struct->rawBuffer = malloc(localFrames);
+	// if(!audio_struct->rawBuffer)
+	// {
+	// 	fprintf(stderr, "Could not allocate rawBuffer\n");
+	// 	return -1;
+	// }
 
 	// NEON requires a buffer size that is a multiple of 4. We do it even when NEON is not enabled,
 	// since the additional samples in the buffer will be ignored
@@ -630,9 +660,10 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 
 void deallocateLowLevelAudioStruct(audio_struct *audio_struct)
 {
+	//VIC
 	// deallocate buffers
-	if(audio_struct->rawBuffer != nullptr)
-		free(audio_struct->rawBuffer);
+	// if(audio_struct->rawBuffer != nullptr)
+	// 	free(audio_struct->rawBuffer);
 	if(audio_struct->audioBuffer != nullptr) 
 		free(audio_struct->audioBuffer);
 }
@@ -642,6 +673,139 @@ void cleanupLowLevelAudioStruct(LDSPpcmContext *pcmContext)
 	deallocateLowLevelAudioStruct(pcmContext->playback);
 	deallocateLowLevelAudioStruct(pcmContext->capture);
 }
+
+//VIC this is not working, why?
+int simple_pcm_mmap_read(audio_struct *audio_struct)
+{
+    int err;
+	struct pcm *pcm = audio_struct->pcm;
+    unsigned int frames_remaining = audio_struct->numOfFrames;
+    unsigned int frames_read = 0;
+    
+	while(frames_remaining > 0) 
+	{
+        int avail = pcm_mmap_avail(pcm);
+        if (avail < 0) 
+		{
+            printf("Error: cannot determine available frames\n");
+            return avail;
+        }
+
+        // If no frames are immediately available, wait.
+        while(avail == 0) 
+		{
+            err = pcm_wait(pcm, -1);
+            if (err < 0) 
+			{
+                //printf("pcm_wait failed: %d\n", err);
+                return err;
+            }
+            avail = pcm_mmap_avail(pcm);
+        }
+
+        // Write as many frames as possible in one go.
+        unsigned int frames_to_read = (frames_remaining < (unsigned int)avail)
+                                         ? frames_remaining : avail;
+
+		if(frames_to_read < audio_struct->numOfFrames)
+			printf("last %d frames out of %d\n", frames_to_read, audio_struct->numOfFrames);
+		// else
+		// 	printf("%d frames\n", audio_struct->numOfFrames);
+
+        // Begin MMAP access.
+		unsigned int offset = 0;
+		err = pcm_mmap_begin(pcm, &(pcmContext.playback->rawBuffer), &offset, &frames_to_read);
+        if (err < 0) 
+		{
+            printf("pcm_mmap_begin failed: %d\n", err);
+            return err;
+        }
+
+        // Commit the written frames.
+        err = pcm_mmap_commit(pcm, offset, frames_to_read);
+        if (err < 0) 
+		{
+            printf("pcm_mmap_commit failed: %d\n", err);
+            return err;
+        }
+
+		//VIC here we make a leap of faith... we convert a full period from raw to float
+		// while we may need to commit only a subset of frames/samples
+		fromRawToFloat(audio_struct, offset);
+		
+        frames_read += frames_to_read;
+        frames_remaining -= frames_to_read;
+    }
+    return 0;
+}
+
+
+int simple_pcm_mmap_write(audio_struct *audio_struct)
+{
+    int err;
+	struct pcm *pcm = audio_struct->pcm;
+    unsigned int frames_remaining = audio_struct->numOfFrames;
+    unsigned int frames_written = 0;
+    
+	while(frames_remaining > 0) 
+	{
+        int avail = pcm_mmap_avail(pcm);
+        if (avail < 0) 
+		{
+            printf("Error: cannot determine available frames\n");
+            return avail;
+        }
+
+        // If no frames are immediately available, wait.
+        while(avail == 0) 
+		{
+            err = pcm_wait(pcm, -1);
+            if (err < 0) 
+			{
+                //printf("pcm_wait failed: %d\n", err);
+                return err;
+            }
+            avail = pcm_mmap_avail(pcm);
+        }
+
+		// render(userContext, 0);
+
+        // Write as many frames as possible in one go.
+        unsigned int frames_to_write = (frames_remaining < (unsigned int)avail)
+                                         ? frames_remaining : avail;
+
+		if(frames_to_write < audio_struct->numOfFrames)
+			printf("last %d frames out of %d\n", frames_to_write, audio_struct->numOfFrames);
+		// else
+		// 	printf("%d frames\n", audio_struct->numOfFrames);
+
+        // Begin MMAP access.
+		unsigned int offset = 0;
+		err = pcm_mmap_begin(pcm, &(pcmContext.playback->rawBuffer), &offset, &frames_to_write);
+        if (err < 0) 
+		{
+            printf("pcm_mmap_begin failed: %d\n", err);
+            return err;
+        }
+
+		//VIC here we make a leap of faith... we convert a full period from float to raw
+		// while we may need to commit only a subset of frames/samples
+		fromFloatToRaw(audio_struct, offset);
+
+        // Commit the written frames.
+        err = pcm_mmap_commit(pcm, offset, frames_to_write);
+        if (err < 0) 
+		{
+            printf("pcm_mmap_commit failed: %d\n", err);
+            return err;
+        }
+		
+        frames_written += frames_to_write;
+        frames_remaining -= frames_to_write;
+    }
+    return 0;
+}
+
 
 void *audioLoop(void*)
 {
@@ -662,10 +826,14 @@ void *audioLoop(void*)
 	{
 		if(fullDuplex)
 		{
-			if(pcm_read(pcmContext.capture->pcm, pcmContext.capture->rawBuffer, pcmContext.capture->frameBytes)!=0)
-				fprintf(stderr, "\nCapture error, aborting...\n");
-
-			fromRawToFloat(pcmContext.capture);
+			// if(pcm_mmap_read(pcmContext.capture->pcm, pcmContext.capture->rawBuffer, pcmContext.capture->frameBytes)!=0)
+			// 	fprintf(stderr, "\nCapture error, aborting...\n");
+			// fromRawToFloat(pcmContext.capture, 0);
+			int ret = simple_pcm_mmap_read(pcmContext.capture);									
+			if (ret < 0) {
+				printf("pcm_mmap_read() failed: %d, error: %s\n", 
+					ret, pcm_get_error(pcmContext.capture->pcm));
+			}
 		}
 
 		if(!sensorsOff_)
@@ -674,12 +842,16 @@ void *audioLoop(void*)
 			readCtrlInputs();
 
 		render(userContext, 0);
-
-		fromFloatToRaw(pcmContext.playback);
-
-		if(pcm_write(pcmContext.playback->pcm, pcmContext.playback->rawBuffer, pcmContext.playback->frameBytes)!=0)
-			fprintf(stderr, "\nPlayback error, aborting...\n");
-
+		
+		// fromFloatToRaw(pcmContext.playback, 0);
+		// if(pcm_write(pcmContext.playback->pcm, pcmContext.playback->rawBuffer, pcmContext.playback->frameBytes)!=0)
+		// 	fprintf(stderr, "\nPlayback error, aborting...\n");
+		int ret = simple_pcm_mmap_write(pcmContext.playback);									
+		if (ret < 0) {
+			printf("pcm_mmap_write() failed: %d, error: %s\n", 
+				ret, pcm_get_error(pcmContext.playback->pcm));
+		}
+		
 		if(!ctrlOutputsOff_)
 			writeCtrlOutputs();
 	}
@@ -692,9 +864,9 @@ void *audioLoop(void*)
 
 #ifdef NEON_AUDIO_FORMAT
 	// NEON implementation of fromFloatToRaw_int
-	void fromFloatToRaw_int(audio_struct *audio_struct)
+	void fromFloatToRaw_int(audio_struct *audio_struct, unsigned int offset)
 	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+		unsigned char *sampleBytes = (unsigned char *)(pcmContext.playback->rawBuffer) + offset * audio_struct->bytesPerFrame; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
 		{	
@@ -716,9 +888,9 @@ void *audioLoop(void*)
 	}
 
 	// NEON implementation of fromRawToFloat_int
-	void fromRawToFloat_int(audio_struct *audio_struct) 
+	void fromRawToFloat_int(audio_struct *audio_struct, unsigned int offset) 
 	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+		unsigned char *sampleBytes = (unsigned char *)(pcmContext.playback->rawBuffer) + offset * audio_struct->bytesPerFrame; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
 		{
@@ -754,8 +926,8 @@ void *audioLoop(void*)
 	}
 
 	// ** This has yet ot be tested since we do not have a bigEndian phone
-	void fromFloatToRaw_float32(audio_struct *audio_struct) {
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+	void fromFloatToRaw_float32(audio_struct *audio_struct, unsigned int offset) {
+		unsigned char *sampleBytes = (unsigned char *)(pcmContext.playback->rawBuffer) + offset * audio_struct->bytesPerFrame; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
 		{	
@@ -774,8 +946,8 @@ void *audioLoop(void*)
 	}
 
 	// ** This has yet ot be tested since we do not have a bigEndian phone
-	void fromRawToFloat_float32(audio_struct *audio_struct) {
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+	void fromRawToFloat_float32(audio_struct *audio_struct, unsigned int offset) {
+		unsigned char *sampleBytes = (unsigned char *)(pcmContext.playback->rawBuffer) + offset * audio_struct->bytesPerFrame; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) {
 			int32x4_t resVec = byteCombine(&sampleBytes, audio_struct);
@@ -792,9 +964,9 @@ void *audioLoop(void*)
 	}
 
 #else
-	void fromFloatToRaw_int(audio_struct *audio_struct)
+	void fromFloatToRaw_int(audio_struct *audio_struct, unsigned int offset)
 	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+		unsigned char *sampleBytes = (unsigned char *)(pcmContext.playback->rawBuffer) + offset * audio_struct->bytesPerFrame; 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 		{
 			int res = audio_struct->maxVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
@@ -808,9 +980,9 @@ void *audioLoop(void*)
 	}
 
 	//VIC on android, it seems that interleaved is the only way to go
-	void fromRawToFloat_int(audio_struct *audio_struct) 
+	void fromRawToFloat_int(audio_struct *audio_struct, unsigned int offset) 
 	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+		unsigned char *sampleBytes = (unsigned char *)(pcmContext.playback->rawBuffer) + offset * audio_struct->bytesPerFrame; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 		{
@@ -825,14 +997,14 @@ void *audioLoop(void*)
 		}
 	}
 
-	void fromFloatToRaw_float32(audio_struct *audio_struct)
+	void fromFloatToRaw_float32(audio_struct *audio_struct, unsigned int offset)
 	{
 		union {
 			float f;
 			int i;
 		} fval;
 
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+		unsigned char *sampleBytes = (unsigned char *)(pcmContext.playback->rawBuffer) + offset * audio_struct->bytesPerFrame; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 		{
@@ -847,14 +1019,14 @@ void *audioLoop(void*)
 		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 	}
 
-	void fromRawToFloat_float32(audio_struct *audio_struct) 
+	void fromRawToFloat_float32(audio_struct *audio_struct, unsigned int offset)
 	{
 		union {
 			float f;
 			int i;
 		} fval;
 
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+		unsigned char *sampleBytes = (unsigned char *)(pcmContext.playback->rawBuffer) + offset * audio_struct->bytesPerFrame; 
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 		{
@@ -867,9 +1039,6 @@ void *audioLoop(void*)
 		}
 	}
 #endif
-
-
-
 
 
 
@@ -904,6 +1073,48 @@ int checkCardFormats(struct pcm_params *params, unsigned int value)
 	return 0;
 }
 
+
+int checkCardAccess(struct pcm_params *params, unsigned int value)
+{
+    int mismatch = -1;
+    const struct pcm_mask *mask;
+    mask = pcm_params_get_mask(params, PCM_PARAM_ACCESS);
+    if (!mask) {
+        fprintf(stderr, "Unable to get access mask from PCM parameters!\n");
+        return -1;
+    }
+
+    printf("\tAccess Formats:\n");
+    // Loop over all access types in your LDSP_pcm_access enum.
+    for (int a = 0; a < LDSP_pcm_access::MAX; a++)
+    {
+        // Check if the bit corresponding to access type 'a' is set.
+        int supported = (mask->bits[0] & (1 << a)) ? 1 : 0;
+        // Use your enum helper to convert index to an enum instance, then to string.
+        LDSP_pcm_access aa = (LDSP_pcm_access::_enum)LDSP_pcm_access::_from_index(a);
+        std::string name = aa._to_string();
+        if (supported)
+            printf("\t\t%s: supported\n", name.c_str());
+        else
+        {
+            printf("\t\t%s: not supported\n", name.c_str());
+            // Keep the check for the requested access, similar to checkCardFormats.
+            if (value == (unsigned int)a)
+                mismatch = a;
+        }
+    }
+
+	//TODO check if requested format is supported!
+    // if (mismatch >= 0)
+    // {
+    //     LDSP_pcm_access aa = (LDSP_pcm_access::_enum)LDSP_pcm_access::_from_index(value);
+    //     std::string name = aa._to_string();
+    //     fprintf(stderr, "Device does not support requested access %s!\n", name.c_str());
+    //     return -1;
+    // }
+
+    return 0;
+}
 
 
 int readCardParam(string info_path, string param_match, string &param)
@@ -976,6 +1187,8 @@ int checkAllCardParams(audio_struct *audioStruct)
 		err = checkCardParam(params, PCM_PARAM_CHANNELS, audioStruct->config.channels, "Channels", "channels");
 	if(err==0)
 		err = checkCardParam(params, PCM_PARAM_RATE, audioStruct->config.rate, "Sample rate", "Hz");
+	if(err==0)
+		err = checkCardAccess(params, 0/* audioStruct->config.access */);
 	if(err==0)
 	 	err = checkCardFormats(params, audioStruct->config.format);
 
