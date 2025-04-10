@@ -119,7 +119,7 @@ rem End of :install_scripts
   set config=%~1
   set version=%~2
   set project=%~3
-  set no_neon=%~4
+  set no_neon_audio=%~4
 
   if "%config%" == "" (
     echo Cannot configure: harwdware configuration file path not specified
@@ -182,25 +182,29 @@ rem End of :install_scripts
   set neon_setting=%neon_setting:,=%
   set neon_setting=%neon_setting: =%
 
-  rem Passing the --no-neon-audio-format flag configures to not use parallel sample formatting with NEON
-  if "%no_neon%" == "--no-neon-audio-format" (
-    echo Configuring to not use NEON audio formatting
-    set "neon=OFF"
+  if /I "%neon_setting%" == "true" (
+    set "neon=ON"
+  ) else if /I "%neon_setting%" == "yes" (
+    set "neon=ON"
+  ) else if "%neon_setting%" == "1" (
+    set "neon=ON"
   ) else (
-    if "%neon_setting%" == "true" (
-      set "neon=ON"
-    ) else if "%neon_setting%" == "True" (
-      set "neon=ON"
-    ) else if "%neon_setting%" == "yes" (
-      set "neon=ON"
-    ) else if "%neon_setting%" == "Yes" (
-      set "neon=ON"
-    ) else if "%neon_setting%" == "1" (
-      set "neon=ON"
-    ) else (
-      set "neon=OFF"
-    )
+    echo NEON floating-point unit not present on phone
+    set "neon=OFF"
   )
+
+  rem Passing the --no-neon-audio-format flag configures to not use parallel sample formatting with NEON
+  if "%no_neon_audio%" == "--no-neon-audio-format" (
+    set "neon_audio_format=OFF"
+
+    rem no need to print this if we already printed that neon is not supported
+    if "%neon%" == ON (
+      echo Configuring to not use NEON audio formatting
+    )
+  ) else (
+    set "neon_audio_format=ON"
+  )
+
 
 
   if "%project%" == "" (
@@ -260,10 +264,12 @@ rem End of :install_scripts
   set build_dir=%CD%
 
   rem Run CMake configuration
-  cmake -DCMAKE_TOOLCHAIN_FILE=%NDK%/build/cmake/android.toolchain.cmake ^
+  cmake -DCMAKE_TOOLCHAIN_FILE="%NDK%/build/cmake/android.toolchain.cmake" ^
         -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% ^
-        "-DANDROID_NDK=%NDK%" "-DEXPLICIT_ARM_NEON=%neon%" "-DLDSP_PROJECT=%project_dir%" "-DONNX_VERSION=%onnx_version%" ^
+        -DANDROID_NDK="%NDK%" -DEXPLICIT_ARM_NEON=%neon% -DNEON_AUDIO_FORMAT=%neon_audio_format% ^
+        -DLDSP_PROJECT="%project_dir%" -DONNX_VERSION=%onnx_version% ^
         -G Ninja -B"%build_dir%" -S".."
+
 
   if not %ERRORLEVEL% == 0 (
     echo Cannot configure: CMake failed
@@ -329,11 +335,16 @@ rem End of :push_scripts
   exit /b
 rem End of :push_resources
 
+
 :push_debugserver
+  setlocal enabledelayedexpansion
+
   rem Create a directory on the SD card using `adb shell` with `mkdir`
   adb shell "su -c 'mkdir -p /sdcard/ldsp/debugserver'"
 
-  rem Different versions of the lldb-server bin can be found in the NDK, depending on the arch
+  set "debugserver="
+
+  rem different versions of the lldb-server bin can be found in the NDK, depending on the arch
   if "%arch%"=="armv7a" (
     set "dir=arm"
   ) else if "%arch%"=="aarch64" (
@@ -346,11 +357,25 @@ rem End of :push_resources
     echo Error: Unsupported architecture "%arch%"
     exit /b 1
   )
-  set "debugserver=%ndk%\toolchains\llvm\prebuilt\linux-x86_64\lib64\clang\14.0.6\lib\linux\%dir%\lldb-server"
 
-  adb push "%debugserver%" /sdcard/ldsp/debugserver
+  rem look for all the available debug servers in the NDK and choose the one that matches the phone's architecture
+  for /r "%ndk%" %%f in (lldb-server) do (
+      echo %%f | findstr /i "\\%dir%\\" >nul
+      if not errorlevel 1 (
+          set "debugserver=%%f"
+          goto :found
+      )
+  )
+
+  echo No matching lldb-server found for "%arch%" (directory: "%dir%").
+  exit /b 1
+
+:found
+  echo Using debugserver: !debugserver!
+  adb push "!debugserver!" /sdcard/ldsp/debugserver
 
   exit /b
+
 rem End of :push_debugserver
 
 
