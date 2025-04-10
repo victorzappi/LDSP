@@ -316,6 +316,10 @@ push_resources() {
 push_debugserver() {
   adb shell "su -c 'mkdir -p /sdcard/ldsp/debugserver'" # create temp folder on sdcard
 
+
+  # look for all the available debug servers in the NDK
+  candidates=$(find "$ndk" -type f -name lldb-server 2>/dev/null)
+
   # different versions of the lldb-server bin can be found in the NDK, depending on the arch
   if [[ $arch == "armv7a" ]]; then
     dir="arm"
@@ -326,9 +330,21 @@ push_debugserver() {
   elif [[ $arch == "x86_64" ]]; then
     dir="x86_64"
   fi
-  debugserver=$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/$dir/lldb-server
-  
-  adb push $debugserver //sdcard/ldsp/debugserver # double slash needed by Git Bash
+
+  # choose the one that matches the phone's architecture
+  for candidate in $candidates; do
+      if echo "$candidate" | grep -q "/$dir/"; then
+          debugserver="$candidate"
+          break
+      fi
+  done
+
+  if [ -z "$debugserver" ]; then
+      echo "No matching lldb-server found for '$arch' (directory: '$dir')"
+  else
+      echo "Using debugserver: $debugserver"
+      adb push $debugserver //sdcard/ldsp/debugserver # double slash needed by Git Bash
+  fi
 }
 
 push_onnxruntime() {

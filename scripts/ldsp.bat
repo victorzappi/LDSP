@@ -335,11 +335,16 @@ rem End of :push_scripts
   exit /b
 rem End of :push_resources
 
+
 :push_debugserver
+  setlocal enabledelayedexpansion
+
   rem Create a directory on the SD card using `adb shell` with `mkdir`
   adb shell "su -c 'mkdir -p /sdcard/ldsp/debugserver'"
 
-  rem Different versions of the lldb-server bin can be found in the NDK, depending on the arch
+  set "debugserver="
+
+  rem different versions of the lldb-server bin can be found in the NDK, depending on the arch
   if "%arch%"=="armv7a" (
     set "dir=arm"
   ) else if "%arch%"=="aarch64" (
@@ -352,11 +357,25 @@ rem End of :push_resources
     echo Error: Unsupported architecture "%arch%"
     exit /b 1
   )
-  set "debugserver=%ndk%\toolchains\llvm\prebuilt\linux-x86_64\lib64\clang\14.0.6\lib\linux\%dir%\lldb-server"
 
-  adb push "%debugserver%" /sdcard/ldsp/debugserver
+  rem look for all the available debug servers in the NDK and choose the one that matches the phone's architecture
+  for /r "%ndk%" %%f in (lldb-server) do (
+      echo %%f | findstr /i "\\%dir%\\" >nul
+      if not errorlevel 1 (
+          set "debugserver=%%f"
+          goto :found
+      )
+  )
+
+  echo No matching lldb-server found for "%arch%" (directory: "%dir%").
+  exit /b 1
+
+:found
+  echo Using debugserver: !debugserver!
+  adb push "!debugserver!" /sdcard/ldsp/debugserver
 
   exit /b
+
 rem End of :push_debugserver
 
 
