@@ -127,10 +127,10 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 
 
 	
-	// if necessary, activate devices
-	// i.e., when in config file device activation path is given, but secondary device activation path is empty
-	if(!hwconfig->dev_activation_ctl_p.empty() && 
-		hwconfig->dev_activation_ctl2_p[0].empty() && hwconfig->dev_activation_ctl2_p[1].empty() && hwconfig->dev_activation_ctl2_p[2].empty())
+	// if necessary, activate devices, i.e., when in config file device activation path is given
+	// secondary activation is checked after path is set
+	if(!hwconfig->dev_activation_ctl_p.empty() /* && 
+		hwconfig->dev_activation_ctl2_p[0].empty() && hwconfig->dev_activation_ctl2_p[1].empty() && hwconfig->dev_activation_ctl2_p[2].empty() */)
 	{
 		if(activateDevice(mix, hwconfig, hwconfig->dev_activation_ctl_p , settings->deviceOutId) < 0)
 		{
@@ -140,8 +140,8 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	}
 	if(!settings->captureOff)
 	{
-		if(!hwconfig->dev_activation_ctl_c.empty() && 
-			hwconfig->dev_activation_ctl2_c[0].empty() && hwconfig->dev_activation_ctl2_c[1].empty() && hwconfig->dev_activation_ctl2_c[2].empty())
+		if(!hwconfig->dev_activation_ctl_c.empty() /* && 
+			hwconfig->dev_activation_ctl2_c[0].empty() && hwconfig->dev_activation_ctl2_c[1].empty() && hwconfig->dev_activation_ctl2_c[2].empty() */)
 		{
 			if(activateDevice(mix, hwconfig, hwconfig->dev_activation_ctl_c , settings->deviceInId) < 0)
 			{
@@ -562,8 +562,9 @@ int loadPath(mixer *mx, xml_document *xml, LDSPhwConfig *hwconfig, LDSPinitSetti
 		return 0;
 	}
 
-	// on some phones, a further activation is needed trace the path from the chosen playback device to the physical destination [e.g., speaker]
+	// on some phones, a further activation is needed to trace the path from the chosen playback device to the physical destination [e.g., speaker]
 	// or from the chosne capture device and the physical source [e.g., mic]
+	// it may supplement or totally override the initial actication, depending on the phone
 	string devActCtl2, deviceId;
 	if(!isCapture)
 	{
@@ -575,25 +576,11 @@ int loadPath(mixer *mx, xml_document *xml, LDSPhwConfig *hwconfig, LDSPinitSetti
 		deviceId = settings->deviceInId;
 		devActCtl2 = hwconfig->dev_activation_ctl2_c[pathIndex];
 	}
-	if(devActCtl2 != "")
-		activateDevice(mx, hwconfig, devActCtl2, deviceId);
-
-	// string devActCtl, devActCtl2, device;
-	// string secondPath =  (paths)[(paths_order)[1]];
-	// if(!isCapture)
-	// {
-	// 	device = settings->deviceOutId;
-	// 	devActCtl = hwconfig->dev_activation_ctl_p;
-	// 	devActCtl2 = hwconfig->dev_activation_ctl2_p;
-	// }
-	// else
-	// {
-	// 	device = settings->deviceInId;
-	// 	devActCtl = hwconfig->dev_activation_ctl_c;
-	// 	devActCtl2 = hwconfig->dev_activation_ctl2_c;
-	// }
-	// if(secondaryDeviceActivation(mx, pathName, secondPath, device, devActCtl, devActCtl2, hwconfig)!=0)
-	// 	return -5;
+	if(devActCtl2 != "") 
+	{
+		if(activateDevice(mx, hwconfig, devActCtl2, deviceId) < 0)
+			return -5;
+	}
 
 	// set the chosen mixer path
 	xml_document *xml_paths = &xml[0];

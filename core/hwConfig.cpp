@@ -169,28 +169,24 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
         if(s.compare("") != 0)
 		    hwconfig->dev_activation_ctl_p = optional;
     }
+
 	optional = mixer["[mixer playback device secondary activation]"];
-	if(optional.is_string())
-    {
-        string s = optional;
-        if(s.compare("") != 0)
-		{	
-			// mixer playback device secondary activation contains up to 3 entries
-			// that should match the keys of the 3 paths for playback
-			for(auto &it : optional.items())
-			{					
-				// the order of paths us taken from the dedicated map
-				auto order_it = hwconfig->paths_p_order.find(it.key());
-				if(order_it != hwconfig->paths_p_order.end()) 
-				{
-					int i = order_it->second;
-					hwconfig->dev_activation_ctl2_p[i] = optional;
-				} 
-				//else
-					// if the activation key does not match any path key, we simply ignore it		
-			}
-		}
-    }
+	// mixer playback device secondary activation contains up to the same num of entries
+	// as paths, that should match the keys of the 3 paths for playback
+	for(auto &it : optional.items())
+	{					
+		// the order of paths is taken from the dedicated map
+		auto order_it = hwconfig->paths_p_order.find(it.key());
+		if(order_it != hwconfig->paths_p_order.end()) 
+		{
+			int i = order_it->second;
+			hwconfig->dev_activation_ctl2_p[i] = it.value();
+		} 
+		//else
+			// if the activation key does not match any path key, we simply ignore it		
+	}
+
+
 
 	optional = mixer["[mixer capture device activation]"];
 	if(optional.is_string())
@@ -200,27 +196,18 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
 		    hwconfig->dev_activation_ctl_c = optional;
     }
 	optional = mixer["[mixer capture device secondary activation]"];
-	if(optional.is_string())
-    {
-       string s = optional;
-        if(s.compare("") != 0)
-		{	
-			// mixer capture device secondary activation contains up to 3 entries
-			// that should match the keys of the 3 paths for capture
-			for(auto &it : optional.items())
-			{					
-				// the order of paths us taken from the dedicated map
-				auto order_it = hwconfig->paths_c_order.find(it.key());
-				if(order_it != hwconfig->paths_c_order.end()) 
-				{
-					int i = order_it->second;
-					hwconfig->dev_activation_ctl2_c[i] = optional;
-				} 
-				//else
-					// if the activation key does not match any path key, we simply ignore it		
-			}
-		}
-    }
+	for(auto &it : optional.items())
+	{					
+		// the order of paths is taken from the dedicated map
+		auto order_it = hwconfig->paths_c_order.find(it.key());
+		if(order_it != hwconfig->paths_c_order.end()) 
+		{
+			int i = order_it->second;
+			hwconfig->dev_activation_ctl2_c[i] = it.value();
+		} 
+		//else
+			// if the activation key does not match any path key, we simply ignore it		
+	}
 }
 
 void parseDefaultAudioParams(ordered_json *config, LDSPhwConfig *hwconfig)
