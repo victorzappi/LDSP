@@ -203,7 +203,7 @@ def expan_ldr2(inlines):
             label = result.group('label')
             if label not in labels:
                 labels.append(label)
-    # print(f"LABELS {labels}")
+    print(f"LABELS {labels}")
 
     if labels:
         #change ldr rx, =label to ldr rx, Llabel
@@ -216,10 +216,10 @@ def expan_ldr2(inlines):
                 if result:
                     reg = result.group('reg')
                     result_line = "                            MOVW         "\
-                        + reg + ",:lower16:(L" + label +\
-                        "$non_lazy_ptr - (LPC0_" + str(count) + " + 4))\n" +\
+                        + reg + ",:lower16:(" + label +\
+                        " - (LPC0_" + str(count) + " + 4))\n" +\
                         "                            MOVT         " + reg +\
-                        ",:upper16:(L" + label + "$non_lazy_ptr - (LPC0_" +\
+                        ",:upper16:(" + label + " - (LPC0_" +\
                         str(count) + " + 4))\n" + "LPC0_" + str(count) + ":\n"\
                         + "                            ADD         " + reg + \
                         ",PC\n" + "                            LDR         " +\
@@ -227,16 +227,6 @@ def expan_ldr2(inlines):
                     count += 1
                     break
             lines_result1.append(result_line)
-
-        #append a .text section to file and also add local label
-        lines_result1.append("        .section        __DATA,__nl_symbol_ptr,\
-        non_lazy_symbol_pointers\n")
-        lines_result1.append("        .align 2\n")
-        for label in labels:
-            lines_result1.append("L" + label + "$non_lazy_ptr:\n")
-            lines_result1.append("        .indirect_symbol " + label + "\n")
-            lines_result1.append("        .long 0\n")
-        lines_result1.append("\n        .subsections_via_symbols\n")
 
         #remove .extern directive which is only used in GNU as
         lines_result2 = []
@@ -299,9 +289,10 @@ def main ():
                       'NE10_fft_int16.neon.s',
                       'NE10_fft_int32.neon.s']
     if len(sys.argv) < 3:
-        # print("Usage: convert.py <input file> <output file>")
+        print("Usage: convert.py <input file> <output file>")
         return
     else:
+        print(f"Converting {sys.argv[1]} to {sys.argv[2]}")
         infilename = sys.argv[1]
         outfilename = sys.argv[2]
         infile = open(infilename, 'r')

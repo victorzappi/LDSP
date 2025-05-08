@@ -77,6 +77,37 @@ if(IOS_PLATFORM)
   endfunction()
 endif(IOS_PLATFORM)
 
+# ================= ANDROID GAS CONVERTER ===============================
+if(ANDROID_PLATFORM)
+  # because android's ARM assembler(Clang) doesn't support GNU as(GAS)'s assembly
+  # well, we convert all GAS assembly to Clang assembly here.
+  # But as android using ELF format instead of Mach-o that ios uses
+  # we make a moditification to the conversion script
+  function(convert_gas gas_files android_files)
+    #message(STATUS "in convert_gas function:${${gas_files}}")
+    #TODO: Change naming to android instead of ios
+    foreach(gas_file ${${gas_files}})
+      string(REGEX REPLACE
+        ".*\(NE10_.*\).neon.s"
+        "${NE10_BINARY_DIR}/modules/CMakeFiles/NE10.dir/\\1_android.neon.s"
+        android_file
+        ${gas_file})
+      list(APPEND android_files_tmp ${android_file})
+
+      #call a script to convert each assembly file in GAS to Clang
+      add_custom_command(
+        OUTPUT ${android_file}
+        COMMAND ${NE10_SOURCE_DIR}/tools/gas2android_convert.py
+        ${gas_file} ${android_file}
+        DEPENDS ${gas_file}
+        )
+    endforeach()
+
+    #return value by setting the variable to PARENT_SCOPE
+    set(${android_files} ${android_files_tmp} PARENT_SCOPE)
+  endfunction()
+endif(ANDROID_PLATFORM)
+
 if(NE10_ENABLE_MATH)
     #enable NE10_init_math
     add_definitions(-DNE10_ENABLE_MATH)
@@ -198,21 +229,30 @@ if(NE10_ENABLE_DSP)
     if("${NE10_TARGET_ARCH}" STREQUAL "armv7")
         if(IOS_PLATFORM)
         else()
+            set(NE10_GAS_TEMP
+                ${PROJECT_SOURCE_DIR}/modules/dsp/NE10_fir.neon.s
+                ${PROJECT_SOURCE_DIR}/modules/dsp/NE10_iir.neon.s
+            )
+            convert_gas(NE10_GAS_TEMP NE10_DSP_ANDROID_NEON_SRCS)
             # Add dsp NEON files.
             set(NE10_DSP_NEON_SRCS
                 ${NE10_DSP_NEON_SRCS}
-                ${PROJECT_SOURCE_DIR}/modules/dsp/NE10_fir.neon.s
-                ${PROJECT_SOURCE_DIR}/modules/dsp/NE10_iir.neon.s
+                ${NE10_DSP_ANDROID_NEON_SRCS}
                 )
         endif()
     endif()
 
     if(NE10_ASM_OPTIMIZATION)
-        set(NE10_DSP_NEON_SRCS
-            ${NE10_DSP_NEON_SRCS}
+        set(NE10_FFT_TEMP
             ${PROJECT_SOURCE_DIR}/modules/dsp/NE10_fft_float32.neon.s
             ${PROJECT_SOURCE_DIR}/modules/dsp/NE10_fft_int32.neon.s
             ${PROJECT_SOURCE_DIR}/modules/dsp/NE10_fft_int16.neon.s
+        )
+        convert_gas(NE10_FFT_TEMP NE10_DSP_ANDROID_NEON_SRCS)
+        # Add dsp NEON files.
+        set(NE10_DSP_NEON_SRCS
+            ${NE10_DSP_NEON_SRCS}
+            ${NE10_DSP_ANDROID_NEON_SRCS}
         )
         set(NE10_DSP_INTRINSIC_SRCS
             ${NE10_DSP_INTRINSIC_SRCS}
@@ -277,9 +317,15 @@ if(NE10_ENABLE_IMGPROC)
 
     if("${NE10_TARGET_ARCH}" STREQUAL "armv7")
         # Add image processing NEON files.
-        set(NE10_IMGPROC_NEON_SRCS
+        set(NE10_IMG_TEMP
             ${PROJECT_SOURCE_DIR}/modules/imgproc/NE10_rotate.neon.s
-            )
+        )
+            convert_gas(NE10_IMG_TEMP NE10_ANDROID_IMG_TEMP)
+
+        set(NE10_IMGPROC_NEON_SRCS
+            # ${PROJECT_SOURCE_DIR}/modules/imgproc/NE10_rotate.neon.s
+            ${NE10_ANDROID_IMG_TEMP}
+        )
     endif()
         # Add image intrinsic NEON files.
     set(NE10_IMGPROC_INTRINSIC_SRCS

@@ -24,7 +24,7 @@
 #  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.10)
 
 project(NE10 C CXX ASM)
 
@@ -113,9 +113,10 @@ if(ANDROID_PLATFORM)
     endif()
 
     #TODO: Fine tune pic and pie flag for executable, share library and static library.
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --sysroot=${NDK_SYSROOT_PATH} -pie")
+    #TODO: Check when -pie is deprecated
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --sysroot=${NDK_SYSROOT_PATH}")
     string(APPEND CMAKE_C_FLAGS " -isysroot ${NDK_ISYSROOT_PATH}")
-    add_definitions(-D__ANDROID_API__=${ANDROID_API_LEVEL})
+    #add_definitions(-D__ANDROID_API__=${ANDROID_API_LEVEL})
 
     # Adding cflags for armv7. Aarch64 does not need such flags.
     if(${NE10_TARGET_ARCH} STREQUAL "armv7")
