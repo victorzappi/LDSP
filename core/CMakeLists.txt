@@ -101,3 +101,8 @@ target_link_libraries(ldsp
   PRIVATE glob
   PRIVATE serial
 )
+
+# link_ne10_here
+target_link_libraries(ldsp
+  PRIVATE NE10
+)

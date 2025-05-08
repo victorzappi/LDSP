@@ -86,5 +86,23 @@ if(ADD_RTNEURAL)
     add_subdirectory(RTNeural)
 endif()
 
+# Add ne10 here
+# set API LEVEL
+# Extract numbers from ANDROID_PLATFORM string
+# Explicitly set the API_LEVEL to match our phone API_LEVEL
+set(NE10_ANDROID_TARGET_ARCH "${DEVICE_ARCH}")
+
+if(${NE10_ANDROID_TARGET_ARCH} STREQUAL "armv7a")
+    set(NE10_ANDROID_TARGET_ARCH "armv7")
+    set(NE10_ARM_HARD_FLOAT OFF CACHE BOOL " Build Ne10 for hard float abi" FORCE)
+endif()
+
+string(REGEX MATCH "[0-9]+" NE10_API_LEVEL "${ANDROID_PLATFORM}")
+set(ANDROID_API_LEVEL ${NE10_API_LEVEL} CACHE STRING "Ne10 Android API level" FORCE)
+set(NE10_BUILD_SHARED OFF CACHE BOOL "Turn off Build shared library, build as static" FORCE)
+set(NE10_BUILD_EXAMPLES OFF CACHE BOOL "Turn off Build examples" FORCE)
+set(NE10_BUILD_UNIT_TEST OFF CACHE BOOL "Turn off build unit test" FORCE)
+add_subdirectory(ne10)
+
 
 
