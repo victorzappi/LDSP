@@ -20,10 +20,10 @@
 		},
 		"[mixer playback device activation]": "SEC_MI2S_RX Audio Mixer DEVICE_ID",
 		"[mixer capture device activation]": "DEVICE_ID Mixer PRI_MI2S_TX",
-				"[mixer playback device secondary activation]":
+		"[mixer playback device secondary activation]":
 		{
 		},
-				"[mixer capture device secondary activation]":
+		"[mixer capture device secondary activation]":
 		{
 		}
 	},

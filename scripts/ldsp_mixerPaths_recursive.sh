@@ -1,6 +1,5 @@
 #!/bin/bash
-# Searches recursively for word 'mixer' in all files from dir passed as argument
-# it does not use find nor grep
+# Searches recursively for XML files whose name contains 'mixer' in dir passed as argument
 # usage:
 # sh ldsp_mixerPaths_recursive.sh /directory/to/initial/search
 
@@ -9,8 +8,8 @@ search_dir() {
         if [ -d "$file" ]; then
             search_dir "$file"
         elif [ -f "$file" ]; then
-            case "${file}" in
-                *mixer*)
+            case "$file" in
+                *mixer*.xml)
                     echo "Found candidate: $file"
                     ;;
             esac
@@ -18,12 +17,19 @@ search_dir() {
     done
 }
 
-# Check if an argument was provided
-if [ "$#" -eq 1 ]; then
-	echo "Searching mixer paths files in $1"
-    search_dir "$1"
-else
+# ——— argument check ———
+if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <initial-directory>"
     exit 1
 fi
 
+# ——— normalize ———
+ROOT="${1%/}"       # strip any trailing slash; "/" → ""
+if [ -z "$ROOT" ]; then
+    DISPLAY="/"     # for user feedback only
+else
+    DISPLAY="$ROOT"
+fi
+
+echo "Searching for mixer XML files in $DISPLAY"
+search_dir "$ROOT"

@@ -20,10 +20,10 @@
 		},
 		"[mixer playback device activation]": "",
 		"[mixer capture device activation]": "",
-				"[mixer playback device secondary activation]":
+		"[mixer playback device secondary activation]":
 		{
 		},
-				"[mixer capture device secondary activation]":
+		"[mixer capture device secondary activation]":
 		{
 		}
 	},
