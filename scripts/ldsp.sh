@@ -152,7 +152,7 @@ install_scripts() {
 configure () {
   if [[ $CONFIG == "" ]]; then
     echo "Cannot configure: hardware configuration file path not specified"
-    echo "Please specify a hardware configuration file path with --configure"
+    echo "Please specify a hardware configuration file path with --configuration"
     exit 1
   fi
   config_dir=$CONFIG  
@@ -161,7 +161,7 @@ configure () {
   
   if [[ ! -d "$config_dir" ]]; then
     echo "Cannot configure: hadrware configuration directory does not exist"
-    echo "Please specify a valid hadrware configuration file path with --configure"
+    echo "Please specify a valid hadrware configuration file path with --configuration"
     exit 1
   fi
 
@@ -559,9 +559,35 @@ debugserver_stop () {
   adb forward --remove tcp:$port
 }
 
+# Run ldsp_phoneDetails.sh script on the phone
+phone_details() {
+  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_phoneDetails.sh'"
+}
+
+# Run ldsp_mixerPaths.sh script on the phone, with optional argument
+mixer_paths() {
+  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_mixerPaths.sh \"$1\"'"
+}
+
+# Run ldsp_mixerPaths_recursive.sh script on the phone, with argument
+mixer_paths_rec() {
+  if [ $# -ne 1 ]; then
+    # this will simply trigger the script's usage 
+    adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh\""
+    exit 1
+  fi
+
+  SEARCH_DIR=$1
+  adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh '$SEARCH_DIR'\""
+}
+
+
+
+
+
 # Print usage information.
 help () {
-  echo -e "usage:"
+  echo -e "Usage:"
   echo -e "ldsp.sh install_scripts"
   echo -e "ldsp.sh configure [settings]"
   echo -e "ldsp.sh build"
@@ -573,6 +599,9 @@ help () {
   echo -e "ldsp.sh clean_ldsp"
   echo -e "ldsp.sh debugserver_start"
   echo -e "ldsp.sh debugserver_stop"
+  echo -e "ldsp.sh phone_details"
+  echo -e "ldsp.sh mixer_paths [optional dir]"
+  echo -e "ldsp.sh mixer_paths_recursive [dir]"
   echo -e "\nSettings (used with the 'configure' step):"
   echo -e "  --configuration=CONFIGURATION, -c CONFIGURATION\tThe path to the folder containing the hardware configuration file of the chosen phone."
   echo -e "  --version=VERSION, -a VERSION\tThe Android version running on the phone."
@@ -583,15 +612,18 @@ help () {
   echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone and project."
   echo -e "  \t\t\t\t(The above settings are needed)"
   echo -e "  build\t\t\t\tBuild the configured project."
-  echo -e "  install\t\t\t\tInstall the configured project, LDSP hardware config, scripts and resources to the phone."
+  echo -e "  install\t\t\tInstall the configured project, LDSP hardware config, scripts and resources to the phone."
   echo -e "  run\t\t\t\tRun the configured project on the phone."
   echo -e "  \t\t\t\t(Any arguments passed after \"run\" within quotes are passed to the user project)"
   echo -e "  stop\t\t\t\tStop the currently-running project on the phone."
   echo -e "  clean\t\t\t\tClean the configured project."
   echo -e "  clean_phone\t\t\tRemove all project files from phone."
   echo -e "  clean_ldsp\t\t\tRemove all LDSP files from phone."
-  echo -e "  debugserver_start\t\t\tPrepare and run the remote debug server (lldb-server)."
-  echo -e "  debugserver_stop\t\t\tStop the remote debug server."
+  echo -e "  debugserver_start\t\tPrepare and run the remote debug server (lldb-server)."
+  echo -e "  debugserver_stop\t\tStop the remote debug server."
+  echo -e "  phone_details\t\t\tGet phone details to populate hardware configuration file."
+  echo -e "  mixer_paths\t\t\tSearch on phone for mixer_paths.xml candidates, either in default dirs or in the one passed as argument."
+  echo -e "  mixer_paths_recursive\t\t\tSearch on phone for mixer_paths.xml candidates in the passed dir and all its subdirs."
 }
 
 STEPS=()
@@ -639,13 +671,21 @@ while [[ $# -gt 0 ]]; do
       ;;
     run)
       # any arguments passed to "run" are passed to the user project
-      STEPS+=("run")
+      STEPS+=("run") # record the step, to allow for arguments forwarding
       break
       ;;
       run_persistent)
       # any arguments passed to "run_persistent" are passed to the user project
-      STEPS+=("run_persistent")
+      STEPS+=("run_persistent") # record the step, to allow for arguments forwarding
       break
+      ;;
+      mixer_paths)
+      STEPS+=("mixer_paths") # record the step, to allow for arguments forwarding
+      break                  
+      ;;
+      mixer_paths_recursive)
+      STEPS+=("mixer_paths_recursive") # record the step, to allow for arguments forwarding
+      break                  
       ;;
     *)
       STEPS+=("$1")
@@ -696,6 +736,15 @@ for i in "${STEPS[@]}"; do
       ;;
     debugserver_stop)
       debugserver_stop
+      ;;
+    phone_details)
+      phone_details
+      ;;
+    mixer_paths)
+      mixer_paths "${@:2}"
+      ;;
+    mixer_paths_recursive)
+      mixer_paths_rec "${@:2}"
       ;;
     help)
       help

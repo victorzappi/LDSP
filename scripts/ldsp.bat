@@ -610,11 +610,41 @@ rem End of :debugserver_start
 exit /b
 rem End of :debugserver_stop
 
+:install_scripts
+  rem Run ldsp_phoneDetails.sh script on the phone
+
+  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_phoneDetails.sh'"
+
+  exit /b 0
+rem End of :install_scripts
+
+:mixer_paths
+  rem Run ldsp_mixerPaths.sh script on the phone, with optional argument
+
+  rem if "%~1"=="" (
+  rem    adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths.sh\""
+  rem) else (
+      adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths.sh %~1\""
+rem)
+exit /b 0
+rem End of :mixer_paths
+
+:mixer_paths_rec
+  rem # Run ldsp_mixerPaths_recursive.sh script on the phone, with argument
+
+  if "%~1"=="" (
+      adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh\""
+  ) else (
+      adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh %~1\""
+)
+exit /b 0
+rem End of :mixer_paths
+
 
 
 :help
   rem Print usage information.
-  echo usage:
+  echo Usage:
   echo   ldsp.bat install_scripts
   echo   ldsp.bat configure [configuration] [version] [project] [--no-neon-audio-format (optional)]
   echo   ldsp.bat build
@@ -624,24 +654,30 @@ rem End of :debugserver_stop
   echo   ldsp.bat clean
   echo   ldsp.bat clean_phone
   echo   ldsp.bat clean_ldsp
-  echo.
+  echo   ldsp.bat phone_details
+  echo   ldsp.bat mixer_paths [optional dir]
+  echo   ldsp.bat mixer_paths_recursive [dir]
+  echo
   echo Description:
-  echo   install_scripts    Install the LDSP scripts on the phone.
-  echo   configure          Configure the LDSP build system for the specified phone and project. It requires the following settings, in this order:
-  echo                        the path to the folder containing the hardware configuration file of the chosen phone 
-  echo                        Android version running on the phone
-  echo                        the path to the project to build
-  echo                        the optional flag to not use NEON parallel sample formatting (--no-neon-audio-format)
-  echo   build              Build the configured project.
-  echo   install            Install the configured project, LDSP hardware config, scripts and resources to the phone.
-  echo   run                Run the configured project on the phone.
-  echo                        (Any arguments passed after "run" within quotes are passed to the project)
-  echo   stop               Stop the currently-running project on the phone.
-  echo   clean              Clean the configured project.
-  echo   clean_phone        Remove all project files from phone.
-  echo   clean_ldsp         Remove all LDSP files from phone.
-  echo   debugserver_start  Prepare and run the remote debug server (lldb-server).
-  echo   debugserver_stop   Stop the remote debug server.
+  echo   install_scripts        Install the LDSP scripts on the phone.
+  echo   configure              Configure the LDSP build system for the specified phone and project. It requires the following settings, in this order:
+  echo                            the path to the folder containing the hardware configuration file of the chosen phone 
+  echo                            Android version running on the phone
+  echo                            the path to the project to build
+  echo                            the optional flag to not use NEON parallel sample formatting (--no-neon-audio-format)
+  echo   build                  Build the configured project.
+  echo   install                Install the configured project, LDSP hardware config, scripts and resources to the phone.
+  echo   run                    Run the configured project on the phone.
+  echo                            (Any arguments passed after "run" within quotes are passed to the project)
+  echo   stop                   Stop the currently-running project on the phone.
+  echo   clean                  Clean the configured project.
+  echo   clean_phone            Remove all project files from phone.
+  echo   clean_ldsp             Remove all LDSP files from phone.
+  echo   debugserver_start      Prepare and run the remote debug server (lldb-server).
+  echo   debugserver_stop       Stop the remote debug server.
+  echo   phone_details          Get phone details to populate hardware configuration file.
+  echo   mixer_paths            Search on phone for mixer_paths.xml candidates, either in default dirs or in the one passed as argument.
+  echo   mixer_paths_recursive  Search on phone for mixer_paths.xml candidates in the passed dir and all its subdirs.
   exit /b 0
 rem End of :help
 
@@ -682,6 +718,15 @@ if "%1" == "install_scripts" (
 ) else if "%1" == "debugserver_stop" (
   call :debugserver_stop
   exit /b %ERRORLEVEL%
+) else if "%1" == "phone_details" (
+  call :phone_details
+  exit /b %ERRORLEVEL%
+) else if "%~1" == "mixer_paths" (
+  call :mixer_paths %2
+  exit /b %ERRORLEVEL%
+) else if "%~1" == "mixer_paths_recursive" (
+  call :mixer_paths_rec %2
+  exit /b %ERRORLEVEL%
 ) else if "%1" == "help" (
   call :help
   exit /b %ERRORLEVEL%
@@ -691,4 +736,4 @@ if "%1" == "install_scripts" (
   exit /b 1
 )
 
-rem TODO possibly run_persistent
+rem TODO allow for concatenated commands, possibly add run_persistent
