@@ -58,8 +58,6 @@ LDSPhwConfig* LDSP_HwConfig_alloc()
     hwconfig->default_chn_num_c = 1; // mono input is common, line-in is mono and many phones have built-in mono mic
 	hwconfig->dev_activation_ctl_p = "";
     hwconfig->dev_activation_ctl_c = "";
-	hwconfig->dev_activation_ctl2_p = "";
-	hwconfig->dev_activation_ctl2_c = "";
     hwconfig->ctrl_outputs[DEVICE_CTRL_FILE] = new string[chn_cout_count];
 	hwconfig->ctrl_outputs[DEVICE_SCALE] = new string[chn_cout_count];
 
@@ -135,23 +133,33 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
 
 	// playback parse
 	ordered_json paths = mixer["playback path names"];
-
 	// populate paths names and aliases
+	int order = 0;
 	for (auto &it : paths.items())
 	{
 		hwconfig->paths_p[it.key()] = it.value();
-		hwconfig->paths_p_order.push_back(it.key()); // to keep track of order of insertion in map
+		// to keep track of order of insertion in map
+		hwconfig->paths_p_order[it.key()] = order; 
+		hwconfig->paths_p_rank[order] = it.key();
+		order++;
 	}
-
+	// the secondary activation container must match the size of the paths
+	hwconfig->dev_activation_ctl2_p.resize(hwconfig->paths_p_order.size()); // sets to ""
 
 	// capture parse
 	paths = mixer["capture path names"];
 	// populate paths names and aliases
+	order = 0;
 	for(auto &it : paths.items())
 	{
 		hwconfig->paths_c[it.key()] = it.value();
-		hwconfig->paths_c_order.push_back(it.key()); // to keep track of order of insertion in map
+		// to keep track of order of insertion in map
+		hwconfig->paths_c_order[it.key()] = order; 
+		hwconfig->paths_c_rank[order] = it.key();
+		order++;
 	}
+	// the secondary activation container must match the size of the paths
+	hwconfig->dev_activation_ctl2_c.resize(hwconfig->paths_c_order.size()); // sets to ""
 
 	// optional entries
 	optional = mixer["[mixer playback device activation]"];
@@ -161,13 +169,23 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
         if(s.compare("") != 0)
 		    hwconfig->dev_activation_ctl_p = optional;
     }
+
 	optional = mixer["[mixer playback device secondary activation]"];
-	if(optional.is_string())
-    {
-        string s = optional;
-        if(s.compare("") != 0)
-		    hwconfig->dev_activation_ctl2_p = optional;
-    }
+	// mixer playback device secondary activation contains up to the same num of entries
+	// as paths, that should match the keys of the 3 paths for playback
+	for(auto &it : optional.items())
+	{					
+		// the order of paths is taken from the dedicated map
+		auto order_it = hwconfig->paths_p_order.find(it.key());
+		if(order_it != hwconfig->paths_p_order.end()) 
+		{
+			int i = order_it->second;
+			hwconfig->dev_activation_ctl2_p[i] = it.value();
+		} 
+		//else
+			// if the activation key does not match any path key, we simply ignore it		
+	}
+
 
 
 	optional = mixer["[mixer capture device activation]"];
@@ -178,12 +196,18 @@ void parseMixerSettings(ordered_json *config, LDSPhwConfig *hwconfig)
 		    hwconfig->dev_activation_ctl_c = optional;
     }
 	optional = mixer["[mixer capture device secondary activation]"];
-	if(optional.is_string())
-    {
-        string s = optional;
-        if(s.compare("") != 0)
-		    hwconfig->dev_activation_ctl2_c = optional;
-    }
+	for(auto &it : optional.items())
+	{					
+		// the order of paths is taken from the dedicated map
+		auto order_it = hwconfig->paths_c_order.find(it.key());
+		if(order_it != hwconfig->paths_c_order.end()) 
+		{
+			int i = order_it->second;
+			hwconfig->dev_activation_ctl2_c[i] = it.value();
+		} 
+		//else
+			// if the activation key does not match any path key, we simply ignore it		
+	}
 }
 
 void parseDefaultAudioParams(ordered_json *config, LDSPhwConfig *hwconfig)

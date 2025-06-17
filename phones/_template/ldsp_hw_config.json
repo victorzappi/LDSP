@@ -1,0 +1,61 @@
+{
+	"device": "",
+	"target architecture": "",
+	"supports neon floating point unit": "",
+	"mixer settings":
+	{
+		"mixer paths xml file": "",
+		"[mixer volumes xml file]": "",
+		"playback path names":
+		{ 
+			"speaker": "",
+			"line-out": "",
+			"handset": ""
+		},
+		"capture path names":
+		{
+			"mic": "",
+			"line-in": "",
+		   	"handset": ""
+		},
+		"[mixer playback device activation]": "",
+		"[mixer capture device activation]": "",
+		"[mixer playback device secondary activation]":
+		{
+			"speaker": "",
+			"line-out": "",
+			"handset": ""
+		},
+		"[mixer capture device secondary activation]":
+		{
+			"mic": "",
+			"line-in": "",
+		   	"handset": ""
+		}
+	},
+	"[default audio parameters]":
+	{
+		"playback device number": ,
+		"capture device number": ,
+		"period size": ,
+		"playback channels": ,
+		"capture channels": 
+	},
+	"[control outputs]":
+	{
+		"flashlight":
+		{
+			"control file": "",
+			"max value": ""
+		},
+		"lcd-backlight":
+		{
+			"control file": "",
+			"max value": ""
+		}, 
+		"vibration":
+		{ 
+			"control file": ""
+		}
+	}
+}

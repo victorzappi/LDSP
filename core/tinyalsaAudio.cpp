@@ -306,7 +306,7 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
     (*audioStruct)->config.period_count = settings->periodCount;
     (*audioStruct)->config.rate = settings->samplerate;
     (*audioStruct)->config.format = (pcm_format) gFormats[settings->pcmFormatString];
-	  (*audioStruct)->config.avail_min = 1;
+	(*audioStruct)->config.avail_min = 1;
     (*audioStruct)->config.start_threshold = 1;//settings->periodSize; //1; 
     (*audioStruct)->config.stop_threshold = 2 * settings->periodSize * settings->periodCount; //0;
     (*audioStruct)->config.silence_threshold = 0; //1; 

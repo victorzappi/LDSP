@@ -48,7 +48,7 @@ void LDSP_defaultSettings(LDSPinitSettings *settings)
     settings->numAudioInChannels = -1; // default is is set in hw config and can be updated from json file
     settings->samplerate = 48000; // common standard in phones
     settings->pcmFormatString = "S16_LE"; // supported by most devices
-    settings->pathOut = ""; // default is first output path in hw config json file, typically headphones
+    settings->pathOut = ""; // default is first output path in hw config json file, typically speaker
     settings->pathIn = ""; // default is first input path in hw config json file, typically built-in mic
     settings->captureOff = 0; // full duplex engine by default
     settings->sensorsOff = 0; // sensors are on by default
