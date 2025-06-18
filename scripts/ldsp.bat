@@ -368,7 +368,7 @@ rem End of :push_resources
 		)
 	)
 
-  echo No matching lldb-server found for "%arch%" (directory: "%dir%").
+  echo No matching lldb-server found for %arch% (directory: "%dir%").
   exit /b 1
 
 :found
