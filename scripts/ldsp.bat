@@ -394,41 +394,49 @@ rem End of :push_debugserver
 rem End of :push_onnxruntime
 
 :install
-  rem Install the user project, LDSP hardware config and resources to the phone.
+	rem Install the user project, LDSP hardware config and resources to the phone.
+	setlocal EnableDelayedExpansion
+ 
   if not exist "build\bin\ldsp" (
     echo Cannot install: no ldsp executable found. Please run "ldsp.bat configure" and "ldsp.bat build" first.
     exit /b 1
   )
 
   rem Retrieve variables from settings file
-  IF EXIST "%settings_file%" (
-    FOR /F "tokens=1* delims==" %%G IN ("%settings_file%") DO (
-      IF "%%G"=="project_dir" set "project_dir=%%H"
-      IF "%%G"=="project_name" set "project_name=%%H"
-      IF "%%G"=="hw_config" set "hw_config=%%H"
-      IF "%%G"=="arch" set "arch=%%H"
-      IF "%%G"=="ndk" set "ndk=%%H"
-      IF "%%G"=="api_level" set "api_level=%%H"
-      IF "%%G"=="onnx_version" set "onnx_version=%%H"
-    )
-  ) ELSE (
-    echo Cannot install: project not configured (no ldsp_settings.conf found). Please run "ldsp.bat configure" first.
-    exit /b 1
-  )
+	IF EXIST "%settings_file%" (
+		FOR /F "usebackq tokens=1* delims==" %%G IN ("%settings_file%") DO (
+			set "key=%%G"
+			set "val=%%H"
+
+			if /I "!key!"=="project_dir"     set "project_dir=!val!"
+			if /I "!key!"=="project_name"    set "project_name=!val!"
+			if /I "!key!"=="hw_config"       set "hw_config=!val!"
+			if /I "!key!"=="arch"            set "arch=!val!"
+			if /I "!key!"=="ndk"             set "ndk=!val!"
+			if /I "!key!"=="api_level"       set "api_level=!val!"
+			if /I "!key!"=="onnx_version"    set "onnx_version=!val!"
+		)
+	) ELSE (
+		echo Cannot install: config file not found.
+		exit /b 1
+	)
 
   rem Retrieve variables from dependencies file
-  IF EXIST "%dependencies_file%" (
-    FOR /F "tokens=1* delims==" %%G IN ("%dependencies_file%") DO (
-      IF "%%G"=="ADD_SEASOCKS" set "ADD_SEASOCKS=%%H"
-      IF "%%G"=="ADD_FFTW3" set "ADD_FFTW3=%%H"
-      IF "%%G"=="ADD_ONNX" set "ADD_ONNX=%%H"
-      IF "%%G"=="ADD_LIBPD" set "ADD_LIBPD=%%H"
-    )
-  ) ELSE (
-    echo Cannot install: project not configured (no ldsp_dependencies.conf found). Please run "ldsp.bat configure" first.
-    exit /b 1
-  )
+	IF EXIST "%dependencies_file%" (
+		FOR /F "usebackq tokens=1* delims==" %%G IN ("%dependencies_file%") DO (
+			set "key=%%G"
+			set "val=%%H"
 
+			if /I "!key!"=="ADD_SEASOCKS" set "ADD_SEASOCKS=!val!"
+			rem if /I "!key!"=="ADD_FFTW3"    set "ADD_FFTW3=!val!"
+			if /I "!key!"=="ADD_ONNX"     set "ADD_ONNX=!val!"
+			rem if /I "!key!"=="ADD_LIBPD"    set "ADD_LIBPD=!val!"
+		)
+	) ELSE (
+		echo Cannot install: config file not found.
+		exit /b 1
+	)
+	
   rem create temp ldsp folder on sdcard
   adb shell "su -c \"mkdir -p '/sdcard/ldsp/projects/%project_name%'\""
   
@@ -502,20 +510,25 @@ rem End of :install
 
 :run
   rem Run the user project on the phone.
+	setlocal EnableDelayedExpansion
 
   set args=%~1
-
+	
   rem Retrieve variables from settings file
-  IF EXIST "%settings_file%" (
-    FOR /F "tokens=1* delims==" %%G IN ("%settings_file%") DO (
-      IF "%%G"=="project_name" set "project_name=%%H"
-    )
+	IF EXIST "%settings_file%" (
+		FOR /F "usebackq tokens=1* delims==" %%G IN ("%settings_file%") DO (
+			set "key=%%G"
+			set "val=%%H"
+
+			if /I "!key!"=="project_name"    set "project_name=!val!"
+		)
   ) ELSE (
     echo Cannot run: project not configured. Please run "ldsp.bat configure" first, then build, install and run.
     exit /b 1
   )
 
-  adb shell "su -c \"cd '/data/ldsp/projects/%project_name%' && export LD_LIBRARY_PATH='/data/ldsp/onnxruntime' && ./ldsp %args%\""
+	adb shell "su -c 'cd \"/data/ldsp/projects/%project_name%\" && export LD_LIBRARY_PATH=\"/data/ldsp/onnxruntime/\" && ./ldsp %args%'"
+
   exit /b 0
 rem End of :run
 
@@ -543,18 +556,21 @@ rem End of :clean
 
 :clean_phone
   rem Remove current project from directory from the device
+	setlocal EnableDelayedExpansion
+	
+	rem Retrieve variables from settings
+	IF EXIST "%settings_file%" (
+		FOR /F "usebackq tokens=1* delims==" %%G IN ("%settings_file%") DO (
+			set "key=%%G"
+			set "val=%%H"
 
-  rem Check if settings file exists
-  IF NOT EXIST "%settings_file%" (
+			if /I "!key!"=="project_name"    set "project_name=!val!"
+		)
+  ) ELSE (
     echo Cannot clean phone: project not configured. Please run "ldsp.bat configure" first.
     exit /b 1
   )
-
-  rem Retrieve variable from settings file
-  FOR /F "tokens=1* delims==" %%G IN ("%settings_file%") DO (
-    IF "%%G"=="project_name" set "project_name=%%H"
-  )
-
+  
   adb shell "su -c 'rm -r /data/ldsp/projects/%project_name%'" 
 
   exit /b 0
@@ -570,12 +586,16 @@ rem End of :clean_phone
 
 :debugserver_start
   rem Prepare for remote debugging
+	setlocal EnableDelayedExpansion
 
   rem Retrieve variables from settings file
-  if exist "%settings_file%" (
-      for /f "tokens=1,* delims==" %%G in ("%settings_file%") do (
-          if "%%G"=="project_name" set "project_name=%%H"
-      )
+  IF EXIST "%settings_file%" (
+		FOR /F "usebackq tokens=1* delims==" %%G IN ("%settings_file%") DO (
+			set "key=%%G"
+			set "val=%%H"
+
+			if /I "!key!"=="project_name"    set "project_name=!val!"
+		)
   ) else (
       echo Cannot start debug server on phone: project not configured. Please run "ldsp.bat configure" first.
       exit /b 1
@@ -618,14 +638,22 @@ rem End of :debugserver_stop
   exit /b 0
 rem End of :install_scripts
 
+:phone_details
+	rem Run ldsp_phoneDetails.sh script on the phone
+
+  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_phoneDetails.sh'"
+
+  exit /b 0
+rem End of :phone_details
+
 :mixer_paths
   rem Run ldsp_mixerPaths.sh script on the phone, with optional argument
 
   rem if "%~1"=="" (
   rem    adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths.sh\""
-  rem) else (
+  rem ) else (
       adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths.sh %~1\""
-rem)
+rem )
 exit /b 0
 rem End of :mixer_paths
 

@@ -68,12 +68,15 @@ include("${CMAKE_CURRENT_LIST_DIR}/check_dependencies_inclusion.cmake")
 # export dependencies configuration to text file
 # define the output text file path
 set(output_file "${CMAKE_CURRENT_LIST_DIR}/ldsp_dependencies.conf")
-# open the text file and write the results
-file(WRITE "${output_file}" "# Dependency States\n")
+# overwrite any existing content with the first line (no comment now)
+file(WRITE "${output_file}" "")  # empty initialization
+# write all dependency flags
 foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
     file(APPEND "${output_file}" "${VAR_NAME}=\"${${VAR_NAME}}\"\n")
 endforeach()
+# manually add this one in case it's not in the list
 file(APPEND "${output_file}" "ADD_LIBPD=\"${ADD_LIBPD}\"\n")
+
 
 
 # dummy usage for DEVICE_ARCH and ONNX_VERSION, to avoid warnings
