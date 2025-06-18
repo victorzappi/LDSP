@@ -163,7 +163,7 @@ rem End of :install_scripts
   if "%arch%" == "x86" set "abi=x86"
   if "%arch%" == "x86_64" set "abi=x86_64"
   if "%abi%" == "" (
-    echo Cannot configure: unknown target architecture "%arch%
+    echo Cannot configure: unknown target architecture "%arch%"
     exit /b 1
   )
 
@@ -318,9 +318,11 @@ rem End of :build
   rem Create a directory on the SD card using `adb shell` with `mkdir`
   adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
 
-  rem Push scripts matching the pattern `ldsp_*` to the created folder
-  adb push .\scripts\ldsp_* /sdcard/ldsp/scripts/
-
+  rem Push all scripts to the created folder (batch does not support *)
+  for %%f in (scripts\ldsp_*) do (
+    adb push "%%f" /sdcard/ldsp/scripts/
+	)
+	
   exit /b
 rem End of :push_scripts
 
@@ -345,13 +347,13 @@ rem End of :push_resources
   set "debugserver="
 
   rem different versions of the lldb-server bin can be found in the NDK, depending on the arch
-  if "%arch%"=="armv7a" (
+  if %arch%=="armv7a" (
     set "dir=arm"
-  ) else if "%arch%"=="aarch64" (
+  ) else if %arch%=="aarch64" (
     set "dir=aarch64"
-  ) else if "%arch%"=="x86" (
+  ) else if %arch%=="x86" (
     set "dir=i386"
-  ) else if "%arch%"=="x86_64" (
+  ) else if %arch%=="x86_64" (
     set "dir=x86_64"
   ) else (
     echo Error: Unsupported architecture "%arch%"
@@ -359,13 +361,12 @@ rem End of :push_resources
   )
 
   rem look for all the available debug servers in the NDK and choose the one that matches the phone's architecture
-  for /r "%ndk%" %%f in (lldb-server) do (
-      echo %%f | findstr /i "\\%dir%\\" >nul
-      if not errorlevel 1 (
-          set "debugserver=%%f"
-          goto :found
-      )
-  )
+	for /r "!ndk!" %%f in (lldb-server) do (
+		if exist "%%f" (
+			set "debugserver=%%f"
+			goto :found
+		)
+	)
 
   echo No matching lldb-server found for "%arch%" (directory: "%dir%").
   exit /b 1
@@ -445,18 +446,18 @@ rem End of :push_onnxruntime
 
   rem Push all project resources, including Pd files in Pd projects, but excluding C/C++ and assembly files, and folders that contain those files
   rem first folders
-  @echo off
+  
   for /F "delims=" %%i in ('dir /B /A:D "%project_dir%"') do (
-      dir /B /A "%project_dir%\%%i\*.cpp" "%project_dir%\%%i\*.c" "%project_dir%\%%i\*.h" "%project_dir%\%%i\*.hpp" "%project_dir%\%%i\*.S" "%project_dir%\%%i\*.s" "%project_dir%\%%i\*.sh" >nul 2>&1
-      if errorlevel 1 (
-          adb push "%project_dir%\%%i" "/sdcard/ldsp/projects/%project_name%/"
-      )
+		dir /B /A "%project_dir%\%%i\*.cpp" "%project_dir%\%%i\*.c" "%project_dir%\%%i\*.h" "%project_dir%\%%i\*.hpp" "%project_dir%\%%i\*.S" "%project_dir%\%%i\*.s" "%project_dir%\%%i\*.sh" >nul 2>&1
+		if errorlevel 1 (
+				adb push "%project_dir%\%%i" "/sdcard/ldsp/projects/%project_name%/"
+		)
   )
   rem then files
   for %%i in ("%project_dir%\*") do (
-      if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" if /I not "%%~xi" == ".sh" (
-          adb push "%%i" "/sdcard/ldsp/projects/%project_name%/"
-      )
+		if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" if /I not "%%~xi" == ".sh" (
+				adb push "%%i" "/sdcard/ldsp/projects/%project_name%/"
+		)
   )
 
   rem now the ldsp bin
@@ -464,35 +465,50 @@ rem End of :push_onnxruntime
 
   rem now all resources that do not need to be updated at every build
   rem first check if /data/ldsp exists
-  adb shell "su -c 'ls /data | grep ldsp'" > nul 2>&1
+  rem adb shell "su -c 'ls /data | grep ldsp'" > nul 2>&1
+	set "found_dir="
+	for /f %%i in ('adb shell "su -c 'ls /data | grep ldsp'"') do (
+		set "found_dir=%%i"
+	)
 
-  if %ERRORLEVEL% neq 0 (
-      rem If `/data/ldsp` doesn't exist, create it
-      adb shell "su -c 'mkdir -p /data/ldsp'"
+	if not defined found_dir (
+		rem If `/data/ldsp` doesn't exist, create it
+		adb shell "su -c 'mkdir -p /data/ldsp'"
 
-      rem Call functions to push all resources
-      call :push_scripts
-      call :push_resources
-      call :push_debugserver
-      call :push_onnxruntime
+		rem Call functions to push all resources
+		call :push_scripts
+		call :push_resources
+		call :push_debugserver
+		call :push_onnxruntime
 
   ) else (
-      rem If `/data/ldsp` exists, check and push missing subdirectories/files
-      rem Check for `scripts`
-      adb shell "su -c 'ls /data/ldsp' 2>/dev/null" | find "scripts" > nul 2>&1
-      if %ERRORLEVEL% neq 0 call :push_scripts
+		rem If `/data/ldsp` exists, check and push missing subdirectories/files
+		rem Check for `scripts`
+		set "found_dir="
+		for /f %%i in ('adb shell "su -c 'ls /data/ldsp | grep scripts'"') do (
+			set "found_dir=%%i"
+		)
+		if not defined found_dir call :push_scripts
 
-      rem Check for `resources`
-      adb shell "su -c 'ls /data/ldsp' 2>/dev/null" | find "resources" > nul 2>&1
-      if %ERRORLEVEL% neq 0 call :push_resources
+		rem Check for `resources`
+		set "found_dir="
+		for /f %%i in ('adb shell "su -c 'ls /data/ldsp | grep resources'"') do (
+			set "found_dir=%%i"
+		)
+		if not defined found_dir call :push_resources
 
-      rem Check for `debugserver`
-      adb shell "su -c 'ls /data/ldsp' 2>/dev/null" | find "debugserver" > nul 2>&1
-      if %ERRORLEVEL% neq 0 call :push_debugserver
+		rem Check for `debugserver`
+		set "found_dir="
+		for /f %%i in ('adb shell "su -c 'ls /data/ldsp | grep debugserver'"') do (
+			set "found_dir=%%i"
+		)
+		if not defined found_dir call :push_debugserver
 
-      rem Check for `onnxruntime`
-      adb shell "su -c 'ls /data/ldsp' 2>/dev/null" | find "onnxruntime" > nul 2>&1
-      if %ERRORLEVEL% neq 0 call :push_onnxruntime
+		rem Check for `onnxruntime`
+		for /f %%i in ('adb shell "su -c 'ls /data/ldsp | grep onnxruntime'"') do (
+			set "found_dir=%%i"
+		)
+		if not defined found_dir call :push_onnxruntime
   )
 
   rem create ldsp folder
@@ -630,14 +646,6 @@ rem End of :debugserver_start
 exit /b
 rem End of :debugserver_stop
 
-:install_scripts
-  rem Run ldsp_phoneDetails.sh script on the phone
-
-  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_phoneDetails.sh'"
-
-  exit /b 0
-rem End of :install_scripts
-
 :phone_details
 	rem Run ldsp_phoneDetails.sh script on the phone
 
@@ -649,21 +657,18 @@ rem End of :phone_details
 :mixer_paths
   rem Run ldsp_mixerPaths.sh script on the phone, with optional argument
 
-  rem if "%~1"=="" (
-  rem    adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths.sh\""
-  rem ) else (
-      adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths.sh %~1\""
-rem )
-exit /b 0
+  adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths.sh %~1\""
+
+  exit /b 0
 rem End of :mixer_paths
 
 :mixer_paths_rec
   rem # Run ldsp_mixerPaths_recursive.sh script on the phone, with argument
 
   if "%~1"=="" (
-      adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh\""
+    adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh\""
   ) else (
-      adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh %~1\""
+    adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh %~1\""
 )
 exit /b 0
 rem End of :mixer_paths
