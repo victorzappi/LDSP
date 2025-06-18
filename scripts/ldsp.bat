@@ -361,7 +361,7 @@ rem End of :push_resources
   )
 
   rem look for all the available debug servers in the NDK and choose the one that matches the phone's architecture
-	for /r "!ndk!" %%f in (lldb-server) do (
+	for /r "%ndk%" %%f in (lldb-server) do (
 		if exist "%%f" (
 			set "debugserver=%%f"
 			goto :found
