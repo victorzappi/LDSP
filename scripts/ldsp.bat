@@ -86,12 +86,12 @@ rem End of :get_api_level
 
 rem Retrieve the correct version of the onnxruntime library, based on Android version
 :get_onnx_version
-    rem Use numeric exit codes to represent different onnx_version values
-    if %api_level% geq 24 (
-        exit /b 1  rem Error code 1 represents "aboveorEqual24"
-    ) else (
-        exit /b 0  rem Error code 0 represents "below24"
-    )
+  rem Use numeric exit codes to represent different onnx_version values
+  if %api_level% geq 24 (
+      exit /b 1  rem Error code 1 represents "aboveorEqual24"
+  ) else (
+      exit /b 0  rem Error code 0 represents "below24"
+  )
 
 rem End of :get_onnx_version
 
@@ -327,7 +327,7 @@ rem End of :build
 rem End of :push_scripts
 
 :push_resources
-  if /i "%ADD_SEASOCKS%"=="TRUE" (
+  if /i %ADD_SEASOCKS%=="TRUE" (
     rem Create a directory on the SD card using `adb shell` with `mkdir`
     adb shell "su -c 'mkdir -p /sdcard/ldsp/resources'"
     
@@ -381,18 +381,17 @@ rem End of :push_debugserver
 
 
 :push_onnxruntime
-  if /i "%ADD_ONNX%" == "TRUE" (
-    rem Create directory on the SD card
+  if /i %ADD_ONNX%=="TRUE" (
+		rem strip quotes from vars and combine them
+    set "arch=!arch:"=!"
+    set "onnx_version=!onnx_version:"=!"
+    set "onnx_path=.\dependencies\onnxruntime\!arch!\!onnx_version!\libonnxruntime.so"
+
     adb shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'"
-
-    rem Set the path to the ONNX runtime library
-    set "onnx_path=.\dependencies\onnxruntime\%arch%\%onnx_version%\libonnxruntime.so"
-
-    rem Push the ONNX runtime library to the SD card
-    adb push "%onnx_path%" /sdcard/ldsp/onnxruntime/libonnxruntime.so
+    adb push "!onnx_path!" /sdcard/ldsp/onnxruntime/libonnxruntime.so
   )
   exit /b
-rem End of :push_onnxruntime
+
 
 :install
 	rem Install the user project, LDSP hardware config and resources to the phone.
@@ -505,10 +504,11 @@ rem End of :push_onnxruntime
 		if not defined found_dir call :push_debugserver
 
 		rem Check for `onnxruntime`
+		set "found_dir="
 		for /f %%i in ('adb shell "su -c 'ls /data/ldsp | grep onnxruntime'"') do (
 			set "found_dir=%%i"
 		)
-		if not defined found_dir call :push_onnxruntime
+		if not defined found_dir (call :push_onnxruntime)
   )
 
   rem create ldsp folder
