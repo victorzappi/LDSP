@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/system/bin/sh
 #
 # This script prints the numbers and ids of all active devices (capture and playback) 
 # on card 0, their current hardware parameters and, if a plaback device is active,

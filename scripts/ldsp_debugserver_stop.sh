@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/system/bin/sh
 #
 # This script stops the remote debugger ('lldb-server') running on the phone
 # usage:

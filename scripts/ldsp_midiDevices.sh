@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/system/bin/sh
 #
 # This checks if any MIDI devices are detected and, in case, prints the relative ports
 # usage:

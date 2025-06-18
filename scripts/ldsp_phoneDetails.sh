@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/system/bin/sh
 #
 # This script retrieves the phone's code name, android version and architecture
 # to fill in the hw config file and use ldsp.sh correctly

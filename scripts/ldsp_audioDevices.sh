@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/system/bin/sh
 #
 # This script prints the numbrs and ids of all active (capture and playback) on card 0
 # usage:

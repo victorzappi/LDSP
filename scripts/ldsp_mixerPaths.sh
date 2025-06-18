@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/system/bin/sh
 #
 # Searches for mixer paths file in the directory (path) passed via command line
 # if no directory is passed, searches /etc/ and /vendor/etc

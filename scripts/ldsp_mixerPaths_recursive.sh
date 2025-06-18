@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/system/bin/sh
 # Searches recursively for XML files whose name contains 'mixer' in dir passed as argument
 # usage:
 # sh ldsp_mixerPaths_recursive.sh /directory/to/initial/search

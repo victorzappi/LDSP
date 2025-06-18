@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/system/bin/sh
 #
 # This script stops the LDSP program ('ldsp') running on the phone
 # usage:
