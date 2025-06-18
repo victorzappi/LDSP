@@ -1,7 +1,7 @@
 # USAGE
 ## How to build and use example LDSP applications on your phone
 
-LDSP comes with a variety of example projects that can be used out of the box. Let's see how to build and play around with the *sine* example that you can find in *[LDSP/examples/sine](../examples/sine)*. Note that all LDSP C++ projects (including examples) consist of a dedicated folder with inside at least a source file called *render.cpp*. They are built into a LDSP applications. LDSP supports Pure Data projects too (via *[libpd](https://github.com/libpd/libpd)*), which must contain a *_main.pd* file. **Both C++ and Pd projects are built and run with the same commands.**
+LDSP comes with a variety of example projects that can be used out of the box. Let's see how to build and play around with the *sine* example that you can find in *[LDSP/examples/Fundamentals/sine](../examples/Fundamentals/sine)*. Note that all LDSP C++ projects (including examples) consist of a dedicated folder with inside at least a source file called *render.cpp*. They are built into a LDSP applications. LDSP supports Pure Data projects too (via *[libpd](https://github.com/libpd/libpd)*), which must contain a *_main.pd* file. **Both C++ and Pd projects are built and run with the same commands.**
 
 
 Here is an overview of all the steps necessary to build and 'use' an LDSP application:

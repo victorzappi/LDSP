@@ -83,5 +83,16 @@ To find the installation path, open a terminal and try (the NDK contains several
 
 - **Pure Data “vanilla” [optional]**:  in case you want to code LDSP applications in Pd rather than C++: [https://puredata.info/downloads](https://puredata.info/downloads)
 
+- **Python [optional]**: required only for LDSP projects that use the **Seasocks** webserver as a dependency (e.g., *[LDSP/examples/Gui](../examples/Gui)*). If you don’t plan to use Seasocks, Python is not needed.
+Otherwise, install Python as follows:
+  
+    - Linux: install via your package manager
+    - macOS: install via [Homebrew](https://formulae.brew.sh/formula/python@3.9) or MacPorts; otherwise use Windows’ guidelines
+    - Windows: download the official installer from [https://www.python.org/downloads/](https://www.python.org/downloads/) and make sure to tick the option "Add Python to PATH" during installation
+
+Then check that Python was successfully installed by opening a shell and typing:
+  ```console
+  python --version
+  ```
 
 [Previous: Introduction](0_introduction.md) | [Next: Installation](2_installation.md)
