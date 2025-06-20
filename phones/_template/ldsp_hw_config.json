@@ -35,11 +35,11 @@
 	},
 	"[default audio parameters]":
 	{
-		"playback device number": ,
-		"capture device number": ,
-		"period size": ,
-		"playback channels": ,
-		"capture channels": 
+		"playback device id": "",
+		"capture device id": "",
+		"period size": -1,
+		"playback channels": -1,
+		"capture channels": -1
 	},
 	"[control outputs]":
 	{

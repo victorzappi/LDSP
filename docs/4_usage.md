@@ -18,7 +18,7 @@ There are two versions of the main script, which were designed to work on differ
 
 - **Windows users:** you can use the version of the main script called *[ldsp.bat](../scripts/ldsp.bat)* (batch script version), either from a Command Prompt or from a PowerShell—we reccomend the latter. However, if you have a Unix-like environment installed, like *Cygwin* or *MinGW*, you should be able to use *ldsp.sh* too. If you installed Git as a [dependency](1_dependencies.md), you can use *Git Bash* to run *ldsp.sh*!
 
->**Note:** the two versions of the scripts are *almost* equivalent; they  differ slightly in synatx. The following example steps will showcase both versions!
+>**Note:** the two versions of the scripts are *almost* equivalent; they  differ slightly in syntax. The following example steps will showcase both versions!
  
 
 

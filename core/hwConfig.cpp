@@ -236,21 +236,21 @@ void parseDefaultAudioParams(ordered_json *config, LDSPhwConfig *hwconfig)
 	}
 
 	optional = mixer["playback device number"];
-	if(optional.is_number_integer())
+	if(optional.is_number_integer() && optional != -1)
 		hwconfig->default_dev_num_p = optional;
 	optional = mixer["capture device number"];
-	if(optional.is_number_integer())
+	if(optional.is_number_integer() && optional != -1)
 		hwconfig->default_dev_num_c = optional;
 
 	optional = mixer["period size"];
-	if(optional.is_number_integer())
+	if(optional.is_number_integer() && optional != -1)
 		hwconfig->default_period_size = optional;
 
 	optional = mixer["playback channels"];
-	if(optional.is_number_integer())
+	if(optional.is_number_integer() && optional != -1)
 		hwconfig->default_chn_num_p = optional;
 	optional = mixer["capture channels"];
-	if(optional.is_number_integer())
+	if(optional.is_number_integer() && optional != -1)
 		hwconfig->default_chn_num_c = optional;
 }
 

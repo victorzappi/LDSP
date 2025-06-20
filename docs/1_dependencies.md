@@ -15,7 +15,7 @@ As of July 2024, the latest version of the macOS NDK zip file can be found here:
 [https://dl.google.com/android/repository/android-ndk-r26d-darwin.zip](https://dl.google.com/android/repository/android-ndk-r26d-darwin.zip)
 You can potentially edit this link to download future NDK releases.
 Alternatively, 
-you can install the NDK via Homebrew, here is how: [https://macappstore.org/android-ndk/](https://macappstore.org/android-ndk/)
+you can install the NDK via Homebrew, here is how: [https://macappstore.org/android-ndk/](https://macappstore.org/android-ndk/).
 To find the installation path, open a terminal and try (the NDK contains several versions of clang for Android cross-compilation): 
   ```console
   sudo find / -name 'clang++' 
