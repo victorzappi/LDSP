@@ -107,7 +107,7 @@ Let's run the *sine* project so that we hear a vanilla sinusoid coming out of th
 
     - If you remove the *-o line-out* argument, the phone will deafult to outputting audio from the built-in speaker.
 
-        For a list of all command line arguments and default values simply pass *--help* or *-h* as argument. A very useful argument is *--verbose* or *-h*, which prints lots of useful info about the phone and the current settings!
+        For a list of all command line arguments and default values simply pass *--help* or *-h* as argument. A very handy argument is *--verbose* or *-v*, which prints lots of useful info about the phone and the current settings!
 
 - **Run through a remote shell**. From anywhere on your computer, open a *remote shell* via ADB:
     ```console
@@ -143,6 +143,43 @@ Let's run the *sine* project so that we hear a vanilla sinusoid coming out of th
 <br>
 
 ### 5. Stop
-[UNDER CONSTRUCTION]
+Here is how you can gracefully stop any LDSP application, depending on how you ran them in the first place:
+
+- **From your host computer:** there are two options. 
+
+    - The simplest one is to press ***Ctrl+c*** in the local shell where you ran the application. LDSP is designed to catch the resulting SIGINT signal, prompting the application to shut down. However, **some operating systens are not capable of propagating the `SIGINT` signal to the phone/Android (e.g., Windows)**, leaving the application running. If that is the case, please refer to the next option.
+
+    - Open a new local shell in the LDSP folder (leaving the one where LDSP is running untouched) and type:
+        #### macOS and Linux
+        ```console
+        ./scripts/ldsp.sh stop
+        ```
+        #### Windows
+        ```console
+        .\scripts\ldsp.bat stop
+        ```
+        <br>
+
+        You will see the LDSP application shutting down gracefully in the other shell! Under the hood, this command invokes a "stop" script that LDSP automatically installs on the phone.
+    
+- **All other scenarios (remote shell, phone shell, WiFi):** again, there are two options that mirror the previous scenario.
+
+    - Press ***Ctrl+c*** in the same shell where LDSP is running! However, **on some older Android versions the `SIGINT` signal cannot be sent to/reach the application**. In case, use the next option!
+
+    - You can invoke the "stop" script manually! Open a new shell either remote, on the phone, or via WiFi, and become root:
+        ```console
+        su
+        ```
+        Then move to the LDSP folder that is found on the phone:
+        ```console
+        cd /data/ldsp/
+        ```
+         Finally invoke the script!
+        ```console
+        sh ./scripts/ldsp_stop.sh
+        ```
+
+
+
 
 [Previous: Phone Configuration](3_phone_config.md)
