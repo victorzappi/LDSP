@@ -10,7 +10,7 @@ search_dir() {
         elif [ -f "$file" ]; then
             case "$file" in
                 *mixer*.xml)
-                    echo "Found candidate: $file"
+                    echo "Found mixer paths file: $file"
                     ;;
             esac
         fi
