@@ -26,7 +26,7 @@ There are two versions of the main script, which were designed to work on differ
 
 ### 1. Configure
 Open a shell on your computer (i.e., a 'local' shell) and navigate to the LDSP folder, where you downladed the content of the repo. From here, we configure the project to build the #sine# example for the LG Nexus 4 phone (we tested this phone already and LDSP includes a pre-made configuration file for it—check [Phone Configuration](3_phone_config.md)). We'll be using the *ldsp* script (found in [LDSP/scripts/](../scripts)), which expects:
-- the *configure* command
+- the `configure` command
 - the path to the folder containing the phone's hardware configuration file, either relative to the current position or absolute
 - the version of Android running on the chosen phone (in this case 5.1.1)
 - the path to the project folder
@@ -98,16 +98,59 @@ Let's run the *sine* project so that we hear a vanilla sinusoid coming out of th
     ```console
     .\scripts\ldsp.bat run "-p 512 -o line-out"
     ```
-    <br>
-    A few notes:
     
-    - If the USB gets disconnected, the application will stop! If you don't want to depend on a tethered connection with a host computer and you're on macOS or Linux, you can swap the command *run* with *run_persistent* (still in progress on Windows). Alternatively, check the other options to run the application that are listed next.
+    If the USB gets disconnected, the application will stop! If you don't want to depend on a tethered connection with a host computer and you're on macOS or Linux, you can swap the command `run` with `run_persistent` (still in progress on Windows). Alternatively, check the other options to run the application that are listed next.
 
-    - Here, we are also passing some optional command line arguments/flags, i.e., we are setting the period size (number of audio frames) and we are asking the phone to output audio from the line-out/headphone jack. This is just an example and the arguments can be omitted if not needed.
+    #### Command-line Arguments
+    Here, we are also passing some optional command line arguments/flags, i.e., we are setting the period size (number of audio frames) and we are asking the phone to output audio from the line-out/headphone jack. This is just an example and the arguments can be omitted if not needed.
 
-    - If you remove the *-o line-out* argument, the phone will deafult to outputting audio from the built-in speaker.
+    If you remove the `-o line-out` argument, the phone will deafult to outputting audio from the built-in speaker.
 
-        For a list of all command line arguments and default values simply pass *--help* or *-h* as argument. A very handy argument is *--verbose* or *-v*, which prints lots of useful info about the phone and the current settings!
+    For a list of all command line arguments and default values simply pass `--help` or `-h` as argument. A very handy argument is `--verbose` or `-v`, which prints lots of useful info about the phone and the current settings!
+
+    Here is a dump of all the LDSP arguments obtained via `-h` as of 2025-06-24:
+
+    ```console
+    Usage: ./ldsp [options]
+    options, with default values in brackets:
+    -c | --card <card number>			Sound card [0]
+    -d | --output-device-num <device number>	Card's playback device number
+    -D | --input-device-num <device number>		Card's capture device number
+    -s | --output-device-id <id>			    Card's playback device id (name)
+    -S | --input-device-id <id>			        Card's capture device id (name)
+    -p | --period-size <size>			        (aka audio frames) Number of frames per each audio block [256]
+    -b | --period-count <count>			        Number of audio blocks the audio ring buffer can contain [2]
+    -n | --output-channels <count>			    Number of playback audio channels [2]
+    -N | --input-channels <count>			    Number of capture audio channels [1]
+    -r | --samplerate <rate>			        Sample rate in Hz [48000]
+    -f | --format <format index>			    Index of format of samples [0]
+        Possible formats:
+            index 0 - S16_LE
+            index 1 - S32_LE
+            index 2 - S8
+            index 3 - S24_LE
+            index 4 - S24_3LE
+            index 5 - S16_BE
+            index 6 - S24_BE
+            index 7 - S24_3BE
+            index 8 - S32_BE
+            index 9 - FLOAT_LE
+            index 10 - FLOAT_BE
+    -o | --output-path <path name>			    Output mixer path
+    -i | --input-path <path name>			    Input mixer path
+    -O | --capture-off				            Disables audio capture [capture enabled]
+    -P | --sensors-off				            Disables sensors [sensors enabled]
+    -Q | --ctrl-inputs-off				        Disables control inputs [control inputs enabled]
+    -R | --ctrl-outputs-off				        Disables control outputs [control outputs enabled]
+    -A | --perf-mode-off				        Disables CPU's governor peformance mode [performance mode enabled]
+    -C | --cpu-affinity <cpu index>			    Sets CPU affinity for the audio thread
+    -v | --verbose					            Prints all phone's info, current settings main function calls [off]
+    -h | --help					                Prints this and exits [off]
+    ```
+
+    > #### What if I want to use a USB-to-headphones adapter or an external USB audio interface?
+    > These types of audio peripherals are detected as *card 1*, with *card 0* being the embedded one where all the 'stadard' audio devices are connected. Hence, to switch to any USB audio peripheral **simply pass `-c 1`**. USB-to-headphones adapters have a single device (no need to pass `-d` or `-D`) and support fullduplex audio (both line-in and line-out via combo jack).
+
 
 - **Run through a remote shell**. From anywhere on your computer, open a *remote shell* via ADB:
     ```console
