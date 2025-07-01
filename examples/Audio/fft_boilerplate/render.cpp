@@ -48,8 +48,8 @@ void render(LDSPcontext *context, void *userData)
 
     // ... Do something with the Spectral Data...
     for (int i = 0; i < n_fft; i++) {
-        real[i] = fft.getRealComponent(i);
-        imag[i] = fft.getImagComponent(i);
+        real[i] = fft.fdr(i);
+        imag[i] = fft.fdi(i);
     }
 
     for (int i = 0; i < n_fft; i++) {
