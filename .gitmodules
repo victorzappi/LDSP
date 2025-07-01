@@ -7,3 +7,6 @@
 [submodule "dependencies/RTNeural"]
 	path = dependencies/RTNeural
 	url = https://github.com/jatinchowdhury18/RTNeural.git
+[submodule "dependencies/Ne10"]
+	path = dependencies/Ne10
+	url = https://github.com/pkhao75/Ne10

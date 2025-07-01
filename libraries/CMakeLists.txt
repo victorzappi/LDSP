@@ -83,7 +83,5 @@ endif()
 # target_include_directories()
 # because its CMakelists.txt file propagates them to any target linking against the lib
 
-
 # include dir, target_include_directories of ne10
-
-target_include_directories(libraries PUBLIC ../dependencies/ne10/inc) # needed for NE10
+target_include_directories(libraries PUBLIC ../dependencies/Ne10/inc) # needed for NE10

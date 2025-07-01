@@ -102,7 +102,7 @@ set(ANDROID_API_LEVEL ${NE10_API_LEVEL} CACHE STRING "Ne10 Android API level" FO
 set(NE10_BUILD_SHARED OFF CACHE BOOL "Turn off Build shared library, build as static" FORCE)
 set(NE10_BUILD_EXAMPLES OFF CACHE BOOL "Turn off Build examples" FORCE)
 set(NE10_BUILD_UNIT_TEST OFF CACHE BOOL "Turn off build unit test" FORCE)
-add_subdirectory(ne10)
+add_subdirectory(Ne10)
 
 
 
