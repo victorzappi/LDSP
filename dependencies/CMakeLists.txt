@@ -31,7 +31,7 @@ set(INSTALL_PKGCONFIG_MODULE OFF CACHE BOOL "Generate and install pkg-config mod
 add_subdirectory(libsndfile)
 
 #VIC why not a submodule?
-# Check if we should add FFTW3
+#VIC needs to go before glob
 if(ADD_FFTW3)
     # BUILD_SHARED_LIBS option will propogate to fftw3 as well
     set(BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
@@ -63,7 +63,6 @@ link_libraries(glob)
 # that is in turn a stripped down version of this one: https://github.com/wjwwood/serial/tree/main
 add_subdirectory(serial)
 
-# Check if we should add libpd
 if(ADD_LIBPD)
     add_subdirectory(libpd)
     #VIC we get some warnings from libpd and we cannot do anything about them
@@ -71,12 +70,28 @@ if(ADD_LIBPD)
     target_compile_options(libpd PRIVATE "-Wno-everything")
 endif()
 
-# Check if we should add onnx
+if(ADD_NE10)
+    # for 32 bit targets, ne10 uses 'armv7' instead of 'armv7a'
+    set(NE10_ANDROID_TARGET_ARCH "${DEVICE_ARCH}")
+    if(${NE10_ANDROID_TARGET_ARCH} STREQUAL "armv7a")
+        set(NE10_ANDROID_TARGET_ARCH "armv7")
+        set(NE10_ARM_HARD_FLOAT OFF CACHE BOOL " Build Ne10 for hard float abi" FORCE)
+    endif()
+
+    # extract API level numbers from ANDROID_PLATFORM string and explicitly set NE10_API_LEVEL to match our phone API_LEVEL
+    string(REGEX MATCH "[0-9]+" NE10_API_LEVEL "${ANDROID_PLATFORM}")
+    set(ANDROID_API_LEVEL ${NE10_API_LEVEL} CACHE STRING "Ne10 Android API level" FORCE)
+
+    set(NE10_BUILD_SHARED OFF CACHE BOOL "Turn off Build shared library, build as static" FORCE)
+    set(NE10_BUILD_EXAMPLES OFF CACHE BOOL "Turn off Build examples" FORCE)
+    set(NE10_BUILD_UNIT_TEST OFF CACHE BOOL "Turn off build unit test" FORCE)
+    add_subdirectory(Ne10)
+endif()
+
 if(ADD_ONNX)
     add_subdirectory(onnxruntime)
 endif()
 
-# Check if we should add rtneural
 if(ADD_RTNEURAL)
     # Set the CPM source cache to a custom directory within the build directory and create the dir
     # needed because rtneural uses the CMake Package Manager which needs to be explicitly 
@@ -85,24 +100,6 @@ if(ADD_RTNEURAL)
     file(MAKE_DIRECTORY ${CPM_SOURCE_CACHE})
     add_subdirectory(RTNeural)
 endif()
-
-# Add ne10 here
-# set API LEVEL
-# Extract numbers from ANDROID_PLATFORM string
-# Explicitly set the API_LEVEL to match our phone API_LEVEL
-set(NE10_ANDROID_TARGET_ARCH "${DEVICE_ARCH}")
-
-if(${NE10_ANDROID_TARGET_ARCH} STREQUAL "armv7a")
-    set(NE10_ANDROID_TARGET_ARCH "armv7")
-    set(NE10_ARM_HARD_FLOAT OFF CACHE BOOL " Build Ne10 for hard float abi" FORCE)
-endif()
-
-string(REGEX MATCH "[0-9]+" NE10_API_LEVEL "${ANDROID_PLATFORM}")
-set(ANDROID_API_LEVEL ${NE10_API_LEVEL} CACHE STRING "Ne10 Android API level" FORCE)
-set(NE10_BUILD_SHARED OFF CACHE BOOL "Turn off Build shared library, build as static" FORCE)
-set(NE10_BUILD_EXAMPLES OFF CACHE BOOL "Turn off Build examples" FORCE)
-set(NE10_BUILD_UNIT_TEST OFF CACHE BOOL "Turn off build unit test" FORCE)
-add_subdirectory(Ne10)
 
 
 

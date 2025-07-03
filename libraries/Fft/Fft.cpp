@@ -1,9 +1,6 @@
 #include "Fft.h"
-#include <vector>
-#include <cstring>
 
 #ifdef NE10_FFT
-#include <libraries/ne10/NE10.h>
 //--------------------------------------------------------------------------------
 // NE10-based implementation
 //--------------------------------------------------------------------------------
@@ -88,21 +85,11 @@ void Fft::ifft(const std::vector<float>& reInput,
 }
 
 #else
-#include <cmath>
+#include <cstring>
 
 //--------------------------------------------------------------------------------
 // FFTW-based implementation
 //--------------------------------------------------------------------------------
-
-/**
- * Check if n is a power of two.
- */
-bool Fft::isPowerOfTwo(unsigned int n)
-{
-    if (n == 0) return false;
-    while ((n & 1u) == 0u) n >>= 1;
-    return n == 1;
-}
 
 /**
  * Round up n to the next power of two (minimum 2).
@@ -125,12 +112,12 @@ int Fft::setup(unsigned int len)
         return -1;
     cleanup();
     length = len;
-    timeIn       = (fftwf_complex*) fftwf_malloc(length * sizeof(fftwf_complex));
-    freq         = (fftwf_complex*) fftwf_malloc(length * sizeof(fftwf_complex));
-    timeOut      = (fftwf_complex*) fftwf_malloc(length * sizeof(fftwf_complex));
-    forwardPlan  = fftwf_plan_dft_1d(length, timeIn,  freq,    FFTW_FORWARD,  FFTW_MEASURE);
-    inversePlan  = fftwf_plan_dft_1d(length, freq,    timeOut, FFTW_BACKWARD, FFTW_MEASURE);
-    if (!timeIn || !freq || !timeOut || !forwardPlan || !inversePlan) {
+    timeIn          = (fftwf_complex*) fftwf_malloc(length * sizeof(fftwf_complex));
+    frequencyDomain = (fftwf_complex*) fftwf_malloc(length * sizeof(fftwf_complex));
+    timeDomain      = (fftwf_complex*) fftwf_malloc(length * sizeof(fftwf_complex));
+    forwardPlan     = fftwf_plan_dft_1d(length, timeIn,  frequencyDomain, FFTW_FORWARD,  FFTW_MEASURE);
+    inversePlan     = fftwf_plan_dft_1d(length, frequencyDomain,    timeDomain, FFTW_BACKWARD, FFTW_MEASURE);
+    if (!timeIn || !frequencyDomain || !timeDomain || !forwardPlan || !inversePlan) {
         cleanup();
         return -1;
     }
@@ -145,10 +132,10 @@ void Fft::cleanup()
     if (forwardPlan)  fftwf_destroy_plan(forwardPlan);
     if (inversePlan)  fftwf_destroy_plan(inversePlan);
     fftwf_free(timeIn);
-    fftwf_free(freq);
-    fftwf_free(timeOut);
+    fftwf_free(frequencyDomain);
+    fftwf_free(timeDomain);
     forwardPlan = inversePlan = nullptr;
-    timeIn = freq = timeOut = nullptr;
+    timeIn = frequencyDomain = timeDomain = nullptr;
     length = 0;
 }
 
@@ -180,8 +167,8 @@ void Fft::ifft()
 {
     fftwf_execute(inversePlan);
     for (unsigned i = 0; i < length; ++i) {
-        timeOut[i][0] /= length;
-        timeOut[i][1] /= length;
+        timeDomain[i][0] /= length;
+        timeDomain[i][1] /= length;
     }
 }
 
@@ -193,9 +180,19 @@ void Fft::ifft(const std::vector<float>& reInput,
 {
     if (reInput.size() != length || imInput.size() != length) return;
     for (unsigned i = 0; i < length; ++i) {
-        freq[i][0] = reInput[i];
-        freq[i][1] = imInput[i];
+        frequencyDomain[i][0] = reInput[i];
+        frequencyDomain[i][1] = imInput[i];
     }
     ifft();
 }
 #endif
+
+/**
+ * Check if n is a power of two.
+ */
+bool Fft::isPowerOfTwo(unsigned int n)
+{
+    if (n == 0) return false;
+    while ((n & 1u) == 0u) n >>= 1;
+    return n == 1;
+}

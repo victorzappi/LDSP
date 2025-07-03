@@ -193,7 +193,7 @@ rem End of :install_scripts
     set "neon=OFF"
   )
 
-  rem Passing the --no-neon-audio-format flag configures to not use parallel sample formatting with NEON
+  rem Passing the --no-neon-audio-format flag configures to not use parallel audio streams formatting with NEON
   if "%no_neon_audio%" == "--no-neon-audio-format" (
     set "neon_audio_format=OFF"
 
@@ -266,7 +266,7 @@ rem End of :install_scripts
   rem Run CMake configuration
   cmake -DCMAKE_TOOLCHAIN_FILE="%NDK%/build/cmake/android.toolchain.cmake" ^
         -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% ^
-        -DANDROID_NDK="%NDK%" -DEXPLICIT_ARM_NEON=%neon% -DNEON_AUDIO_FORMAT=%neon_audio_format% ^
+        -DANDROID_NDK="%NDK%" -DEXPLICIT_ARM_NEON=%neon% -DNEON_AUDIO_FORMAT=%neon_audio_format% -DNE10_FFT="ON"^
         -DLDSP_PROJECT="%project_dir%" -DONNX_VERSION=%onnx_version% ^
         -G Ninja -B"%build_dir%" -S".."
 
@@ -631,7 +631,7 @@ rem End of :debugserver_stop
   echo                        the path to the folder containing the hardware configuration file of the chosen phone 
   echo                        Android version running on the phone
   echo                        the path to the project to build
-  echo                        the optional flag to not use NEON parallel sample formatting (--no-neon-audio-format)
+  echo                        the optional flag to not use NEON parallel audio streams formatting (--no-neon-audio-format)
   echo   build              Build the configured project.
   echo   install            Install the configured project, LDSP hardware config, scripts and resources to the phone.
   echo   run                Run the configured project on the phone.

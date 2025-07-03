@@ -43,14 +43,33 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin/)
 add_executable(ldsp ${SOURCES})
 
 
-# if phone supports NEON and cmake was set to enable neon to format audio streams
-if (${NEON_SUPPORTED} STREQUAL "ON" AND ${NEON_AUDIO_FORMAT} STREQUAL "ON")
-  # Define NEON_AUDIO_FORMAT macro for the target
-  target_compile_definitions(ldsp PRIVATE NEON_AUDIO_FORMAT="ON")
+# almost all phones are equipped with NEON, but it's always good to check!
+if(${NEON_SUPPORTED} STREQUAL "ON") 
+  # if cmake was set to enable neon to format audio streams
+  if(${NEON_AUDIO_FORMAT} STREQUAL "ON")
+    # define NEON_AUDIO_FORMAT macro for the ldsp target (used in core)
+    target_compile_definitions(ldsp PRIVATE NEON_AUDIO_FORMAT="ON")
+  endif()
+
+  # if fft lib included in the user's code
+  if(ADD_FFT) 
+    # if cmake was set to enable ne10 fft
+    if(${NE10_FFT} STREQUAL "ON")  
+      # then use ne 10 fft implementation, by making sure we build it!
+      set(ADD_NE10 TRUE CACHE BOOL "Enable NE10 globally" FORCE)
+      # message(STATUS "FUCK YOU____________________________________________________________")
+    else()  
+      # otherwise, stick to fftw implementation, by making sure we build that instead
+      set(ADD_FFTW3 TRUE CACHE BOOL "Enable FFTW globally" FORCE)
+    endif()
+  endif()
+elseif(ADD_NE10)
+  # if neon not supported, let's make sure that we don't try to build it
+  set(ADD_NE10 FALSE CACHE BOOL "Disable NE10 globally" FORCE)
+  message(WARNING "Trying to build and use Ne10 lib on a device that is not equipped with NEON!")
 endif()
 
 
-# Check if we should add libpd
 if(ADD_LIBPD)
     # Linking libpd static library
     target_link_libraries(ldsp
@@ -58,21 +77,24 @@ if(ADD_LIBPD)
     )
 endif()
 
-# Check if we should add fftw3
 if(ADD_FFTW3)
   target_link_libraries(ldsp
     PRIVATE fftw3f
   )
 endif()
 
-# Check if we should add seasocks
+if(ADD_NE10)
+  target_link_libraries(ldsp
+    PRIVATE NE10
+  )
+endif()
+
 if(ADD_SEASOCKS)
   target_link_libraries(ldsp
     PRIVATE seasocks
   )
 endif()
 
-# Check if we should add onnx
 if(ADD_ONNX)
   # onnxruntime is a dynamic lib and needs a target link directory
   target_link_directories(ldsp 
@@ -85,7 +107,6 @@ if(ADD_ONNX)
   )
 endif()
 
-# Check if we should add rtneural
 if(ADD_RTNEURAL)
   target_link_libraries(ldsp
     PRIVATE RTNeural
@@ -100,9 +121,4 @@ target_link_libraries(ldsp
   PRIVATE sndfile 
   PRIVATE glob
   PRIVATE serial
-)
-
-# link_ne10_here
-target_link_libraries(ldsp
-  PRIVATE NE10
 )
