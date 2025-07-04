@@ -55,9 +55,8 @@ if(${NEON_SUPPORTED} STREQUAL "ON")
   if(ADD_FFT) 
     # if cmake was set to enable ne10 fft
     if(${NE10_FFT} STREQUAL "ON")  
-      # then use ne 10 fft implementation, by making sure we build it!
+      # then use ne10 fft implementation, by making sure we build it!
       set(ADD_NE10 TRUE CACHE BOOL "Enable NE10 globally" FORCE)
-      # message(STATUS "FUCK YOU____________________________________________________________")
     else()  
       # otherwise, stick to fftw implementation, by making sure we build that instead
       set(ADD_FFTW3 TRUE CACHE BOOL "Enable FFTW globally" FORCE)
