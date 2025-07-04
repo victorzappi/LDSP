@@ -38,8 +38,9 @@ bool setup(LDSPcontext *context, void *userData)
     
     n_fft = context->audioFrames;
 
-    if (!fft.setup(n_fft)) {
-        std::cout << "Error initializing FFT object" << std::endl;
+    if(fft.setup(n_fft) != 0)
+    {
+        printf("Error initializing FFT object");
         return false;
     }
 
@@ -55,7 +56,7 @@ void render(LDSPcontext *context, void *userData)
 {
     // Sum channels to a mono signal
     float sum;
-    for (int i = 0; i < n_fft; i++) 
+    for (int i=0; i<n_fft; i++) 
     {
         sum = 0.0;
         for (int channel = 0; channel < context->audioInChannels; channel++)

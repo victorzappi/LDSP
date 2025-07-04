@@ -48,8 +48,9 @@ endif()
 set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFT" "ADD_FFTW3" "ADD_NE10" "ADD_ONNX" "ADD_RTNEURAL")
 # designed to work with two strings per dependency, one specific to ldsp and one to the dependency
 #TODO:
+# merge
 # try to move includes to core and dependencies where relevant, instead of all in libraries!
-# tackle neon_math.h repo on a NEW BRANCH and update oscillator class too if successful
+# on a NEW BRANCH: tackle neon_math.h repo, update oscillator class too if successful and create new sine example
 # do scope!
 set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "Fft.h;Fft.h" "fftw3;fftw3" "NE10;NE10" "libraries/OrtModel/OrtModel.h;onnx" "RTNeural/RTNeural.h;rtneural")
 #TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
@@ -65,9 +66,9 @@ endforeach()
 # Include the script that checks for strings
 include("${CMAKE_CURRENT_LIST_DIR}/check_dependencies_inclusion.cmake")
 # Print the results --- note that FFTW or NE10 are activated in core if FFT is detected
-foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
-    message(STATUS "================State of ${VAR_NAME}: ${${VAR_NAME}}")
-endforeach()
+# foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
+#     message(STATUS "================State of ${VAR_NAME}: ${${VAR_NAME}}")
+# endforeach()
 
 # export dependencies configuration to text file
 # define the output text file path
@@ -80,13 +81,16 @@ endforeach()
 file(APPEND "${output_file}" "ADD_LIBPD=\"${ADD_LIBPD}\"\n")
 
 
-# dummy usage for DEVICE_ARCH and ONNX_VERSION, to avoid warnings
-# in projects that do not use them
+# warnings avoidance
+# dummy usage for DEVICE_ARCH and ONNX_VERSION, for projects that do not use them
 if(DEFINED DEVICE_ARCH)
     set(_dummy_DEVICE_ARCH "${DEVICE_ARCH}")
 endif()
 if(DEFINED ONNX_VERSION)
     set(_dummy_ONNX_VERSION "${ONNX_VERSION}")
+endif()
+# check NE10_FFT at least once, for projects that do not use FFT
+if(${NE10_FFT} STREQUAL "ON")  
 endif()
 
 

@@ -56,10 +56,12 @@ endif()
 
 if(ADD_NE10)
   target_include_directories(libraries PUBLIC ../dependencies/Ne10/inc)
-  target_compile_definitions(libraries
-    PRIVATE NE10_FFT="ON"
-    INTERFACE NE10_FFT="ON"
-  )
+  if(ADD_FFT AND (${NE10_FFT} STREQUAL "ON"))
+    target_compile_definitions(libraries
+      PRIVATE NE10_FFT="ON"
+      INTERFACE NE10_FFT="ON"
+    )
+  endif()
 
   target_include_directories(libraries PUBLIC Fft)
 endif()
