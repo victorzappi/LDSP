@@ -49,7 +49,8 @@ set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFT" "ADD_FFTW3" "ADD_NE10" "ADD_ONNX" "A
 # designed to work with two strings per dependency, one specific to ldsp and one to the dependency
 #TODO:
 # try to move includes to core and dependencies where relevant, instead of all in libraries!
-# tackle neon_math.h repo
+# tackle neon_math.h repo on a NEW BRANCH and update oscillator class too if successful
+# do scope!
 set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "Fft.h;Fft.h" "fftw3;fftw3" "NE10;NE10" "libraries/OrtModel/OrtModel.h;onnx" "RTNeural/RTNeural.h;rtneural")
 #TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
 # the main pd file needs to be excluded and an extra check needs to be added:
