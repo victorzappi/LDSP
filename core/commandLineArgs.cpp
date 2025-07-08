@@ -32,7 +32,19 @@ using std::unordered_map;
 
 unordered_map<string, int> gFormats; // extern in tinyalsaAudio.cpp
 
+string getFormatName(int index) 
+{
+    for (const auto& [key, val] : gFormats) 
+    {
+        if (val == index)
+            return key;
+    }
 
+    // Value not found — fallback to first
+    const std::string& fallback = getFormatName(0);
+    printf("Warning! Unknown format index %d, falling back to format %s\n", index, fallback.c_str());
+    return fallback;
+}
 
 void LDSP_usage(const char *argv)
 {
@@ -154,7 +166,7 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 				settings->samplerate = atoi(opts.optarg);
 				break;
 			case 'f':
-				settings->pcmFormatString = opts.optarg;
+				settings->pcmFormatString = getFormatName(atoi(opts.optarg));
 			 	break;
 			case 'o':
 				settings->pathOut = opts.optarg;
