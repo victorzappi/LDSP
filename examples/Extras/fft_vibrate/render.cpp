@@ -43,9 +43,7 @@ vector<float> imag;
 int writePointer = 0;
 int readPointer = 0;
 
-float energyLow = 0.0;
-float energyHigh = 0.0;
-float energyThreshold = 0.5;
+float energyThreshold = 5;
 
 float stateLow = 0.0;
 float stateHigh = 0.0;
@@ -67,7 +65,7 @@ bool setup(LDSPcontext *context, void *userData)
 	}
 
 	// Setup the FFT object
-	if(!fft.setup(n_fft)) 
+	if(fft.setup(n_fft) != 0) 
 	{
 		printf("Error setting up FFT with length %d\n", n_fft);
 		return false;
@@ -85,20 +83,21 @@ void processFFT(LDSPcontext *context)
 
 	fft.fft(inputBuffer);
 
-	int upperBand = nyquist / 16;
+	const int upperBand = nyquist / 16;
+	float energyLow = 0.0;
+	float energyHigh = 0.0;
 	for (int i = 0; i < nyquist; i++) 
 	{
 		if (i < upperBand)
-			energyLow += fft.getRealComponent(i);
+			energyLow += fft.fda(i);
 		else
-			energyHigh += fft.getRealComponent(i); // not used in this example
+			energyHigh += fft.fda(i); // not used in this example
 	}
 	// Normalize energy
-	energyLow /= upperBand;
+	energyLow /= float(upperBand);
 
 	if (energyLow > energyThreshold) 
 		ctrlOutputWrite(context, chn_cout_vibration, vibrationDuration);
-
 }
 
 

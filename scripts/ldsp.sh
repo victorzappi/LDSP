@@ -205,19 +205,29 @@ configure () {
   then
     neon="ON"
     
-    # Passing the --no-neon-audio-format flag configures to not use parallel sample formatting with NEON
+    # Passing the --no-neon-audio-format flag configures to not use parallel audio streams formatting with NEON
     if [[ $NO_NEON_AUDIO != "" ]]
     then
-      echo "Configuring to not use NEON audio formatting"
+      echo "Configuring to not use NEON audio streams formatting"
       neon_audio_format="OFF"
     else  
       neon_audio_format="ON"
+    fi
+
+    # Passing the --no-neon-fft flag configures to not use parallel fft with NEON (uses fftw instead)
+    if [[ $NO_NEON_FFT != "" ]]
+    then
+      echo "Configuring to not use NEON to parallelize FFT"
+      neon_fft="OFF"
+    else  
+      neon_fft="ON"
     fi
 
   else
     echo "NEON floating-point unit not present on phone"
     neon="OFF"
     neon_audio_format="OFF"  
+    neon_fft="OFF"
   fi
   
 
@@ -259,7 +269,7 @@ configure () {
   # run CMake configuration 
   cmake -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
         -DDEVICE_ARCH="$arch" -DANDROID_ABI="$abi" -DANDROID_PLATFORM="android-$api_level" \
-        -DANDROID_NDK="$NDK" -DEXPLICIT_ARM_NEON="$neon" -DNEON_AUDIO_FORMAT="$neon_audio_format" \
+        -DANDROID_NDK="$NDK" -DEXPLICIT_ARM_NEON="$neon" -DNEON_AUDIO_FORMAT="$neon_audio_format" -DNE10_FFT="$neon_fft"\
         -DLDSP_PROJECT="$project_dir" -DONNX_VERSION="$onnx_version" \
         -G Ninja -B"$build_dir" -S".."
 
@@ -606,7 +616,8 @@ help () {
   echo -e "  --configuration=CONFIGURATION, -c CONFIGURATION\tThe path to the folder containing the hardware configuration file of the chosen phone."
   echo -e "  --version=VERSION, -a VERSION\tThe Android version running on the phone."
   echo -e "  --project=PROJECT, -p PROJECT\tThe path to the project to build."
-  echo -e "  --no-neon-audio-format\tConfigure to not use NEON parallel sample formatting"
+  echo -e "  --no-neon-audio-format\tConfigure to not use NEON parallel audio streams formatting"
+  echo -e "  --no-neon-fft\t\t\tConfigure to not use NEON to parallelize FFT"
   echo -e "\nDescription:"
   echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone."
   echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone and project."
@@ -659,6 +670,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-neon-audio-format)
       NO_NEON_AUDIO=1
+      shift
+      ;;
+    --no-neon-fft)
+      NO_NEON_FFT=1
       shift
       ;;
     --help|-h)

@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 
 rem This script controls configuring the LDSP build system, building a project
 rem using LDSP, and running the resulting binary on a phone.
@@ -119,7 +120,8 @@ rem End of :install_scripts
   set config=%~1
   set version=%~2
   set project=%~3
-  set no_neon_audio=%~4
+  set opt_arg_0=%~4
+  set opt_arg_1=%~5
 
   if "%config%" == "" (
     echo Cannot configure: harwdware configuration file path not specified
@@ -189,20 +191,33 @@ rem End of :install_scripts
   ) else if "%neon_setting%" == "1" (
     set "neon=ON"
   ) else (
-    echo NEON floating-point unit not present on phone
     set "neon=OFF"
   )
 
-  rem Passing the --no-neon-audio-format flag configures to not use parallel sample formatting with NEON
-  if "%no_neon_audio%" == "--no-neon-audio-format" (
-    set "neon_audio_format=OFF"
+  if "%neon%"=="ON" (
+    rem assume neon_audio_format and neon_fft default to ON
+    set "neon_audio_format=ON"
+    set "neon_fft=ON"
+    
+    rem combine your opts into a single list
+    set "OPT_LIST=%opt_arg_0% %opt_arg_1%"
 
-    rem no need to print this if we already printed that neon is not supported
-    if "%neon%" == ON (
-      echo Configuring to not use NEON audio formatting
+    for %%A in (%opt_arg_0% %opt_arg_1%) do (
+      set "flag=%%~A"
+      if "%%A"=="--no-neon-audio-format" (
+        rem Passing the --no-neon-audio-format flag configures to not use parallel audio streams formatting with NEON
+        echo Configuring to not use NEON audio stream formatting
+        set "neon_audio_format=OFF"
+      ) else if "%%A"=="--no-neon-fft" (
+        rem Passing the --no-neon-fft flag configures to not use parallel fft with NEON (uses fftw instead)
+        echo Configuring to not use NEON to parallelize FFT
+        set "neon_fft=OFF"
+      )
     )
   ) else (
-    set "neon_audio_format=ON"
+    echo NEON floating-point unit not present on phone
+    set "neon_audio_format=OFF"
+    set "neon_fft=OFF"
   )
 
 
@@ -266,7 +281,7 @@ rem End of :install_scripts
   rem Run CMake configuration
   cmake -DCMAKE_TOOLCHAIN_FILE="%NDK%/build/cmake/android.toolchain.cmake" ^
         -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% ^
-        -DANDROID_NDK="%NDK%" -DEXPLICIT_ARM_NEON=%neon% -DNEON_AUDIO_FORMAT=%neon_audio_format% ^
+        -DANDROID_NDK="%NDK%" -DEXPLICIT_ARM_NEON=%neon% -DNEON_AUDIO_FORMAT=%neon_audio_format% -DNE10_FFT=%neon_fft%^
         -DLDSP_PROJECT="%project_dir%" -DONNX_VERSION=%onnx_version% ^
         -G Ninja -B"%build_dir%" -S".."
 
@@ -339,7 +354,6 @@ rem End of :push_resources
 
 
 :push_debugserver
-  setlocal enabledelayedexpansion
 
   rem Create a directory on the SD card using `adb shell` with `mkdir`
   adb shell "su -c 'mkdir -p /sdcard/ldsp/debugserver'"
@@ -698,6 +712,7 @@ rem End of :mixer_paths
   echo                            Android version running on the phone
   echo                            the path to the project to build
   echo                            the optional flag to not use NEON parallel sample formatting (--no-neon-audio-format)
+  echo                            the optional flag to not use NEON to parallelize FFT (--no-neon-fft)
   echo   build                  Build the configured project.
   echo   install                Install the configured project, LDSP hardware config, scripts and resources to the phone.
   echo   run                    Run the configured project on the phone.
@@ -722,7 +737,7 @@ if "%1" == "install_scripts" (
   call :install_scripts
   exit /b %ERRORLEVEL%
 ) else if "%1" == "configure" (
-  call :configure %2 %3 %4 %5
+  call :configure %2 %3 %4 %5 %6
   exit /b %ERRORLEVEL%
 ) else if "%1" == "build" (
   call :build

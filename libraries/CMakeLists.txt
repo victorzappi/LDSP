@@ -4,7 +4,7 @@
 file(GLOB_RECURSE ALL_SOURCES CONFIGURE_DEPENDS *.cpp *.c)
 
 # Exclude FFT sources if not building with Fftw3 lib
-if(NOT ADD_FFTW3)
+if(NOT ADD_FFT)
   file(GLOB_RECURSE FFT_SOURCES CONFIGURE_DEPENDS Fft/*.cpp Fft/*.c)
   list(REMOVE_ITEM ALL_SOURCES ${FFT_SOURCES})
 endif()
@@ -52,8 +52,24 @@ target_include_directories(libraries PUBLIC XML)
 
 if(ADD_FFTW3)
   target_include_directories(libraries PUBLIC ../dependencies/fftw3/api)  # needed by FFT
+endif()
+
+if(ADD_NE10)
+  target_include_directories(libraries PUBLIC ../dependencies/Ne10/inc)
+  if(ADD_FFT AND (${NE10_FFT} STREQUAL "ON"))
+    target_compile_definitions(libraries
+      PRIVATE NE10_FFT="ON"
+      INTERFACE NE10_FFT="ON"
+    )
+  endif()
+
   target_include_directories(libraries PUBLIC Fft)
 endif()
+
+if(ADD_FFT)
+  target_include_directories(libraries PUBLIC Fft)
+endif()
+
 
 if(ADD_SEASOCKS)
   target_include_directories(libraries PUBLIC Gui)
@@ -82,3 +98,7 @@ endif()
 # rtneural does not need to explicitly add includes with
 # target_include_directories()
 # because its CMakelists.txt file propagates them to any target linking against the lib
+
+# foreach(SRC ${ALL_SOURCES})
+#     message(STATUS "Found source: ${SRC}")
+# endforeach()
