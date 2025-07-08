@@ -561,16 +561,24 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	if(channels <=0)
 		channels = 1;
 
+	// format's bits and max val
+	audio_struct->physBps = pcm_format_to_bits(audio_struct->config.format) / 8;  // size in bytes of the format var type used to store sample
+	// different than this, i.e., number of bytes actually used within that format var type!
+	if(audio_struct->config.format != gFormats["S24_3LE"] && audio_struct->config.format != gFormats["S24_3BE"]) // these vars span 32 bits, but only 24 are actually used! -> 3 bytes
+		audio_struct->bps = audio_struct->physBps;
+	else
+		audio_struct->bps = 3;
+	audio_struct->formatBits = audio_struct->bps * 8;
+	audio_struct->maxVal = (1 << (audio_struct->formatBits - 1)) - 1;
+
+	// buffer sizes
+	audio_struct->numOfSamples = channels*audio_struct->config.period_size;
 	#ifdef NEON_AUDIO_FORMAT
-		audio_struct->numOfSamples = channels*audio_struct->config.period_size + (4 - audio_struct->numOfSamples % 4) % 4;
-		/*
-		* Create a local var to replace frameBytes
-		* Closest multiple of 4 that is >= frameBytes
-		*/
-		int localFrames = audio_struct->frameBytes + (4 - audio_struct->frameBytes % 4) % 4;
+		// NEON requires a buffer size that is a multiple of 4
+		audio_struct->numOfSamples = (audio_struct->numOfSamples + 3) & ~3U; // round up to multiple of 4
+		unsigned int localFrames   = audio_struct->numOfSamples * audio_struct->physBps; // compute new total number of bytes for frame buffer/raw buffer
 	#else
-		audio_struct->numOfSamples = channels*audio_struct->config.period_size;
-		int localFrames = audio_struct->frameBytes;
+		unsigned int localFrames = audio_struct->frameBytes;
 	#endif
 	
 	// allocate buffers
@@ -581,8 +589,6 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		return -1;
 	}
 
-	// NEON requires a buffer size that is a multiple of 4. We do it even when NEON is not enabled,
-	// since the additional samples in the buffer will be ignored
 	audio_struct->audioBuffer = (float*)malloc(sizeof(float)*audio_struct->numOfSamples);
 	if(!audio_struct->audioBuffer)
 	{
@@ -590,20 +596,6 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		return -2;
 	}
 	memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float)); // quiet please!
-
-	// finish audio initialization
-	//formatBits = LDSP_pcm_format_to_bits((int)audio_struct->config.format); // replaces/implements pcm_format_to_bits(), that is missing from old tinyalsa
-	audio_struct->physBps = pcm_format_to_bits(audio_struct->config.format) / 8;  // size in bytes of the format var type used to store sample
-	// different than this, i.e., number of bytes actually used within that format var type!
-	if(audio_struct->config.format != gFormats["S24_3LE"] && audio_struct->config.format != gFormats["S24_3BE"]) // these vars span 32 bits, but only 24 are actually used! -> 3 bytes
-		audio_struct->bps = audio_struct->physBps;
-	else
-		audio_struct->bps = 3;
-
-	audio_struct->formatBits = audio_struct->bps * 8;
-	audio_struct->maxVal = (1 << (audio_struct->formatBits - 1)) - 1;
-
-
 
 
 	// this is used for capture only
@@ -1105,18 +1097,16 @@ void resetGovernorMode()
 	inline void byteSplit_littleEndian(unsigned char** sampleBytes, int32x4_t values, struct audio_struct* audio_struct)
 	{
 		int bps = audio_struct->bps;
-		for (int i = 0; i < bps; i++) {
+		for (int i=0; i<bps; i++) 
+		{
 			int32x4_t shiftAmountVec = vdupq_n_s32(-i*8); // Cannot be created elsewhere because it uses i
 			int32x4_t shifted_values = vshlq_s32(values, shiftAmountVec);
 
 			int32x4_t res = vandq_s32(shifted_values, audio_struct->byteSplit_maskVec);
 
 			*(*sampleBytes + i) = res[0];
-
 			*(*sampleBytes + 1 * bps + i) = res[1];
-
 			*(*sampleBytes + 2 * bps + i) = res[2];
-
 			*(*sampleBytes + 3 * bps + i) = res[3];
 		}	
 	}
@@ -1126,7 +1116,8 @@ void resetGovernorMode()
 	inline void byteSplit_bigEndian(unsigned char **sampleBytes, int32x4_t values, struct audio_struct* audio_struct) 
 	{
 		int bps = audio_struct->bps;
-		for (int i = 0; i < bps; i++) {
+		for (int i=0; i<bps; i++) 
+		{
 			
 			// NEON Right shift requires int to be a compile-time constant, so need to left shift by negative
 			int32x4_t shiftAmountVec = vdupq_n_s32(-i*8);
@@ -1140,11 +1131,8 @@ void resetGovernorMode()
 
 			int physBps = audio_struct->physBps;
 			*(*sampleBytes + physBps - 1 - i) = res[0];
-
 			*(*sampleBytes + physBps - 1 + 1 * bps - i) = res[1];
-
 			*(*sampleBytes + physBps - 1 + 2 * bps - i) = res[2];
-
 			*(*sampleBytes + physBps - 1 + 3 * bps - i) = res[3];
 		}
 	}
@@ -1157,7 +1145,8 @@ void resetGovernorMode()
 		int32x4_t rawValues;
 		
 		int physBps = audio_struct->physBps;
-		for (int i = 0; i<physBps; i++) {
+		for (int i=0; i<physBps; i++) 
+		{
 			rawValues[0] = *(*sampleBytes + i);
 			rawValues[1] = *(*sampleBytes + 1 * physBps + i);
 			rawValues[2] = *(*sampleBytes + 2 * physBps + i);
@@ -1180,12 +1169,8 @@ void resetGovernorMode()
 		int32x4_t rawValues;
 		int bps = audio_struct->bps;
 		int physBps = audio_struct->physBps;
-		for (int i = 0; i<audio_struct->bps; i++) {
-			// rawValues[0] = *(*sampleBytes + 0 * physBps + physBps - 1 - i);
-			// rawValues[1] = *(*sampleBytes + 1 * physBps + physBps - 1 - i);
-			// rawValues[2] = *(*sampleBytes + 2 * physBps + physBps - 1 - i);
-			// rawValues[3] = *(*sampleBytes + 3 * physBps + physBps - 1 - i);
-			
+		for(int i=0; i<audio_struct->bps; i++) 
+		{			
 			// Above gets simplified to this:
 			rawValues[0] = *(*sampleBytes + 1 * physBps - 1 - i);
 			rawValues[1] = *(*sampleBytes + 2 * physBps - 1 - i);
