@@ -7,7 +7,7 @@ A C++ software environment to hack your Android phone and program it as a low-le
 - [Introduction](docs/0_introduction.md)
 - [Dependencies](docs/1_dependencies.md)
 - [Installation](docs/2_installation.md)
-- [Phone Configuration](docs/3_phone_config_.md)
+- [Phone Configuration](docs/3_phone_config.md)
 - [Usage](docs/4_usage.md)
 
 ## In a Nutshell

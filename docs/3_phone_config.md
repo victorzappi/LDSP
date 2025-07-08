@@ -59,7 +59,7 @@ They can be easily retrieved via one of the LDSP scripts (*ldsp_phoneDetails.sh*
 
 #### Windows
 ```console
-.\scripts\ldsp.bat install_scripts
+.\scripts\ldsp.bat phone_details
 ```
 
 >**Note:** alternatively, you can run all LDSP scripts directly from the phone; just open a shell on the phone via `adb shell` (i.e., a 'remote' shell) and run the scripts directly from */data/ldsp/scripts*, with the command `sh ./ldsp_phoneDetails`. You're more than welcome to peek into the source code of the scripts too! Sometimes they look 'weird', but this is due to the fact that many Android phones ship with only a minimal set of standard command-line utilities and ```grep``` is most often the way to go.
