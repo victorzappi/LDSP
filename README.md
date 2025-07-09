@@ -25,8 +25,8 @@ You can find more about LDSP's technical specfications, the objectives and the e
     author={Tapparo, Carla Sophie and Chalmers, Brooke and Zappi, Victor},
     booktitle={Proceedings of the International Conference on New Interfaces for Musical Expression},
     year={2023}
-  }
-  https://www.nime.org/proceedings/2023/nime2023_41.pdf
+  }<br>
+  [https://www.nime.org/proceedings/2023/nime2023_41.pdf](https://www.nime.org/proceedings/2023/nime2023_41.pdf)
 
 - @inproceedings{zappi2023upcycling,
     title={Upcycling Android Phones into Embedded Audio Platforms},
@@ -34,7 +34,15 @@ You can find more about LDSP's technical specfications, the objectives and the e
     booktitle={Proceedings of the 26th International Conference on Digital Audio Effects},
     year={2023}
   }<br>
-  https://www.dafx.de/paper-archive/2023/DAFx23_paper_44.pdf
+  [https://www.dafx.de/paper-archive/2023/DAFx23_paper_44.pdf](https://www.dafx.de/paper-archive/2023/DAFx23_paper_44.pdf)
+
+- @inproceedings{zappi2025linux,
+  title={Linux Audio on Android},
+  author={Zappi, Victor},
+  booktitle={Proceedings of the 19th Linux Audio Conference},
+  year={2025}
+}<br>
+[https://hal.science/hal-05096046/document](https://hal.science/hal-05096046/document)
 
 
 
