@@ -1,5 +1,6 @@
 # CMakeLists.txt in dependencies directory
 
+add_library(dependencies INTERFACE)
 
 # apply compiler and linker optimizations for dependencies only
 # remove unused code
@@ -12,14 +13,23 @@ if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -s")
 endif()
 
+# all dependencies' includes are exposed as an INTERFACE target, so that they can be used by core and libraries targets too
 
-
+# TINYALSA
 # right now, we are using a stripped down [and slightly modified] verion of the tinyalsa source
 # used in Lineage OS 14.1: https://github.com/LineageOS/android_external_tinyalsa/tree/cm-14.1
 # up-to-date tinyalsa: https://github.com/tinyalsa/tinyalsa/tree/master
 # more info in core/tinyalsaAudio.cpp
 add_subdirectory(tinyalsa)
+target_link_libraries(dependencies INTERFACE tinyalsa)
+# tinyalsa does not need to explicitly add includes with:
+# target_include_directories()
+# because its CMakelists.txt file propagates them to any target linking against the lib with:
+# target_include_directories(tinyalsa PUBLIC include)
+#-------
 
+
+# LIBSNDFILE
 # Configuration for libsndfile's provided CMakeLists.txt
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
 set(BUILD_TESTING OFF CACHE BOOL "Build tests" FORCE)
@@ -29,6 +39,10 @@ set(ENABLE_CPACK OFF CACHE BOOL "Enable CPack" FORCE)
 set(ENABLE_PACKAGE_CONFIG OFF CACHE BOOL "Generate and install package config file" FORCE)
 set(INSTALL_PKGCONFIG_MODULE OFF CACHE BOOL "Generate and install pkg-config module" FORCE)
 add_subdirectory(libsndfile)
+target_include_directories(dependencies INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/libsndfile/include)
+target_link_libraries(dependencies INTERFACE sndfile)
+#-------
+
 
 #VIC why not a submodule?
 #VIC needs to go before glob
@@ -37,9 +51,11 @@ if(ADD_FFTW3)
     set(BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
     set(ENABLE_FLOAT ON CACHE BOOL "single-precision" FORCE)
     add_subdirectory(fftw3)
+    target_include_directories(dependencies INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/fftw3/api)
+    target_link_libraries(dependencies INTERFACE fftw3f)
 endif()
 
-# Check if we should add seasocks
+
 if(ADD_SEASOCKS)
     # We are using a custom version of seasocks that builds for Android
     # seasocks source: https://github.com/mattgodbolt/seasocks
@@ -50,25 +66,56 @@ if(ADD_SEASOCKS)
     set(SEASOCKS_EXAMPLE_APP OFF CACHE BOOL "Build the example applications." FORCE)
     set(DEFLATE_SUPPORT OFF CACHE BOOL "Include support for deflate (requires zlib)." FORCE)
     add_subdirectory(seasocks)
+    target_include_directories(dependencies INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/seasocks/src/main/c)
+    target_link_libraries(dependencies INTERFACE seasocks)
 endif()
 
+
+# GLOB
 # We are using a custom version of glob that builds for old Android
 # android glob source: https://cs.android.com/android/platform/superproject/+/master:bionic/libc/upstream-freebsd/lib/libc/gen/glob.c
-# Add the custom 'glob' directory to the beginning of the include path
-include_directories(BEFORE ./glob)
 
+# include_directories(BEFORE ./glob)
+# add_subdirectory(glob)
+# link_libraries(glob)
 add_subdirectory(glob)
-link_libraries(glob)
+target_link_libraries(dependencies INTERFACE glob)
+# glob does not need to explicitly add includes with:
+# target_include_directories()
+# because we made a CMakelists.txt file inside it that  propagates them to any target linking against the lib with:
+# target_include_directories(glob PUBLIC include)
+#-------
+
+
+# SERIAL
 # We are using a custom version of this serial lib: https://github.com/Christian-Prather/youtube-serail-tutorial/tree/main
 # that is in turn a stripped down version of this one: https://github.com/wjwwood/serial/tree/main
 add_subdirectory(serial)
+target_link_libraries(dependencies INTERFACE serial)
+# serial does not need to explicitly add includes with:
+# target_include_directories()
+# because we made a CMakelists.txt file inside it that  propagates them to any target linking against the lib with:
+# target_include_directories(serial PUBLIC include)
+#-------
+
 
 if(ADD_LIBPD)
     add_subdirectory(libpd)
     #VIC we get some warnings from libpd and we cannot do anything about them
     # this line hides some of them [not sure why not all of them]
     target_compile_options(libpd PRIVATE "-Wno-everything")
+    # All necessary headers for libpd
+    set(LIBPD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libpd)
+    set(LIBPD_INCLUDE_DIRS 
+        ${LIBPD_DIR}/libpd_wrapper 
+        ${LIBPD_DIR}/libpd_wrapper/util 
+        ${LIBPD_DIR}/pure-data/src 
+        ${LIBPD_DIR}/cpp
+    )
+    target_include_directories(dependencies INTERFACE ${LIBPD_INCLUDE_DIRS})
+    target_link_libraries(dependencies INTERFACE libpd_static)
 endif()
+
 
 if(ADD_NE10)
     # for 32 bit targets, ne10 uses 'armv7' instead of 'armv7a'
@@ -86,11 +133,24 @@ if(ADD_NE10)
     set(NE10_BUILD_EXAMPLES OFF CACHE BOOL "Turn off Build examples" FORCE)
     set(NE10_BUILD_UNIT_TEST OFF CACHE BOOL "Turn off build unit test" FORCE)
     add_subdirectory(Ne10)
+
+    target_include_directories(dependencies INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/Ne10/inc)
+    target_link_libraries(dependencies INTERFACE NE10)
+    
+    if(ADD_FFT AND (${NE10_FFT} STREQUAL "ON"))
+      target_compile_definitions(dependencies
+        INTERFACE NE10_FFT="ON"
+      )
+    endif()
 endif()
+
 
 if(ADD_ONNX)
     add_subdirectory(onnxruntime)
+    target_include_directories(dependencies INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime/include/headers)
+    target_link_libraries(dependencies INTERFACE onnxruntime)    
 endif()
+
 
 if(ADD_RTNEURAL)
     # Set the CPM source cache to a custom directory within the build directory and create the dir
@@ -99,6 +159,10 @@ if(ADD_RTNEURAL)
     set(CPM_SOURCE_CACHE "${CMAKE_BINARY_DIR}/cpm_cache")
     file(MAKE_DIRECTORY ${CPM_SOURCE_CACHE})
     add_subdirectory(RTNeural)
+    # rtneural does not need to explicitly add includes with:
+    # target_include_directories()
+    # because its CMakelists.txt file propagates them to any target linking against the lib with:
+    # target_include_directories(RTNeural PUBLIC include)
 endif()
 
 

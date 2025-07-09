@@ -10,3 +10,4 @@
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__USE_BSD=1")
 add_library(glob STATIC glob.c)
 
+target_include_directories(glob PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

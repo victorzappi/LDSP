@@ -11,10 +11,12 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-#TODO pass configuration from ldsp script
+#TODO:
+# on a NEW BRANCH: tackle neon_math.h repo, update oscillator class too if successful and create new sine example
+# do scope!
+# pass realease/debug configuration from ldsp script
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast") #VIC better than "-O3 -ffast-math"
 
 # aarch64 has neon always active
 if("${DEVICE_ARCH}" STREQUAL "armv7a" AND "${EXPLICIT_ARM_NEON}" STREQUAL "ON")
@@ -47,11 +49,6 @@ endif()
 # Define the variable names and corresponding strings to search for
 set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFT" "ADD_FFTW3" "ADD_NE10" "ADD_ONNX" "ADD_RTNEURAL")
 # designed to work with two strings per dependency, one specific to ldsp and one to the dependency
-#TODO:
-# merge
-# try to move includes to core and dependencies where relevant, instead of all in libraries!
-# on a NEW BRANCH: tackle neon_math.h repo, update oscillator class too if successful and create new sine example
-# do scope!
 set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "Fft.h;Fft.h" "fftw3;fftw3" "NE10;NE10" "libraries/OrtModel/OrtModel.h;onnx" "RTNeural/RTNeural.h;rtneural")
 #TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
 # the main pd file needs to be excluded and an extra check needs to be added:
@@ -99,4 +96,4 @@ endif()
 
 add_subdirectory(core)
 add_subdirectory(dependencies)
-add_subdirectory(libraries) # here we have all target include directories too
+add_subdirectory(libraries)

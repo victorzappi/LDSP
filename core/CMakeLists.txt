@@ -15,6 +15,12 @@ list(REMOVE_ITEM SOURCES ${MAIN_SOURCES})
 file(GLOB_RECURSE DEFAULT_PD_SOURCES CONFIGURE_DEPENDS default_render_pd.cpp)
 list(REMOVE_ITEM SOURCES ${DEFAULT_PD_SOURCES})
 
+# If Seasocks dependency is not in use, exclude core sources that depend on it
+if(NOT ADD_SEASOCKS)
+  file(GLOB_RECURSE SEASOCKS_SOURCES CONFIGURE_DEPENDS WebServer.cpp WSServer.cpp)
+  list(REMOVE_ITEM SOURCES ${SEASOCKS_SOURCES})
+endif()
+
 # Source files in the user's project
 file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS ${LDSP_PROJECT}/*.cpp ${LDSP_PROJECT}/*.c)
 
@@ -43,6 +49,24 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../bin/)
 add_executable(ldsp ${SOURCES})
 
 
+
+
+# --------------- Include directories ---------------
+# we expose core headers via an INTERFACE target, so that they can be used by the libraries target too
+add_library(core INTERFACE)
+target_include_directories(core INTERFACE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../include
+  ${CMAKE_SOURCE_DIR}
+)
+
+target_link_libraries(ldsp PRIVATE core)
+
+
+
+
+# --------------- Dependencies choice ---------------
+# check which dependencies to build and add as libs
+
 # almost all phones are equipped with NEON, but it's always good to check!
 if(${NEON_SUPPORTED} STREQUAL "ON") 
   # if cmake was set to enable neon to format audio streams
@@ -70,28 +94,19 @@ endif()
 
 
 if(ADD_LIBPD)
-    # Linking libpd static library
-    target_link_libraries(ldsp
-      PRIVATE libpd_static
-    )
+    target_link_libraries(ldsp PRIVATE libpd_static)
 endif()
 
 if(ADD_FFTW3)
-  target_link_libraries(ldsp
-    PRIVATE fftw3f
-  )
+  target_link_libraries(ldsp PRIVATE fftw3f)
 endif()
 
 if(ADD_NE10)
-  target_link_libraries(ldsp
-    PRIVATE NE10
-  )
+  target_link_libraries(ldsp PRIVATE NE10)
 endif()
 
 if(ADD_SEASOCKS)
-  target_link_libraries(ldsp
-    PRIVATE seasocks
-  )
+  target_link_libraries(ldsp PRIVATE seasocks)
 endif()
 
 if(ADD_ONNX)
@@ -99,25 +114,15 @@ if(ADD_ONNX)
   target_link_directories(ldsp 
     PRIVATE "../dependencies/onnxruntime/${DEVICE_ARCH}/${ONNX_VERSION}"
   )
-  target_link_libraries(ldsp
-    # DYNAMIC LIBRARY
-    PRIVATE onnxruntime
-
-  )
+  target_link_libraries(ldsp PRIVATE onnxruntime)
 endif()
 
 if(ADD_RTNEURAL)
-  target_link_libraries(ldsp
-    PRIVATE RTNeural
-  )
+  target_link_libraries(ldsp PRIVATE RTNeural)
 endif()
 
-# These are mandatory/lightweight
 target_link_libraries(ldsp
+  PRIVATE dependencies
   PRIVATE libraries
-  PRIVATE android
-  PRIVATE tinyalsa
-  PRIVATE sndfile 
-  PRIVATE glob
-  PRIVATE serial
+  PRIVATE android # this is found in the NDK!
 )
