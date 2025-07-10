@@ -15,6 +15,9 @@ export default class GuiCreator {
 			this.gui = gui;
 		};
 
+
+		this.calcPanelWidth = () => Math.min(win.innerWidth * 0.8, 400); //VIC added this to better use mobile real-estate in portrait orientation
+
 		this.panels = [];
 		this.fillPanels = [];
 
@@ -23,8 +26,21 @@ export default class GuiCreator {
 		this.panel_props = {
 			autoPlace: false,
 			resizable : false,
-			width: 400
+			width: this.calcPanelWidth() //VIC this was fixed to 400
 		}
+
+		/* ------------ keep panels responsive ------------ */
+		const resizePanels = () => {
+			const w = this.calcPanelWidth();
+			if (w === this.panel_props.width) return;  // nothing to do
+	  
+			this.panel_props.width = w;                // keep template in sync
+			this.panels.forEach(p => { p.gui.width = w; });
+			this.addFillPanels();                      // keep the grid aligned
+		  };
+	  
+		win.addEventListener('resize', resizePanels);
+		/* ------------------------------------------------- */
 	}
 
 	newPanel(name) {
@@ -66,7 +82,11 @@ export default class GuiCreator {
 
 		for(let i = 0; i < numFill; i++) {
 			let fillP = document.createElement("div");
-			fillP.setAttribute("class", "fill-panel");
+			//VIC this is needed to make sure that the edit in gui-template.html for sliders does not mess with desktop browsers
+			// These “fill” panels are only used to calculate grid alignment.
+			// Hide them completely so they don’t occupy any layout space
+			// and only our real .gui-panel elements get centered.
+			fillP.style.display = "none"; // fillP.setAttribute("class", "fill-panel"); 
 			fillP.className += " gui-panel";
 			fillP.setAttribute("display", "none");
 			fillP.style.width = this.panel_props.width+"px";

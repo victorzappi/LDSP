@@ -1,6 +1,30 @@
 <html>
 	<head>
         <link rel="stylesheet" href="css/template.css">
+		<style>
+			/*—————————————————————————————————————————————————————————————————————————————————
+			VIC this is needed to make sure that sliders are centered in portrait orientation
+			on mobile!
+
+			Layout tweaks for our dat.GUI panels:
+			  – make the #gui-container a flex‐box so panels always wrap and stay centered
+			  – add a bit of padding so panels don’t butt right up against the window edge
+			—————————————————————————————————————————————————————————————————————————————————*/
+			#gui-container {
+			  display: flex;
+			  flex-wrap: wrap;
+			  justify-content: center;
+			  align-items: flex-start;
+			  padding: 1rem;
+			}
+		
+			/*—————————————————————————————————————————————————————————————————————————————————
+			  Give each individual panel some margin so they’re spaced nicely
+			—————————————————————————————————————————————————————————————————————————————————*/
+			.gui-panel {
+			  margin: 0.5rem;
+			}
+		  </style>
 	</head>
 
 	<body scroll="no" style="margin: 0; overflow: hidden">
