@@ -15,6 +15,7 @@ endif()
 
 # all dependencies' includes are exposed as an INTERFACE target, so that they can be used by core and libraries targets too
 
+#-------
 # TINYALSA
 # right now, we are using a stripped down [and slightly modified] verion of the tinyalsa source
 # used in Lineage OS 14.1: https://github.com/LineageOS/android_external_tinyalsa/tree/cm-14.1
@@ -29,6 +30,7 @@ target_link_libraries(dependencies INTERFACE tinyalsa)
 #-------
 
 
+#-------
 # LIBSNDFILE
 # Configuration for libsndfile's provided CMakeLists.txt
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
@@ -71,6 +73,7 @@ if(ADD_SEASOCKS)
 endif()
 
 
+#-------
 # GLOB
 # We are using a custom version of glob that builds for old Android
 # android glob source: https://cs.android.com/android/platform/superproject/+/master:bionic/libc/upstream-freebsd/lib/libc/gen/glob.c
@@ -87,6 +90,7 @@ target_link_libraries(dependencies INTERFACE glob)
 #-------
 
 
+#-------
 # SERIAL
 # We are using a custom version of this serial lib: https://github.com/Christian-Prather/youtube-serail-tutorial/tree/main
 # that is in turn a stripped down version of this one: https://github.com/wjwwood/serial/tree/main
@@ -138,9 +142,7 @@ if(ADD_NE10)
     target_link_libraries(dependencies INTERFACE NE10)
     
     if(ADD_FFT AND (${NE10_FFT} STREQUAL "ON"))
-      target_compile_definitions(dependencies
-        INTERFACE NE10_FFT="ON"
-      )
+      target_compile_definitions(dependencies INTERFACE NE10_FFT="ON")
     endif()
 endif()
 
@@ -163,6 +165,17 @@ if(ADD_RTNEURAL)
     # target_include_directories()
     # because its CMakelists.txt file propagates them to any target linking against the lib with:
     # target_include_directories(RTNeural PUBLIC include)
+endif()
+
+
+if(${DEVICE_ARCH} STREQUAL "armv7a")
+    # We are using a custom version of math-neon that... HIDDEN HFP FABS + build only if 32 bit [SFP], added extern "C" guard in main inlcude so that C++ compiler looks for the unmangled names
+    add_subdirectory(math-neon)
+    target_link_libraries(dependencies INTERFACE mathneon)
+    # mathneon does not need to explicitly add includes with:
+    # target_include_directories()
+    # because its CMakelists.txt file propagates them to any target linking against the lib with:
+    # target_include_directories(mathneon PUBLIC include)
 endif()
 
 

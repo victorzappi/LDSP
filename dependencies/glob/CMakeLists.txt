@@ -1,3 +1,4 @@
+# CMakeLists.txt designed for LDSP dependency
 
 # to compile pure-data, we need glob and globfree symbols
 # glob is not included in android ndk until version > 9.0 (API Level 28)

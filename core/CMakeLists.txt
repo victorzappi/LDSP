@@ -121,6 +121,10 @@ if(ADD_RTNEURAL)
   target_link_libraries(ldsp PRIVATE RTNeural)
 endif()
 
+if(${DEVICE_ARCH} STREQUAL "armv7a")
+  target_link_libraries(ldsp PRIVATE mathneon)
+endif()
+
 target_link_libraries(ldsp
   PRIVATE dependencies
   PRIVATE libraries

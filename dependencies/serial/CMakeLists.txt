@@ -1,3 +1,5 @@
+# CMakeLists.txt designed for LDSP dependency
+
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cc *.c)
 
 add_library(serial STATIC ${SOURCES})
