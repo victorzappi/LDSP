@@ -165,6 +165,8 @@ if(ADD_RTNEURAL)
     # target_include_directories()
     # because its CMakelists.txt file propagates them to any target linking against the lib with:
     # target_include_directories(RTNeural PUBLIC include)
+
+    #VIC why no target_link_libraries???
 endif()
 
 
