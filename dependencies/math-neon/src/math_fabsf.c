@@ -51,6 +51,10 @@ float fabsf_neon_sfp(float x)
 	asm volatile (
 	"bic	 		r0, r0, #0x80000000		\n\t"	//r0 = r0 & ~(1 << 31)
 	);
+    //VIC pull the final r0 into our C var
+	float result;
+    asm volatile("vmov.f32 %0, r0\n\t" : "=w"(result));
+    return result;
 #else
 	return fabsf_c(x);
 #endif

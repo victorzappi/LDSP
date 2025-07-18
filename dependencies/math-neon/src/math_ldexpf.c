@@ -57,6 +57,11 @@ float ldexpf_neon_sfp(float m, int e)
 	"vmov.f32 		r0, s0					\n\t"	//r0 = s0
 	::: "d0", "d1"
 	);
+	//VIC pull the final S0 into our C var, i is already written by reference via [r1]
+	float result;
+	asm volatile ("vmov.f32 %0, s0       \n\t"
+    : "=w"(result));
+	return result;
 #else
 	return ldexpf_c(m,e);
 #endif

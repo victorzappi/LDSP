@@ -58,9 +58,14 @@ float modf_neon_sfp(float x, int *i)
 	"vsub.f32		d0, d0, d2				\n\t"	//d0 = d0 - d2; 
 	"vstr.i32		s2, [r1]				\n\t"	//[r0] = d1[0] 
 	"vmov.f32 		r0, s0					\n\t"	//r0 = d0[0];
-	::: "d0", "d1", "d2"
+	::: "d0","d1","d2",
+	"memory"         //VIC recommended because we write in the mem location of r1 (i) through [r1]
 	);
-		
+	//VIC pull the final S0 into our C var
+	float result;
+    asm volatile ("vmov.f32 %0, s0       \n\t"
+                  : "=w"(result));
+    return result;
 #else
 	return modf_c(x, i);
 #endif

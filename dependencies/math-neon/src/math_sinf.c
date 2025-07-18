@@ -111,7 +111,14 @@ float sinf_neon_hfp(float x)
 }
 
 //TODO: 
-// CHECK 3 remaningn sfp math functions
+// properly include math-neon in cmake
+// make one example with guards [do we need explicit NEON? it seems that vfp is enough to use neon on 32 bits]
+// update FFT and Oscillator
+// merge
+// check if RTNeural include lib is not needed for real
+// check if we can use fftw as submodule [on new branch]
+// add notes to readmes: math-neon, seasocks, glob?
+// scope!
 float sinf_neon_sfp(float x)
 {
 #ifdef __MATH_NEON
