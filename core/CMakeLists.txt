@@ -3,6 +3,46 @@
 
 project(ldsp)
 
+
+# --------------- Prepare dynamic dependency build/inclusion ---------------
+
+# Check if this is a libpd project
+# and whether or not to add libpd dependency
+if (EXISTS ${LDSP_PROJECT}/_main.pd)
+  set(ADD_LIBPD TRUE CACHE BOOL "Enable ADD_LIBPD globally" FORCE)
+else()
+  set(ADD_LIBPD FALSE CACHE BOOL "Disable ADD_LIBPD globally" FORCE)
+endif()
+
+# math-neon lib always enabled for armv7a targets
+if(${DEVICE_ARCH} STREQUAL "armv7a")
+  set(ADD_MATHNEON TRUE CACHE BOOL "Enable ADD_MATHNEON globally" FORCE)
+else()
+  set(ADD_MATHNEON FALSE CACHE BOOL "Disable ADD_MATHNEON globally" FORCE)
+endif()
+
+# Check whether or not to add other large dependencies
+# Define the variable names and corresponding strings to search for
+set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFT" "ADD_FFTW3" "ADD_NE10" "ADD_ONNX" "ADD_RTNEURAL")
+# designed to work with two strings per dependency, one specific to ldsp and one to the dependency
+set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "Fft.h;Fft.h" "fftw3;fftw3" "NE10;NE10" "libraries/OrtModel/OrtModel.h;onnx" "RTNeural/RTNeural.h;rtneural")
+#TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
+# the main pd file needs to be excluded and an extra check needs to be added:
+# if pd and any patch has a 'gui send' or 'gui receive' ---> then ADD_SEASOCKS
+# along with a define that removes the seaksocks code from main pd if those objects are not found
+
+
+# Initialize global cache variables based on VARIABLE_NAMES
+foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
+    set(${VAR_NAME} FALSE CACHE BOOL "Initially, ${VAR_NAME} is not found" FORCE)
+endforeach()
+# call the script that checks for strings
+include("${CMAKE_CURRENT_SOURCE_DIR}/../check_dependencies_inclusion.cmake")
+
+
+
+# --------------- Source files ---------------
+
 # https://stackoverflow.com/a/62085797
 # Source files for the LDSP core itself
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS *.cpp *.c)
@@ -81,6 +121,7 @@ if(${NEON_SUPPORTED} STREQUAL "ON")
     if(${NE10_FFT} STREQUAL "ON")  
       # then use ne10 fft implementation, by making sure we build it!
       set(ADD_NE10 TRUE CACHE BOOL "Enable NE10 globally" FORCE)
+
     else()  
       # otherwise, stick to fftw implementation, by making sure we build that instead
       set(ADD_FFTW3 TRUE CACHE BOOL "Enable FFTW globally" FORCE)
@@ -121,7 +162,7 @@ if(ADD_RTNEURAL)
   target_link_libraries(ldsp PRIVATE RTNeural)
 endif()
 
-if(${DEVICE_ARCH} STREQUAL "armv7a")
+if(ADD_MATHNEON)
   target_link_libraries(ldsp PRIVATE mathneon)
 endif()
 
@@ -130,3 +171,25 @@ target_link_libraries(ldsp
   PRIVATE libraries
   PRIVATE android # this is found in the NDK!
 )
+
+
+
+# --------------- Print dependencies status ---------------
+
+# note that FFTW or NE10 may have been changed since the first check
+# foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
+#     message(STATUS "================State of ${VAR_NAME}: ${${VAR_NAME}}")
+# endforeach()
+
+# export dependencies configuration to text file
+# define the output text file path
+set(output_file "${CMAKE_CURRENT_SOURCE_DIR}/../ldsp_dependencies.conf")
+# overwrite any existing content with the first line (no comment now)
+file(WRITE "${output_file}" "")  # empty initialization
+# write all dependency flags
+foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
+    file(APPEND "${output_file}" "${VAR_NAME}=\"${${VAR_NAME}}\"\n")
+endforeach()
+# manually add these ones cos they are not in the list
+file(APPEND "${output_file}" "ADD_LIBPD=\"${ADD_LIBPD}\"\n")
+file(APPEND "${output_file}" "ADD_MATHNEON=\"${ADD_MATHNEON}\"\n")

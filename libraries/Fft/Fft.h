@@ -2,7 +2,12 @@
 #include <vector>
 #ifdef NE10_FFT
 #include <NE10.h>
-#include <cmath> // #include <libraries/math_neon/math_neon.h>  //VIC math_neon not yet available
+// on arv7a targets we can use this extra boost!
+#ifdef __ARM_NEON__
+    #include <math_neon.h> 
+#else
+    #include <cmath>
+#endif
 #else
 #include <fftw3.h>
 #include <cmath>
@@ -73,8 +78,8 @@ public:
      */
     float fda(unsigned int n) 
     { 
-    #ifdef NE10_FFT
-        return std::sqrt(fdr(n) * fdr(n) + fdi(n) * fdi(n)); //sqrtf_neon(fdr(n) * fdr(n) + fdi(n) * fdi(n)); //VIC this will be turned into math_neon implementation
+    #if defined(NE10_FFT) && defined(__ARM_NEON__)
+        return sqrtf_neon(fdr(n) * fdr(n) + fdi(n) * fdi(n));
     #else
         return std::sqrt(fdr(n) * fdr(n) + fdi(n) * fdi(n)); 
     #endif

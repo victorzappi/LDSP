@@ -44,9 +44,8 @@ get_api_level () {
 				level=9
 			elif [[ $version_patch == 2 ]]; then
 				level=9
-			elif [[ $version_patch == 3 ]]; then
-				level=10
-			elif [[ $version_patch == 4 ]]; then
+      # API_LEVEL 10 corresponds to Android >=  2.3.3 [up to 2.3.7]
+			elif [[ $version_patch > 2 ]]; then
 				level=10
 			fi
 		fi
@@ -119,6 +118,10 @@ get_api_level () {
 		fi
 	elif [[ $version_major == 13 ]]; then
 		level=33
+  elif [[ $version_major == 14 ]]; then
+		level=35
+  elif [[ $version_major == 15 ]]; then
+		level=36
 	fi
 
   if [[ $level == "" ]]; then
@@ -174,37 +177,52 @@ configure () {
     exit 1
   fi
 
+# TODO: 
+#  test FFT and Oscillator, both 32 and 64 bit
+#  test fucking win
+#  merge
+#  check if RTNeural include lib is not needed for real
+#  check if we can use fftw as submodule [on new branch]
+#  add notes to readmes: math-neon, seasocks, glob?
+#  scope!
+#  pass realease/debug configuration from ldsp script
+
+  # get major NDK version
+  ndk_version=$(
+    grep -oP 'Pkg\.Revision\s*=\s*\K[0-9]+(?=\.)' "$NDK/source.properties"
+  )
+
   # target ABI
   arch=$(grep 'target architecture' "$hw_config" | cut -d \" -f 4)
-  if [[ $arch == "armv7a" ]]; then
-    abi="armeabi-v7a"
-  elif [[ $arch == "aarch64" ]]; then
+  if [[ $arch == "aarch64" ]]; then
     abi="arm64-v8a"
+    neon="ON"
+  elif [[ $arch == "armv7a" ]]; then
+    abi="armeabi-v7a"
+    neon="ON"
+  elif [[ $arch == "armv5te" ]]; then
+    abi="armeabi"
+    neon="OFF"
+    # this abi (with no NEON support) was dropped in NDK 17
+    # we need to check if the current NDK is <=17 and warn the user otherwise!
+    if (($ndk_version >= 17 )); then
+      echo "You are trying to use NDK r${version} to build for a very old 32 bit phone, which is not supported anymore!"
+      echo "But don't worry! Try NDK version 16 or lower (;"
+      exit 1
+    fi
   elif [[ $arch == "x86" ]]; then
     abi="x86"
+    neon="OFF"
   elif [[ $arch == "x86_64" ]]; then
     abi="x86_64"
+    neon="OFF"
   else
     echo "Cannot configure: unknown architecture: $arch"
     exit 1
   fi
 
-  # target Android version
-  api_level=$(get_api_level)
-  exit_code=$?
-
-  if [[ $exit_code != 0 ]]; then
-    echo "Cannot configure: unknown Android version: $VERSION"
-    exit $exit_code
-  fi
-
-  # support for NEON floating-point unit
-  neon_setting=$(grep 'supports neon floating point unit' "$hw_config" | cut -d \" -f 4)
-  
-  if [[ $neon_setting =~ ^(true|True|yes|Yes|1)$ ]];
-  then
-    neon="ON"
-    
+  # Neon settings
+  if [[ $neon == "ON" ]]; then
     # Passing the --no-neon-audio-format flag configures to not use parallel audio streams formatting with NEON
     if [[ $NO_NEON_AUDIO != "" ]]
     then
@@ -222,15 +240,20 @@ configure () {
     else  
       neon_fft="ON"
     fi
-
   else
     echo "NEON floating-point unit not present on phone"
-    neon="OFF"
     neon_audio_format="OFF"  
     neon_fft="OFF"
   fi
-  
 
+  # target Android version
+  api_level=$(get_api_level)
+  exit_code=$?
+
+  if [[ $exit_code != 0 ]]; then
+    echo "Cannot configure: unknown Android version: $VERSION"
+    exit $exit_code
+  fi
 
   if [[ $PROJECT == "" ]]; then
     echo "Cannot configure: project path not specified"
@@ -266,10 +289,17 @@ configure () {
   # store custom build dir
   build_dir=$(pwd)
 
+  # we need to force Clang as toolchaing in case we use older NDKs!
+  if (( ndk_version < 19 )); then
+    TOOLCHAIN_VER="-DCMAKE_ANDROID_NDK_TOOLCHAIN_VERSION=clang"
+  else
+    TOOLCHAIN_VER=""
+  fi
+
   # run CMake configuration 
   cmake -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
-        -DDEVICE_ARCH="$arch" -DANDROID_ABI="$abi" -DANDROID_PLATFORM="android-$api_level" \
-        -DANDROID_NDK="$NDK" -DEXPLICIT_ARM_NEON="$neon" -DNEON_AUDIO_FORMAT="$neon_audio_format" -DNE10_FFT="$neon_fft"\
+        -DDEVICE_ARCH="$arch" -DANDROID_ABI="$abi" -DANDROID_PLATFORM="android-$api_level" -DANDROID_NDK="$NDK" $TOOLCHAIN_VER \
+        -DNEON_SUPPORTED="$neon" -DNEON_AUDIO_FORMAT="$neon_audio_format" -DNE10_FFT="$neon_fft"\
         -DLDSP_PROJECT="$project_dir" -DONNX_VERSION="$onnx_version" \
         -G Ninja -B"$build_dir" -S".."
 

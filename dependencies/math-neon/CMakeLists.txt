@@ -54,9 +54,10 @@ target_include_directories(mathneon PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # ------------------------------------------------------------------------
 # Silence “missing return” warning only for mathneon 
 # ------------------------------------------------------------------------
-#VIC several assembly implementations of math-neon functions have no 
+#VIC several assembly implementations of math-neon hfp functions have no 
 # return statement for the C compiler, yet they are totally safe, due to 
 # how data is moved around in registers. so we silence the warnings here
 # i assume andrepuschmann did this to really minimize the number of 
 # assembly operations wihthin the functions!
+# NOTE: this does not hold up for sfp implementations! i had to patch them!
 target_compile_options(mathneon PRIVATE -Wno-return-type)

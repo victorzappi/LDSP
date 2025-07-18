@@ -141,7 +141,7 @@ if(ADD_NE10)
     target_include_directories(dependencies INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/Ne10/inc)
     target_link_libraries(dependencies INTERFACE NE10)
     
-    if(ADD_FFT AND (${NE10_FFT} STREQUAL "ON"))
+    if(ADD_FFT AND ${NE10_FFT} STREQUAL "ON")
       target_compile_definitions(dependencies INTERFACE NE10_FFT="ON")
     endif()
 endif()
@@ -170,8 +170,13 @@ if(ADD_RTNEURAL)
 endif()
 
 
-if(${DEVICE_ARCH} STREQUAL "armv7a")
-    # We are using a custom version of math-neon that... HIDDEN HFP FABS + build only if 32 bit [SFP], added extern "C" guard in main inlcude so that C++ compiler looks for the unmangled names
+if(ADD_MATHNEON)
+    # We are using a custom version of the original math-neon: https://github.com/andrepuschmann/math-neon/tree/master
+    # this lib is compatible with armv7a only (aarch64 compilation should achieve same performance), which supports soft-float only on Android!
+    # or version of the lib is edited quite a bit:
+    # - added return statement to all sfp math functions
+    # - hid hfp implementation of fabs [the asm was not recognize as corect]
+    # - added extern "C" guard in main inlcude so that C++ compiler looks for the unmangled names
     add_subdirectory(math-neon)
     target_link_libraries(dependencies INTERFACE mathneon)
     # mathneon does not need to explicitly add includes with:

@@ -35,8 +35,8 @@ goto main
     if "%version_minor%" == "1" exit /b 7
     if "%version_minor%" == "2" exit /b 8
     if "%version_minor%" == "3" (
-      if "%version_patch%" == "3" exit /b 10
-      if "%version_patch%" == "4" exit /b 10
+      rem API_LEVEL 10 corresponds to Android >= 2.3.3 [up to 2.3.7]
+      if %version_patch% gtr 2 exit /b 10
       exit /b 9
     )
   )
@@ -80,6 +80,8 @@ goto main
     exit /b 31
   )
   if "%version_major%" == "13" exit /b 33
+  if "%version_major%" == "14" exit /b 34
+  if "%version_major%" == "15" exit /b 35
   exit /b 0
 rem End of :get_api_level
 
@@ -153,47 +155,57 @@ rem End of :install_scripts
     exit /b 1
   )
 
+  rem get major NDK version
+  for /f "usebackq tokens=2 delims=.= " %%A in (`
+    findstr /C:"Pkg.Revision" "%NDK%\source.properties"
+  ) do (
+    set "ndk_version=%%A"
+    goto :gotVersion
+  )
+  echo ERROR: could not parse NDK version
+  exit /b 1
+
+
+  :gotVersion
   rem target ABI
-  for /f "tokens=2 delims=:" %%i in ('type "%hw_config%" ^| findstr /r "target architecture"') do set arch=%%i
+  for /f "tokens=2 delims=:" %%I in ('
+      type "%hw_config%" ^| findstr /ri "target architecture"
+  ') do set "arch=%%I"
 
-  set arch=%arch:"=%
-  set arch=%arch:,=%
-  set arch=%arch: =%
+  rem strip quotes, commas and spaces
+  set "arch=%arch:"=%"
+  set "arch=%arch:,=%"
+  set "arch=%arch: =%"
 
-  if "%arch%" == "armv7a" set "abi=armeabi-v7a"
-  if "%arch%" == "aarch64" set "abi=arm64-v8a"
-  if "%arch%" == "x86" set "abi=x86"
-  if "%arch%" == "x86_64" set "abi=x86_64"
-  if "%abi%" == "" (
-    echo Cannot configure: unknown target architecture "%arch%"
-    exit /b 1
-  )
-
-  rem target Android version
-  call :get_api_level
-  set "api_level=%ERRORLEVEL%"
-  if "%api_level%" == "0" (
-    echo Cannot configure: unknown Android version "%version%
-    exit /b 1
-  )
-
-  rem support for NEON floating-point unit
-  for /f "tokens=2 delims=:" %%i in ('type "%hw_config%" ^| findstr /r "supports neon floating point unit"') do set neon_setting=%%i
-
-  set neon_setting=%neon_setting:"=%
-  set neon_setting=%neon_setting:,=%
-  set neon_setting=%neon_setting: =%
-
-  if /I "%neon_setting%" == "true" (
-    set "neon=ON"
-  ) else if /I "%neon_setting%" == "yes" (
-    set "neon=ON"
-  ) else if "%neon_setting%" == "1" (
-    set "neon=ON"
+  if /i "%arch%"=="aarch64" (
+      set "abi=arm64-v8a"
+      set "neon=ON"
+  ) else if /i "%arch%"=="armv7a" (
+      set "abi=armeabi-v7a"
+      set "neon=ON"
+  ) else if /i "%arch%"=="armv5te" (
+      set "abi=armv5te"    & rem or whatever you actually want here
+      set "neon=OFF"
+      rem this abi (with no NEON support) was dropped in NDK 17
+      rem we need to check if the current NDK is <=17 and warn the user otherwise!
+      if %ndk_version% GEQ 17 (
+        echo You are trying to use NDK r%ndk_version% to build for a very old 32‑bit phone, which is not supported anymore!
+        echo But don't worry! Try NDK version 16 or lower
+        exit /b 1
+      )
+  ) else if /i "%arch%"=="x86" (
+      set "abi=x86"
+      set "neon=OFF"
+  ) else if /i "%arch%"=="x86_64" (
+      set "abi=x86_64"
+      set "neon=OFF"
   ) else (
-    set "neon=OFF"
+      echo Cannot configure: unknown target architecture "%arch%"
+      exit /b 1
   )
 
+
+  rem Neon settings
   if "%neon%"=="ON" (
     rem assume neon_audio_format and neon_fft default to ON
     set "neon_audio_format=ON"
@@ -220,7 +232,13 @@ rem End of :install_scripts
     set "neon_fft=OFF"
   )
 
-
+  rem target Android version
+  call :get_api_level
+  set "api_level=%ERRORLEVEL%"
+  if "%api_level%" == "0" (
+    echo Cannot configure: unknown Android version "%version%
+    exit /b 1
+  )
 
   if "%project%" == "" (
     echo Cannot configure: project path not specified
@@ -278,10 +296,17 @@ rem End of :install_scripts
   rem store custom build dir
   set build_dir=%CD%
 
+  rem we need to force Clang as toolchain in case we use older NDKs!
+  if %ndk_version% LSS 19 (
+    set "TOOLCHAIN_VER=-DCMAKE_ANDROID_NDK_TOOLCHAIN_VERSION=clang"
+  ) else (
+    set "TOOLCHAIN_VER="
+  )
+
   rem Run CMake configuration
   cmake -DCMAKE_TOOLCHAIN_FILE="%NDK%/build/cmake/android.toolchain.cmake" ^
-        -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% ^
-        -DANDROID_NDK="%NDK%" -DEXPLICIT_ARM_NEON=%neon% -DNEON_AUDIO_FORMAT=%neon_audio_format% -DNE10_FFT=%neon_fft%^
+        -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% -DANDROID_NDK="%NDK%" %TOOLCHAIN_VER% ^
+        -DNEON_SUPPORTED=%neon% -DNEON_AUDIO_FORMAT=%neon_audio_format% -DNE10_FFT=%neon_fft%^
         -DLDSP_PROJECT="%project_dir%" -DONNX_VERSION=%onnx_version% ^
         -G Ninja -B"%build_dir%" -S".."
 
