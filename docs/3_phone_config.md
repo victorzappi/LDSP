@@ -44,11 +44,10 @@ Before start populating the entries with the info about your phone, we should:
 <br>
 
 ### 1. Phone Details
-The first three entries regard some general phone details and are:
+The first two entries regard some general phone details and are:
 ```json
 "device": "", ---> name of the device
-"target architecture": "", ---> 32 bits (armv7a) or 64 bits (aarch64)
-"supports neon floating point unit": ""  ---> true or false
+"target architecture": "", ---> in most cases aarch64 (64 bits) or armv7a (32 bits)
 ```
 They can be easily retrieved via one of the LDSP scripts (*ldsp_phoneDetails.sh*). To run the script on the phone, simply open a **shell** on your computer (i.e., a 'local' shell), navigate to the **LDSP folder** and type:
 
@@ -69,20 +68,20 @@ The output should look something like this (for example, on a Moto G7 phone):
 Entries for ldsp_hw_config.json:
 	device: motorola moto g(7)
 	target architecture: aarch64
-	supports neon floating point unit: true
-Android version: 14
+Additional info:
+    NEON floating point unit present
+    Android version: 14
 
 ```
-You can now copy the first three entries in your configuration file, like this:
+You can now copy the first two entries in your configuration file, like this:
 
 ```json
 "device": "motorola moto g(7)",
 "target architecture": "aarch64",
-"supports neon floating point unit": "true"
 ```
 The name of the device is arbitrary, meaning that you can choose whatever you want (: But the script returns what found in the phone's properties.
 
-The last line outputted from the script is not needed for the configuration file, but it will come in handy when running the LDSP applications (see [usage doc](4_usage.md)).
+The last two lines outputted from the script ("Additional info") are not needed for the configuration file, but provide more insights about the capabilities of the phone; additionally, the Android version will come in handy when building the LDSP applications (see [usage doc](4_usage.md)).
 
 <br>
 

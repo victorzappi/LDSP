@@ -83,8 +83,8 @@ To find the installation path, open a terminal and try (the NDK contains several
 
 - **Pure Data “vanilla” [optional]**:  in case you want to code LDSP applications in Pd rather than C++: [https://puredata.info/downloads](https://puredata.info/downloads)
 
-- **Python [optional]**: required only for LDSP projects that use the **Seasocks** webserver as a dependency (e.g., *[LDSP/examples/Gui](../examples/Gui)*). If you don’t plan to use Seasocks, Python is not needed.
-Otherwise, install Python as follows:
+- **Python [optional]**: required only for LDSP projects that use specific dependencies: **Seasocks** webserver (e.g., *[LDSP/examples/Gui](../examples/Gui)*), Ne10 lib (e.g., *[LDSP/examples/Audio/fft_boilerplate](../examples/Audio/fft_boilerplate)*) and math-neon lib (e.g., *[LDSP/examples/NEON/neon_sine](../examples/NEON/neon_sine)*). If you don’t plan to use Seasocks, Python is not needed.
+If you want to explore these features/examples, install Python as follows:
   
     - Linux: install via your package manager
     - macOS: install via [Homebrew](https://formulae.brew.sh/formula/python@3.9) or MacPorts; otherwise use Windows’ guidelines
