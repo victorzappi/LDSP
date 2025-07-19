@@ -1,38 +1,27 @@
 {
-	"device": "Samsung Galaxy Tab 4",
-	"target architecture": "armv7a",
-	"supports neon floating point unit": "true",
-	"mixer settings":
-	{
-		"mixer paths xml file": "/etc/mixer_paths.xml",
-		"[mixer volumes xml file]": "",
-		"playback path names":
-		{ 
-			"speaker": "speaker",
-			"line-out": "headset",
-			"handset": "handset"
-		},
-		"capture path names":
-		{
-		   	"mic": "rec-stereo-mic",
-			"line-in": "rec-headset-mic",
-		   	"handset": "rec-stereo-mic"
-		},
-		"[mixer playback device activation]": "SLIMBUS_0_RX Audio Mixer DEVICE_ID",
-		"[mixer capture device activation]": "DEVICE_ID Mixer SLIM_0_TX",
-		"[mixer playback device secondary activation]":
-		{
-		},
-		"[mixer capture device secondary activation]":
-		{
-		}
-	},
-	"[default audio parameters]":
-	{
-		"playback device number": 15,
-		"capture device number": 0
-	},
-	"[control outputs]":
-	{
-	}
+    "device": "Samsung Galaxy Tab 4",
+    "target architecture": "armv7a",
+    "mixer settings": {
+        "mixer paths xml file": "/etc/mixer_paths.xml",
+        "[mixer volumes xml file]": "",
+        "playback path names": {
+            "speaker": "speaker",
+            "line-out": "headset",
+            "handset": "handset"
+        },
+        "capture path names": {
+            "mic": "rec-stereo-mic",
+            "line-in": "rec-headset-mic",
+            "handset": "rec-stereo-mic"
+        },
+        "[mixer playback device activation]": "SLIMBUS_0_RX Audio Mixer DEVICE_ID",
+        "[mixer capture device activation]": "DEVICE_ID Mixer SLIM_0_TX",
+        "[mixer playback device secondary activation]": {},
+        "[mixer capture device secondary activation]": {}
+    },
+    "[default audio parameters]": {
+        "playback device number": 15,
+        "capture device number": 0
+    },
+    "[control outputs]": {}
 }

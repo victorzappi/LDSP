@@ -1,68 +1,52 @@
 {
-	"device": "HTC P8 Lite",
-	"target architecture": "aarch64",
-	"supports neon floating point unit": "true",
-	"mixer settings":
-	{
-		"mixer paths xml file": "/system/etc/audio/hissc/mixer_paths_ALICEPA.xml",
-		"[mixer volumes xml file]": "/system/etc/audio/hissc/mixer_volumes_ALICEPA_normal.xml",
-		"playback path names":
-		{ 
-			"speaker": "media-speaker",
-			"line-out": "media-headphone",
-			"handset": "media-earpiece"
-		},
-		"capture path names":
-		{
-		   	"mic": "camcorder-mic",
-			"line-in": "communication-headset-mic",
-		   	"handset": "communication-mic"
-		},
-		"[mixer playback device activation]": "",
-		"[mixer capture device activation]": "",
-		"[mixer playback device secondary activation]":
-		{
-		},
-		"[mixer capture device secondary activation]":
-		{
-		}
-	},
-	"[default audio parameters]":
-	{
-		"period size": 960,
-		"playback channels": 2,
-		"capture channels": 2
-	},
-	"[control outputs]":
-	{
-		"flashlight":
-		{
-			"control file": "/sys/class/leds/torch/brightness",
-			"max value": 7
-		},
-		"lcd-backlight":
-		{
-			"control file": "/sys/class/leds/lcd_backlight0/brightness",
-			"max value": "/sys/class/leds/lcd_backlight0/max_brightness"
-		},
-		"led-red":
-		{
-			"control file": "/sys/class/leds/red/brightness",
-			"max value": "/sys/class/leds/red/max_brightness"
-		},
-		"led-green":
-		{
-			"control file": "/sys/class/leds/green/brightness",
-			"max value": "/sys/class/leds/green/max_brightness"
-		},
-		"led-blue":
-		{
-			"control file": "/sys/class/leds/blue/brightness",
-			"max value": "/sys/class/leds/blue/max_brightness"
-		},
-		"vibration":
-		{ 
-			"control file": "/sys/class/timed_output/vibrator/enable"
-		}
-	}
+    "device": "HTC P8 Lite",
+    "target architecture": "aarch64",
+    "mixer settings": {
+        "mixer paths xml file": "/system/etc/audio/hissc/mixer_paths_ALICEPA.xml",
+        "[mixer volumes xml file]": "/system/etc/audio/hissc/mixer_volumes_ALICEPA_normal.xml",
+        "playback path names": {
+            "speaker": "media-speaker",
+            "line-out": "media-headphone",
+            "handset": "media-earpiece"
+        },
+        "capture path names": {
+            "mic": "camcorder-mic",
+            "line-in": "communication-headset-mic",
+            "handset": "communication-mic"
+        },
+        "[mixer playback device activation]": "",
+        "[mixer capture device activation]": "",
+        "[mixer playback device secondary activation]": {},
+        "[mixer capture device secondary activation]": {}
+    },
+    "[default audio parameters]": {
+        "period size": 960,
+        "playback channels": 2,
+        "capture channels": 2
+    },
+    "[control outputs]": {
+        "flashlight": {
+            "control file": "/sys/class/leds/torch/brightness",
+            "max value": 7
+        },
+        "lcd-backlight": {
+            "control file": "/sys/class/leds/lcd_backlight0/brightness",
+            "max value": "/sys/class/leds/lcd_backlight0/max_brightness"
+        },
+        "led-red": {
+            "control file": "/sys/class/leds/red/brightness",
+            "max value": "/sys/class/leds/red/max_brightness"
+        },
+        "led-green": {
+            "control file": "/sys/class/leds/green/brightness",
+            "max value": "/sys/class/leds/green/max_brightness"
+        },
+        "led-blue": {
+            "control file": "/sys/class/leds/blue/brightness",
+            "max value": "/sys/class/leds/blue/max_brightness"
+        },
+        "vibration": {
+            "control file": "/sys/class/timed_output/vibrator/enable"
+        }
+    }
 }

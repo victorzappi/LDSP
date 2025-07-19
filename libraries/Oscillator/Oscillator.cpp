@@ -1,9 +1,6 @@
 #include "Oscillator.h"
-#ifdef __ARM_NEON__
-#include <math_neon.h>
-#else
 #include <cmath>
-#endif
+
 
 void Oscillator::setup(float fs, Oscillator::Type type)
 {
@@ -22,12 +19,7 @@ float Oscillator::process() {
 	switch(type_) {
 		default:
 		case sine:
-		#ifdef __ARM_NEON__
-			out = sinf_neon(phase_);
-		#else
 			out = sin(phase_);
-		#endif
-		
 			break;
 		case triangle:
 			if (phase_ > 0) {

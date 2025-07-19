@@ -1,38 +1,27 @@
 {
-	"device": "Xiaomi Mi8 Lite",
-	"target architecture": "aarch64",
-	"supports neon floating point unit": "true",
-	"mixer settings":
-	{
-		"mixer paths xml file": "/vendor/etc/mixer_paths.xml",
-		"[mixer volumes xml file]": "",
-		"playback path names":
-		{ 
-			"speaker": "vi-feedback",
-			"line-out": "headphones",
-			"handset": "handset"
-		},
-		"capture path names":
-		{
-		   	"mic": "speaker-mic",
-			"line-in": "headset-mic",
-		   	"handset": "handset-mic"
-		},
-		"[mixer playback device activation]": "SEC_MI2S_RX Audio Mixer DEVICE_ID",
-		"[mixer capture device activation]": "DEVICE_ID Mixer INT3_MI2S_TX",
-		"[mixer playback device secondary activation]":
-		{
-		},
-		"[mixer capture device secondary activation]":
-		{
-		}
-	},
-	"[default audio parameters]":
-	{
-		"playback device number": 13,
-		"capture device number": 0
-	},
-	"[control outputs]":
-	{
-	}
+    "device": "Xiaomi Mi8 Lite",
+    "target architecture": "aarch64",
+    "mixer settings": {
+        "mixer paths xml file": "/vendor/etc/mixer_paths.xml",
+        "[mixer volumes xml file]": "",
+        "playback path names": {
+            "speaker": "vi-feedback",
+            "line-out": "headphones",
+            "handset": "handset"
+        },
+        "capture path names": {
+            "mic": "speaker-mic",
+            "line-in": "headset-mic",
+            "handset": "handset-mic"
+        },
+        "[mixer playback device activation]": "SEC_MI2S_RX Audio Mixer DEVICE_ID",
+        "[mixer capture device activation]": "DEVICE_ID Mixer INT3_MI2S_TX",
+        "[mixer playback device secondary activation]": {},
+        "[mixer capture device secondary activation]": {}
+    },
+    "[default audio parameters]": {
+        "playback device number": 13,
+        "capture device number": 0
+    },
+    "[control outputs]": {}
 }

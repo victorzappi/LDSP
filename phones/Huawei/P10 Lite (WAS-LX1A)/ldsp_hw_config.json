@@ -1,31 +1,24 @@
 {
-	"device": "Huawei P10 Lite",
-	"target architecture": "aarch64",
-	"supports neon floating point unit": "true",
-	"mixer settings":
-	{
-		"mixer paths xml file": "/product/etc/audio/hissc/mixer_paths_WARSAW.xml",
-		"[mixer volumes xml file]": "",
-		"playback path names":
-		{ 
-			"speaker": "media-speaker",
-			"line-out": "media-headphone",
-			"handset": "communication-speaker"
-		},
-		"capture path names":
-		{
-			"mic": "media-main-mic",
-			"line-in": "media-headset-mic",
-		   	"handset": "communication-mic"
-		}
-	},
-	"[default audio parameters]":
-	{
-		"period size": 960,
-		"playback channels": 2,
-		"capture channels": 2
-	},
-	"[control outputs]":
-	{
-	}
+    "device": "Huawei P10 Lite",
+    "target architecture": "aarch64",
+    "mixer settings": {
+        "mixer paths xml file": "/product/etc/audio/hissc/mixer_paths_WARSAW.xml",
+        "[mixer volumes xml file]": "",
+        "playback path names": {
+            "speaker": "media-speaker",
+            "line-out": "media-headphone",
+            "handset": "communication-speaker"
+        },
+        "capture path names": {
+            "mic": "media-main-mic",
+            "line-in": "media-headset-mic",
+            "handset": "communication-mic"
+        }
+    },
+    "[default audio parameters]": {
+        "period size": 960,
+        "playback channels": 2,
+        "capture channels": 2
+    },
+    "[control outputs]": {}
 }

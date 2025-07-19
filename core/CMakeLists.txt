@@ -14,18 +14,11 @@ else()
   set(ADD_LIBPD FALSE CACHE BOOL "Disable ADD_LIBPD globally" FORCE)
 endif()
 
-# math-neon lib always enabled for armv7a targets
-if(${DEVICE_ARCH} STREQUAL "armv7a")
-  set(ADD_MATHNEON TRUE CACHE BOOL "Enable ADD_MATHNEON globally" FORCE)
-else()
-  set(ADD_MATHNEON FALSE CACHE BOOL "Disable ADD_MATHNEON globally" FORCE)
-endif()
-
 # Check whether or not to add other large dependencies
 # Define the variable names and corresponding strings to search for
-set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFT" "ADD_FFTW3" "ADD_NE10" "ADD_ONNX" "ADD_RTNEURAL")
+set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFT" "ADD_FFTW3" "ADD_NE10" "ADD_ONNX" "ADD_RTNEURAL" "ADD_MATHNEON")
 # designed to work with two strings per dependency, one specific to ldsp and one to the dependency
-set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "Fft.h;Fft.h" "fftw3;fftw3" "NE10;NE10" "libraries/OrtModel/OrtModel.h;onnx" "RTNeural/RTNeural.h;rtneural")
+set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "Fft.h;Fft.h" "fftw3;fftw3" "NE10;NE10" "libraries/OrtModel/OrtModel.h;onnx" "RTNeural/RTNeural.h;rtneural" "math-neon;math-neon")
 #TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
 # the main pd file needs to be excluded and an extra check needs to be added:
 # if pd and any patch has a 'gui send' or 'gui receive' ---> then ADD_SEASOCKS
@@ -107,8 +100,18 @@ target_link_libraries(ldsp PRIVATE core)
 # --------------- Dependencies choice ---------------
 # check which dependencies to build and add as libs
 
+# math-neon lib is available for armv7a only 
+# if user wants to use math-neon lib but architecture is not armv7a, we stop config!
+if(ADD_MATHNEON AND NOT DEVICE_ARCH STREQUAL "armv7a")
+  message(FATAL_ERROR
+    "Trying to build and use math-neon lib for an unsupported architecture (${DEVICE_ARCH})!\n"
+    "The math-neon lib supports only armv7a.\n"
+    "Please remove the inclusion of math-neon from your source code."
+  )
+endif()
+
 # almost all phones are equipped with NEON, but it's always good to check!
-if(${NEON_SUPPORTED} STREQUAL "ON") 
+if(NEON_SUPPORTED STREQUAL "ON") 
   # if cmake was set to enable neon to format audio streams
   if(${NEON_AUDIO_FORMAT} STREQUAL "ON")
     # define NEON_AUDIO_FORMAT macro for the ldsp target (used in core)
@@ -118,19 +121,25 @@ if(${NEON_SUPPORTED} STREQUAL "ON")
   # if fft lib included in the user's code
   if(ADD_FFT) 
     # if cmake was set to enable ne10 fft
-    if(${NE10_FFT} STREQUAL "ON")  
+    if(NE10_FFT STREQUAL "ON")  
       # then use ne10 fft implementation, by making sure we build it!
       set(ADD_NE10 TRUE CACHE BOOL "Enable NE10 globally" FORCE)
-
+      # if buidling for armv7a, we can also boost fft with math-neon lib!
+      if(DEVICE_ARCH STREQUAL "armv7a")
+        set(ADD_MATHNEON TRUE CACHE BOOL "Enable math-neon globally" FORCE)
+      endif()
     else()  
       # otherwise, stick to fftw implementation, by making sure we build that instead
       set(ADD_FFTW3 TRUE CACHE BOOL "Enable FFTW globally" FORCE)
     endif()
   endif()
 elseif(ADD_NE10)
-  # if neon not supported, let's make sure that we don't try to build it
-  set(ADD_NE10 FALSE CACHE BOOL "Disable NE10 globally" FORCE)
-  message(WARNING "Trying to build and use Ne10 lib on a device that is not equipped with NEON!")
+  # if neon not supported but user wants to use it, let's make sure that we stop config
+  message(FATAL_ERROR
+    "Trying to build and use Ne10 lib on a device that is not equipped with NEON!\n"
+    "Please remove the inclusion of Ne10 from your source code."
+  )
+  # we don't need to handle math-neon here, because tied to armv7a and we handled that case already
 endif()
 
 
@@ -151,7 +160,7 @@ if(ADD_SEASOCKS)
 endif()
 
 if(ADD_ONNX)
-  # onnxruntime is a dynamic lib and needs a target link directory
+  # onnxruntime is a dynamic lib (due its size) and needs a target link directory
   target_link_directories(ldsp 
     PRIVATE "../dependencies/onnxruntime/${DEVICE_ARCH}/${ONNX_VERSION}"
   )
@@ -190,6 +199,5 @@ file(WRITE "${output_file}" "")  # empty initialization
 foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
     file(APPEND "${output_file}" "${VAR_NAME}=\"${${VAR_NAME}}\"\n")
 endforeach()
-# manually add these ones cos they are not in the list
+# manually add this one cos it's not in the list
 file(APPEND "${output_file}" "ADD_LIBPD=\"${ADD_LIBPD}\"\n")
-file(APPEND "${output_file}" "ADD_MATHNEON=\"${ADD_MATHNEON}\"\n")

@@ -178,6 +178,8 @@ configure () {
   fi
 
 # TODO: 
+# remove neon support from all config files and readme
+# in readme, cite that aarch64 and armv32 are just the most common archs
 #  test FFT and Oscillator, both 32 and 64 bit
 #  test fucking win
 #  merge
