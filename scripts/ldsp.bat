@@ -15,75 +15,103 @@ set "dependencies_file=ldsp_dependencies.conf"
 goto main
 
 :get_api_level
-  rem Convert a human-readable Android version (e.g. 13, 6.0.1, 4.4) into an API level.
+  rem — Split version (e.g. "13", "6.0.1", "4.4") into major/minor/patch
   for /f "tokens=1-3 delims=." %%a in ("%version%") do (
-    set version_major=%%a
-    set version_minor=%%b
-    set version_patch=%%c
+    set "version_major=%%a"
+    set "version_minor=%%b"
+    set "version_patch=%%c"
   )
-  if "%version_major%" == "1" (
-    if "%version_minor%" == "1" exit /b 2
-    if "%version_minor%" == "5" exit /b 3
-    if "%version_minor%" == "6" exit /b 4
+
+  rem — Android 1.x (API 1–4)
+  if "%version_major%"=="1" (
+    if "%version_minor%"=="1" exit /b 2
+    if "%version_minor%"=="5" exit /b 3
+    if "%version_minor%"=="6" exit /b 4
     exit /b 1
   )
-  if "%version_major%" == "2" (
-    if "%version_minor%" == "0" (
-      if "%version_patch%" == "1" exit /b 6
+
+  rem — Android 2.x (API 5–10)
+  if "%version_major%"=="2" (
+    if "%version_minor%"=="0" (
+      if "%version_patch%"=="1" exit /b 6
       exit /b 5
     )
-    if "%version_minor%" == "1" exit /b 7
-    if "%version_minor%" == "2" exit /b 8
-    if "%version_minor%" == "3" (
-      rem API_LEVEL 10 corresponds to Android >= 2.3.3 [up to 2.3.7]
-      if %version_patch% gtr 2 exit /b 10
+    if "%version_minor%"=="1" exit /b 7
+    if "%version_minor%"=="2" exit /b 8
+    if "%version_minor%"=="3" (
+      if "%version_patch%" gtr "2" exit /b 10
       exit /b 9
     )
-  )
-  if "%version_major%" == "3" (
-    if "%version_minor%" == "1" exit /b 12
-    if "%version_minor%" == "2" exit /b 13
+  ) 
+
+  rem — Android 3.x (API 11–13)
+  if "%version_major%"=="3" (
+    if "%version_minor%"=="1" exit /b 12
+    if "%version_minor%"=="2" exit /b 13
     exit /b 11
   )
-  if "%version_major%" == "4" (
-    if "%version_minor%" == "0" (
-      if "%version_patch%" == "3" exit /b 15
-      if "%version_patch%" == "4" exit /b 15
+
+  rem — Android 4.0–4.4 (API 14–19)
+  if "%version_major%"=="4" (
+    if "%version_minor%"=="0" (
+      if "%version_patch%"=="3" exit /b 15
+      if "%version_patch%"=="4" exit /b 15
       exit /b 14
     )
-    if "%version_minor%" == "1" exit /b 16
-    if "%version_minor%" == "2" exit /b 17
-    if "%version_minor%" == "3" exit /b 18
-    if "%version_minor%" == "4" exit /b 19
+    if "%version_minor%"=="1" exit /b 16
+    if "%version_minor%"=="2" exit /b 17
+    if "%version_minor%"=="3" exit /b 18
+    if "%version_minor%"=="4" exit /b 19
   )
-  rem API level 20 corresponds to Android 4.4W, which isn't relevant to us.
-  if "%version_major%" == "5" (
-    if "%version_minor%" == "1" exit /b 22
+
+  rem — Android 5.x (API 21–22)
+  if "%version_major%"=="5" (
+    if "%version_minor%"=="1" exit /b 22
     exit /b 21
   )
-  if "%version_major%" == "6" exit /b 23
-  if "%version_major%" == "7" (
-    if "%version_minor%" == "1" exit /b 25
+
+  rem — Android 6.0 (API 23)
+  if "%version_major%"=="6" exit /b 23
+
+  rem — Android 7.x (API 24–25)
+  if "%version_major%"=="7" (
+    if "%version_minor%"=="1" exit /b 25
     exit /b 24
   )
-  if "%version_major%" == "8" (
-    if "%version_minor%" == "1" exit /b 27
+
+  rem — Android 8.x (API 26–27)
+  if "%version_major%"=="8" (
+    if "%version_minor%"=="1" exit /b 27
     exit /b 26
   )
-  if "%version_major%" == "9" exit /b 28
-  if "%version_major%" == "10" exit /b 29
-  if "%version_major%" == "11" exit /b 30
-  if "%version_major%" == "12" (
-    rem Android 12 uses both API_LEVEL 31 and 32
-    rem Default to 31 but allow user to say "12.1" to get 32
-    if "%version_minor%" == "1" exit /b 32
+
+  rem — Android 9 (API 28)
+  if "%version_major%"=="9" exit /b 28
+
+  rem — Android 10 (API 29)
+  if "%version_major%"=="10" exit /b 29
+
+  rem — Android 11 (API 30)
+  if "%version_major%"=="11" exit /b 30
+
+  rem — Android 12 (API 31–32)
+  if "%version_major%"=="12" (
+    if "%version_minor%"=="1" exit /b 32
     exit /b 31
   )
-  if "%version_major%" == "13" exit /b 33
-  if "%version_major%" == "14" exit /b 34
-  if "%version_major%" == "15" exit /b 35
+
+  rem — Android 13 (API 33)
+  if "%version_major%"=="13" exit /b 33
+
+  rem — Android 14 (API 34)
+  if "%version_major%"=="14" exit /b 34
+
+  rem — Android 15 (API 35)
+  if "%version_major%"=="15" exit /b 35
+
+  rem — Unknown version
   exit /b 0
-rem End of :get_api_level
+rem — End of :get_api_level
 
 
 
@@ -156,17 +184,25 @@ rem End of :install_scripts
   )
 
   rem get major NDK version
-  for /f "usebackq tokens=2 delims=.= " %%A in (`
-    findstr /C:"Pkg.Revision" "%NDK%\source.properties"
-  ) do (
-    set "ndk_version=%%A"
-    goto :gotVersion
-  )
-  echo ERROR: could not parse NDK version
-  exit /b 1
+	rem — 1) Grab the full revision string (e.g. "25.2.9519653")
+	for /f "tokens=2 delims==" %%A in ('
+			findstr /R "^Pkg\.Revision" "%NDK%\source.properties"
+	') do (
+			set "full_rev=%%A"
+			goto :gotFull
+	)
+	echo ERROR: could not parse NDK version
+	exit /b 1
 
+	:gotFull
+	rem full_rev now holds something like 25.2.9519653
+	rem — 2) Extract the part before the first dot: the major version
+	for /f "tokens=1 delims=." %%B in ("%full_rev%") do (
+			set "ndk_version=%%B"
+	)
 
-  :gotVersion
+	
+	
   rem target ABI
   for /f "tokens=2 delims=:" %%I in ('
       type "%hw_config%" ^| findstr /ri "target architecture"
@@ -203,9 +239,8 @@ rem End of :install_scripts
       echo Cannot configure: unknown target architecture "%arch%"
       exit /b 1
   )
-
-
-  rem Neon settings
+  
+	rem Neon settings
   if "%neon%"=="ON" (
     rem assume neon_audio_format and neon_fft default to ON
     set "neon_audio_format=ON"
@@ -239,7 +274,7 @@ rem End of :install_scripts
     echo Cannot configure: unknown Android version "%version%
     exit /b 1
   )
-
+	
   if "%project%" == "" (
     echo Cannot configure: project path not specified
     echo Please specify a project path with --project

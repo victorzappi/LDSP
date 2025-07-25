@@ -178,14 +178,12 @@ configure () {
   fi
 
 # TODO: 
-#  test FFT and Oscillator, both 32 and 64 bit
-#  test fucking win
 #  merge
-#  check if RTNeural include lib is not needed for real
-#  check if we can use fftw as submodule [on new branch]
-#  add notes to readmes: math-neon, seasocks, glob?
+#  check if we can use serial and fftw as submodules
 #  scope!
 #  pass realease/debug configuration from ldsp script
+#  rapid lib?
+#  script for slimbus detection + continue docs 
 
   # get major NDK version
   ndk_version=$(

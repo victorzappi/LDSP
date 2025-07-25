@@ -4,6 +4,19 @@
 project(ldsp)
 
 
+# warnings avoidance
+# dummy usage for DEVICE_ARCH and ONNX_VERSION, for projects that do not use them
+if(DEFINED DEVICE_ARCH)
+    set(_dummy_DEVICE_ARCH "${DEVICE_ARCH}")
+endif()
+if(DEFINED ONNX_VERSION)
+    set(_dummy_ONNX_VERSION "${ONNX_VERSION}")
+endif()
+# check NE10_FFT at least once, for projects that do not use FFT
+if(${NE10_FFT} STREQUAL "ON")  
+endif()
+
+
 # --------------- Prepare dynamic dependency build/inclusion ---------------
 
 # Check if this is a libpd project
@@ -143,23 +156,34 @@ elseif(ADD_NE10)
 endif()
 
 
+message(STATUS "Dependencies to configure:")
+message(STATUS "\tTinyalsa")
+message(STATUS "\tLibsndfile")
+message(STATUS "\tGlob")
+message(STATUS "\tSerial")
+
 if(ADD_LIBPD)
+  message(STATUS "\tLibpd")
     target_link_libraries(ldsp PRIVATE libpd_static)
 endif()
 
 if(ADD_FFTW3)
+  message(STATUS "\tFftw3")
   target_link_libraries(ldsp PRIVATE fftw3f)
 endif()
 
 if(ADD_NE10)
+  message(STATUS "\tNe10")
   target_link_libraries(ldsp PRIVATE NE10)
 endif()
 
 if(ADD_SEASOCKS)
+  message(STATUS "\tSeasocks")
   target_link_libraries(ldsp PRIVATE seasocks)
 endif()
 
 if(ADD_ONNX)
+  message(STATUS "\tONNX")
   # onnxruntime is a dynamic lib (due its size) and needs a target link directory
   target_link_directories(ldsp 
     PRIVATE "../dependencies/onnxruntime/${DEVICE_ARCH}/${ONNX_VERSION}"
@@ -168,10 +192,12 @@ if(ADD_ONNX)
 endif()
 
 if(ADD_RTNEURAL)
+  message(STATUS "\tRTNeural")
   target_link_libraries(ldsp PRIVATE RTNeural)
 endif()
 
 if(ADD_MATHNEON)
+  message(STATUS "\tMath-neon")
   target_link_libraries(ldsp PRIVATE mathneon)
 endif()
 

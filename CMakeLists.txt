@@ -17,19 +17,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-Ofast") #VIC better than "-O3 -ffast-math"
 add_compile_options(-fdiagnostics-color=always)
 
 
-# warnings avoidance
-# dummy usage for DEVICE_ARCH and ONNX_VERSION, for projects that do not use them
-if(DEFINED DEVICE_ARCH)
-    set(_dummy_DEVICE_ARCH "${DEVICE_ARCH}")
-endif()
-if(DEFINED ONNX_VERSION)
-    set(_dummy_ONNX_VERSION "${ONNX_VERSION}")
-endif()
-# check NE10_FFT at least once, for projects that do not use FFT
-if(${NE10_FFT} STREQUAL "ON")  
-endif()
-
-
 
 add_subdirectory(core)
 add_subdirectory(dependencies)
