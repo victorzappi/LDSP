@@ -178,8 +178,7 @@ configure () {
   fi
 
 # TODO: 
-#  merge
-#  check if we can use serial and fftw as submodules
+#  check if we can use fftw as submodule
 #  scope!
 #  pass realease/debug configuration from ldsp script
 #  rapid lib?

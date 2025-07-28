@@ -92,10 +92,16 @@ if(ADD_LIBPD)
     target_link_libraries(dependencies INTERFACE libpd_static)
 endif()
 
-#VIC why not a submodule?
 if(ADD_FFTW3)
+    # We are not using a submodule but a local copy here, becayse the GitHub repository for FFTW3 omits 
+    # some C files produced by its genfft generators and throws errors. To build straight, we need to 
+    # generate the missing code at config time with:
+    # sh bootstrap.sh     # generates configure scripts and C sources
+    # ./configure         # (optional) sets up before make
+    # make genfft         # or make all           # produces the missing tables
+    # for now, we don't do this
     message(STATUS "\tConfiguring Fftw3...")
-    # BUILD_SHARED_LIBS option will propogate to fftw3 as well
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "Shared and not static lib" FORCE)
     set(BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
     set(ENABLE_FLOAT ON CACHE BOOL "single-precision" FORCE)
     add_subdirectory(fftw3)

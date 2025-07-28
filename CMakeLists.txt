@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.11)
 
+# Ensure that option() honors variables set in the cache
+cmake_policy(SET CMP0077 NEW)
+
 project(ldsp)
 
 set(LDSP_PROJECT "core" CACHE FILEPATH "Path to the LDSP project to build")
