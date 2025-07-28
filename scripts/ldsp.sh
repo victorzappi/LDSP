@@ -178,7 +178,6 @@ configure () {
   fi
 
 # TODO: 
-#  check if we can use fftw as submodule
 #  scope!
 #  pass realease/debug configuration from ldsp script
 #  rapid lib?

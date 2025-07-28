@@ -93,13 +93,10 @@ if(ADD_LIBPD)
 endif()
 
 if(ADD_FFTW3)
-    # We are not using a submodule but a local copy here, becayse the GitHub repository for FFTW3 omits 
-    # some C files produced by its genfft generators and throws errors. To build straight, we need to 
-    # generate the missing code at config time with:
-    # sh bootstrap.sh     # generates configure scripts and C sources
-    # ./configure         # (optional) sets up before make
-    # make genfft         # or make all           # produces the missing tables
-    # for now, we don't do this
+    # We are not using a submodule but a local copy of an official tarball, version 3.3.10 (check ./dependencies/fftw3/ChangeLog)
+    # We don't use a submodule because the GitHub repository for fftw3 needs a 'bootstrap' process 
+    # to generate some C files, and this requires several tools to be installed hence too much complexity
+    # Instead, we update the tarball manually, whenever a new relevant version comes out!
     message(STATUS "\tConfiguring Fftw3...")
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "Shared and not static lib" FORCE)
     set(BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
@@ -180,7 +177,7 @@ endif()
 if(ADD_MATHNEON)
     # We are using a custom version of the original math-neon: https://github.com/andrepuschmann/math-neon/tree/master
     # this lib is compatible with armv7a only (aarch64 compilation should achieve same performance), which supports soft-float only on Android!
-    # our version of the lib is edited quite a bit:
+    # our version underwent several edits (all marked with '//VIC'):
     # - added return statement to all sfp math functions
     # - hid hfp implementation of fabs [the asm was not recognize as corect]
     # - added extern "C" guard in main inlcude so that C++ compiler looks for the unmangled names
