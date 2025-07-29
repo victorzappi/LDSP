@@ -10,10 +10,12 @@
 #include "thread_utils.h"
 #include "libraries/JSON/json.hpp"
 
-
 #define FRAMES_STORED 4
 
 #define TRIGGER_LOG_COUNT 16
+
+// forward declaration
+class WebServer;
 
 // forward declarations
 class WSServer;
@@ -189,4 +191,8 @@ class Scope{
         //VIC
         bool shouldStop;
         std::atomic<bool> triggerSignal;
+        std::unique_ptr<WebServer> web_server;
+        int _port;
+        std::string _addressControl;
+		std::string _addressData;
 };

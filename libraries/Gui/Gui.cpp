@@ -24,7 +24,6 @@ The Bela software is distributed under the GNU Lesser General Public License (LG
 #include <seasocks/PageHandler.h>
 #include <seasocks/Request.h>
 #include <seasocks/ResponseBuilder.h>
-#include <seasocks/Response.h>
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
@@ -43,7 +42,7 @@ public:
         // printf("___________%s\n", uri.c_str());
 
         // this is needed to pass web socket requests to the web socket handler
-        if (request.verb() == seasocks::Request::Verb::WebSocket) 
+        if(request.verb() == seasocks::Request::Verb::WebSocket) 
             return seasocks::Response::unhandled();
 
         // Function to check if a string ends with another string
@@ -136,7 +135,8 @@ public:
         if (uri == "/" || uri == "/gui/index.html" || uri == "/gui/") {
             std::string filePath = basePath + "resources/gui/index.html";
             // printf("/___________%s\n", filePath.c_str());
-            return serveFile( basePath + "resources/gui/index.html", "text/html");
+            // return serveFile( basePath + "resources/gui/index.html", "text/html");
+            return serveFile( filePath, "text/html");
         }
 
 
@@ -151,7 +151,7 @@ private:
     std::shared_ptr<seasocks::Response> serveFile(const std::string& path, const std::string& mimeType) {
     std::ifstream file(path, std::ios::binary);
 
-        if (file) {
+        if(file) {
             seasocks::ResponseBuilder builder(seasocks::ResponseCode::Ok);
             std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
             builder.withContentType(mimeType);

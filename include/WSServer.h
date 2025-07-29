@@ -45,15 +45,19 @@ struct WSOutputData {
 class WSServer{
 	public:
 		WSServer();
-		WSServer(unsigned int port);
+		WSServer(unsigned int port, std::string resourceRoot="/dev/null");
 		~WSServer();
 		
-		virtual void setup(unsigned int port);
+		virtual void setup(unsigned int port, std::string resourceRoot="/dev/null");
 
-		void addAddress(std::string address, std::function<void(std::string, void*, int)> on_receive = nullptr, std::function<void(std::string)> on_connect = nullptr, std::function<void(std::string)> on_disconnect = nullptr, bool binary = false);
+		void addAddress(std::string address, std::function<void(std::string, void*, int)> on_receive = nullptr, 
+						std::function<void(std::string)> on_connect = nullptr, std::function<void(std::string)> on_disconnect = nullptr, 
+						bool binary = false);
 		
 		int send(const char* address, const char* str);
 		int send(const char* address, const void* buf, unsigned int size);
+
+		std::string getResourceRoot() {return _resourceRoot;};
 		
 	protected:
 		void cleanup();
@@ -75,8 +79,10 @@ class WSServer{
 
 
 		pthread_t serve_thread;
-		virtual void* serve_func();
+		virtual void* serve_func(std::string resourceRoot);
 		static void* serve_func_static(void* arg);
+		
+		std::string _resourceRoot;
 
 };
 

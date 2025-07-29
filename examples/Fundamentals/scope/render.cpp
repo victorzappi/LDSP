@@ -74,9 +74,9 @@ void render(LDSPcontext *context, void *userData)
 
 		// optional - tell the scope to trigger when oscillator 1 becomes less than oscillator 2
 		// note this has no effect unless trigger mode is set to custom in the scope UI
-		if (lastOut >= lastOut2 && out < out2){
-			scope.trigger();
-		}
+		// if (lastOut >= lastOut2 && out < out2){
+		// 	scope.trigger();
+		// }
 
 		lastOut = out;
 		lastOut2 = out2;

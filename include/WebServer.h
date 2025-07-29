@@ -13,11 +13,11 @@ namespace seasocks{
 class WebServer : public WSServer {
 public:
     WebServer();
-    WebServer(unsigned int port);
+    WebServer(unsigned int port, std::string resourceRoot="/dev/null");
     ~WebServer();
 
-    void setup(unsigned int port);
-    void setup(std::string projectName, std::string serverName, unsigned int port);
+    void setup(unsigned int port, std::string resourceRoot="/dev/null");
+    void setup(std::string projectName, std::string serverName, unsigned int port, std::string resourceRoot="/dev/null");
 
     void addPageHandler(std::__ndk1::shared_ptr<seasocks::PageHandler> handler);
 
@@ -30,7 +30,7 @@ private:
     void printServerAddress();
     std::string runIpCommand(std::string command);
 
-	void* serve_func();
+	void* serve_func(std::string resourceRoot);
     static void* serve_func_static(void* arg);
 
     // bool isListening();
