@@ -180,12 +180,12 @@ void* WSServer::client_func()
 			try  
 			{
 				// send, via execute
-				if (handler->binary)
+				if(handler->binary)
 				{
 					// make a copy of the data before we send it out
 					auto data = std::make_shared<std::vector<void*> >(size);
 					memcpy(data->data(), buf, size);
-					handler->server->execute([handler, data, size]{
+					handler->server->execute([handler, data, size] {
 						for (auto c : handler->connections){
 							c->send((uint8_t*) data->data(), size);
 						}
@@ -193,13 +193,13 @@ void* WSServer::client_func()
 				} else {
 					// make a copy of the data before we send it out
 					std::string str = (const char*)buf;
-					handler->server->execute([handler, str]{
-						for (auto c : handler->connections){
+					handler->server->execute([handler, str] {
+						for (auto c : handler->connections) {
 							c->send(str.c_str());
 						}
 					});
 				}
-			} catch (std::exception& e) 
+			} catch(std::exception& e) 
 			{
 				std::cerr << "Could not send data via web server, exception caught: " << e.what() << std::endl;
 			}

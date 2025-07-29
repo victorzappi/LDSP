@@ -29,9 +29,25 @@ endif()
 
 # Check whether or not to add other large dependencies
 # Define the variable names and corresponding strings to search for
-set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFT" "ADD_FFTW3" "ADD_NE10" "ADD_ONNX" "ADD_RTNEURAL" "ADD_MATHNEON")
+set(VARIABLE_NAMES 
+"ADD_SEASOCKS" 
+"ADD_FFT" 
+"ADD_FFTW3" 
+"ADD_NE10" 
+"ADD_ONNX" 
+"ADD_RTNEURAL" 
+"ADD_MATHNEON"
+)
 # designed to work with two strings per dependency, one specific to ldsp and one to the dependency
-set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "Fft.h;Fft.h" "fftw3;fftw3" "NE10;NE10" "libraries/OrtModel/OrtModel.h;onnx" "RTNeural/RTNeural.h;rtneural" "math-neon;math-neon")
+set(SEARCH_STRINGS 
+"libraries/Gui/Gui.h;seasocks" 
+"Fft.h;Fft.h" 
+"fftw3;fftw3" 
+"NE10;NE10" 
+"libraries/OrtModel/OrtModel.h;onnx" 
+"RTNeural/RTNeural.h;rtneural" 
+"math-neon;math-neon"
+)
 #TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
 # the main pd file needs to be excluded and an extra check needs to be added:
 # if pd and any patch has a 'gui send' or 'gui receive' ---> then ADD_SEASOCKS
@@ -40,12 +56,17 @@ set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "Fft.h;Fft.h" "fftw3;fftw3" "N
 
 # Initialize global cache variables based on VARIABLE_NAMES
 foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
-    set(${VAR_NAME} FALSE CACHE BOOL "Initially, ${VAR_NAME} is not found" FORCE)
+    set(${VAR_NAME} FALSE CACHE BOOL "Initially, ${VAR_NAME} is set to FALSE" FORCE)
 endforeach()
 # call the script that checks for strings
 include("${CMAKE_CURRENT_SOURCE_DIR}/../check_dependencies_inclusion.cmake")
 
 
+
+#VIC add/change logic here and move refines choices here... 
+set(ADD_NE10 TRUE CACHE BOOL "Enable NE10 globally" FORCE)
+set(ADD_SEASOCKS TRUE CACHE BOOL "Enable Seasocks globally" FORCE)
+# and make WSServer and WebServer libraries, so that core does not depend on seasocks anymore?
 
 # --------------- Source files ---------------
 
@@ -112,6 +133,8 @@ target_link_libraries(ldsp PRIVATE core)
 
 # --------------- Dependencies choice ---------------
 # check which dependencies to build and add as libs
+
+# Refine choices
 
 # math-neon lib is available for armv7a only 
 # if user wants to use math-neon lib but architecture is not armv7a, we stop config!

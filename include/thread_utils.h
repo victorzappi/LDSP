@@ -52,6 +52,8 @@ constexpr unsigned int LDSPprioOrder_arduinoWrite = 2;
 constexpr unsigned int LDSPprioOrder_wserverServe = 20;
 constexpr unsigned int LDSPprioOrder_wserverClient = 20;
 
+constexpr unsigned int LDSPprioOrder_scopeTriggerClient = 2;
+
 
 //-----------------------------------------------------------------------------------------------------------
 // set maximum priority to this thread

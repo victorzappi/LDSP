@@ -56,6 +56,7 @@ endif()
 if(ADD_SEASOCKS)
   target_include_directories(libraries PUBLIC Gui)
   target_include_directories(libraries PUBLIC GuiController)
+  target_include_directories(libraries PUBLIC Scope)
 endif()
 
 if(ADD_ONNX)
