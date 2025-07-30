@@ -482,7 +482,7 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 		audio_struct_c->fd = pcm_is_ready(audio_struct_c->pcm);
 		if(!audio_struct_c->pcm || !audio_struct_c->fd) 
 		{
-			fprintf(stderr, "Failed to open capture pcm %u,%u. %s\n", audio_struct_c->card, audio_struct_c->device, pcm_get_error(audio_struct_c->pcm));
+			fprintf(stderr, "Failed to open capture pcm %u,%u – %s\n", audio_struct_c->card, audio_struct_c->device, pcm_get_error(audio_struct_c->pcm));
 			return -1;
 		}
 

@@ -1,0 +1,4 @@
+cannot get audio capture to work!
+this means the '-O' is mandatory
+
+suspicious "USB headphones" mixer path, need to test USB interface/audio dongle

@@ -1,33 +1,38 @@
 {
     "device": "Moto G7",
     "target architecture": "aarch64",
-    "mixer settings": {
+    "mixer settings": 
+    {
         "mixer paths xml file": "/vendor/etc/mixer_paths.xml",
-        "[mixer volumes xml file]": "",
-        "playback path names": {
+        "playback path names": 
+        {
             "speaker": "speaker",
             "line-out": "headphones",
             "handset": "handset"
         },
-        "capture path names": {
+        "capture path names": 
+        {
             "mic": "speaker-mic",
             "line-in": "headset-mic",
             "handset": "handset-mic"
         },
         "[mixer playback device activation]": "SLIMBUS_0_RX Audio Mixer DEVICE_ID",
         "[mixer capture device activation]": "DEVICE_ID Mixer SLIM_0_TX",
-        "[mixer playback device secondary activation]": {
+        "[mixer playback device secondary activation]": 
+        {
             "speaker": "",
             "line-out": "SLIMBUS_5_RX Audio Mixer DEVICE_ID",
             "handset": ""
         },
-        "[mixer capture device secondary activation]": {
+        "[mixer capture device secondary activation]": 
+        {
             "mic": "",
             "line-in": "",
             "handset": ""
         }
     },
-    "[default audio parameters]": {
+    "[default audio parameters]": 
+    {
         "playback device number": 12,
         "capture device number": 12
     },

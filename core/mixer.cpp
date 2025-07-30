@@ -584,8 +584,9 @@ int loadPath(mixer *mx, xml_document *xml, LDSPhwConfig *hwconfig, LDSPinitSetti
 
 	// set the chosen mixer path
 	xml_document *xml_paths = &xml[0];
-	if(setPath(mx, xml_paths, pathName, hwconfig)!=0)
-		return -2;
+	// if(setPath(mx, xml_paths, pathName, hwconfig)!=0)
+	// 	return -2;
+	setPath(mx, xml_paths, pathName, hwconfig); //VIC some mixer errors are not catastrophic, we can try going forward...
 
 	if(!xml[1].empty())
 	{

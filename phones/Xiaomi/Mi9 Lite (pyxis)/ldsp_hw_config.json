@@ -1,0 +1,59 @@
+{
+	"device": "Xiaomi Mi9 Lite",
+	"target architecture": "aarch64",
+	"mixer settings":
+	{
+        "mixer paths xml file": "/vendor/etc/mixer_paths_mtp.xml",
+		"playback path names":
+		{ 
+			"speaker": "speaker",
+			"line-out": "headphones",
+			"handset": "handset"
+		},
+		"capture path names":
+		{
+			"mic": "handset-dmic-endfire",
+			"line-in": "headset-mic",
+		   	"handset": "handset-mic"
+		},
+		"[mixer playback device activation]": "",
+		"[mixer capture device activation]": "DEVICE_ID Mixer SLIM_7_TX",
+		"[mixer playback device secondary activation]":
+		{
+			"speaker": "PRI_MI2S_RX Audio Mixer DEVICE_ID",
+			"line-out": "INT0_MI2S_RX Audio Mixer DEVICE_ID",
+			"handset": "PRI_MI2S_RX Audio Mixer DEVICE_ID"
+		},
+		"[mixer capture device secondary activation]":
+		{
+			"mic": "",
+			"line-in": "",
+		   	"handset": ""
+		}
+	},
+	"[default audio parameters]":
+	{
+        "playback device number": 13,
+        "capture device number": 0,
+		"period size": -1,
+		"playback channels": 2,
+		"capture channels": 2
+	},
+	"[control outputs]":
+	{
+		"flashlight":
+		{
+			"control file": "",
+			"max value": ""
+		},
+		"lcd-backlight":
+		{
+			"control file": "",
+			"max value": ""
+		}, 
+		"vibration":
+		{ 
+			"control file": ""
+		}
+	}
+}
