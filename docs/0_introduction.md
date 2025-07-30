@@ -19,6 +19,7 @@ In theory, any phone running Android 2.3 or later can be hacked and run LDSP. In
 - LG Nexus 5 (bullhead)
 - Motorola G7 (river)
 - Samsung Galaxy Tab 4 (SM-T237P)
+- Xiaomi Mi9 Lite/CC9 (pyxis)
 - Xiaomi Mi8 Lite (platina)
 
 Each comes with a pre-made configuration file, stored in [LDSP/phones](../phones) and orgnaized by vendor.
