@@ -100,7 +100,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 		LDSP_resetMixerPaths(hwconfig);
         return -3;
     }
-
+	
 
 	// use XML to load paths
 	xml_document mixer_docs[2]; // [0] -> mixer paths, [1] -> mixer volumes (optional)
@@ -128,9 +128,8 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 
 	
 	// if necessary, activate devices, i.e., when in config file device activation path is given
-	// secondary activation is checked after path is set
-	if(!hwconfig->dev_activation_ctl_p.empty() /* && 
-		hwconfig->dev_activation_ctl2_p[0].empty() && hwconfig->dev_activation_ctl2_p[1].empty() && hwconfig->dev_activation_ctl2_p[2].empty() */)
+	// secondary activation is checked after path is set, in loadPath()
+	if(!hwconfig->dev_activation_ctl_p.empty())
 	{
 		if(activateDevice(mix, hwconfig, hwconfig->dev_activation_ctl_p , settings->deviceOutId) < 0)
 		{
@@ -140,8 +139,7 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	}
 	if(!settings->captureOff)
 	{
-		if(!hwconfig->dev_activation_ctl_c.empty() /* && 
-			hwconfig->dev_activation_ctl2_c[0].empty() && hwconfig->dev_activation_ctl2_c[1].empty() && hwconfig->dev_activation_ctl2_c[2].empty() */)
+		if(!hwconfig->dev_activation_ctl_c.empty())
 		{
 			if(activateDevice(mix, hwconfig, hwconfig->dev_activation_ctl_c , settings->deviceInId) < 0)
 			{
@@ -584,9 +582,9 @@ int loadPath(mixer *mx, xml_document *xml, LDSPhwConfig *hwconfig, LDSPinitSetti
 
 	// set the chosen mixer path
 	xml_document *xml_paths = &xml[0];
-	// if(setPath(mx, xml_paths, pathName, hwconfig)!=0)
-	// 	return -2;
-	setPath(mx, xml_paths, pathName, hwconfig); //VIC some mixer errors are not catastrophic, we can try going forward...
+	if(setPath(mx, xml_paths, pathName, hwconfig)!=0)
+		printf("Trying to move forward despite mixer issues...\n");// 	return -2;
+		//VIC some mixer errors are not catastrophic, we can try going forward...
 
 	if(!xml[1].empty())
 	{

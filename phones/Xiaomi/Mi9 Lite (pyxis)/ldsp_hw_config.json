@@ -12,12 +12,12 @@
 		},
 		"capture path names":
 		{
-			"mic": "handset-dmic-endfire",
+			"mic": "main-mic",
 			"line-in": "headset-mic",
-		   	"handset": "handset-mic"
+		   	"handset": "camcorder-dmic"
 		},
 		"[mixer playback device activation]": "",
-		"[mixer capture device activation]": "DEVICE_ID Mixer SLIM_7_TX",
+		"[mixer capture device activation]": "DEVICE_ID Mixer INT3_MI2S_TX",
 		"[mixer playback device secondary activation]":
 		{
 			"speaker": "PRI_MI2S_RX Audio Mixer DEVICE_ID",
