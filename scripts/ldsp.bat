@@ -740,12 +740,22 @@ rem End of :mixer_paths
   rem # Run ldsp_mixerPaths_recursive.sh script on the phone, with argument
 
   if "%~1"=="" (
+    rem this will simply trigger the script's usage 
     adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh\""
   ) else (
     adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh %~1\""
 )
 exit /b 0
-rem End of :mixer_paths
+rem End of :mixer_paths_rec
+
+
+:mixer_paths_opened
+  rem Run ldsp_mixerPaths_opened.sh script on the phone, with optional argument
+
+  adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_opened.sh %~1\""
+
+  exit /b 0
+rem End of :mixer_paths_opened
 
 
 
@@ -764,6 +774,7 @@ rem End of :mixer_paths
   echo   ldsp.bat phone_details
   echo   ldsp.bat mixer_paths [optional dir]
   echo   ldsp.bat mixer_paths_recursive [dir]
+  echo   ldsp.bat mixer_paths_opened [optional dir]
   echo
   echo Description:
   echo   install_scripts        Install the LDSP scripts on the phone.
@@ -786,6 +797,7 @@ rem End of :mixer_paths
   echo   phone_details          Get phone details to populate hardware configuration file.
   echo   mixer_paths            Search on phone for mixer_paths.xml candidates, either in default dirs or in the one passed as argument.
   echo   mixer_paths_recursive  Search on phone for mixer_paths.xml candidates in the passed dir and all its subdirs.
+  echo   mixer_paths_opened     [Android 6.0+] Search on phone for mixer_paths.xml candidates in use by Android, either in default dir or in the one passed as argument.
   exit /b 0
 rem End of :help
 
@@ -835,6 +847,9 @@ if "%1" == "install_scripts" (
 ) else if "%~1" == "mixer_paths_recursive" (
   call :mixer_paths_rec %2
   exit /b %ERRORLEVEL%
+) else if "%~1" == "mixer_paths_opened" (
+  call :mixer_paths_opened %2
+  exit /b %ERRORLEVEL% 
 ) else if "%1" == "help" (
   call :help
   exit /b %ERRORLEVEL%

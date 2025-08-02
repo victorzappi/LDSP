@@ -178,7 +178,6 @@ configure () {
   fi
 
 # TODO: 
-#  mixer_paths_open in batch
 #  stop/start audioserver/media [>=a7/<a7]
 #  pass -s android device serial for whne more phones are plugged in
 #  scope!
