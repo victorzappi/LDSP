@@ -6,7 +6,7 @@ Your Android Phone needs to be **rooted**. This process highly depends on the sp
 Once the phone is rooted, make sure that you have *Developer Options* enabled on the phone and inside that manu activate *USB debugging*.
 
 ### Will It Work With My Phone?
-In theory, any phone running Android 2.3 or later can be hacked and run LDSP. In practice, some devices—and especially certain vendor-modified builds—are far more difficult to deal with, and a few depart so much from the Android blueprint provided by Google that using LDSP resuls impossible. More on this stuff is explained in one of the later doc pages ([Phone Configuration](3_phone_config.md)).
+In theory, any phone running Android 2.3 or later can be hacked and run LDSP. In practice, some devices—and especially certain vendor-modified builds—are far more difficult to deal with, and a few depart so much from the Android blueprint provided by Google that using LDSP results impossible. More on this stuff is explained in one of the later doc pages ([Phone Configuration](3_phone_config.md)).
 
 **Here is a list of the phones we tested**:
 - Asus ZenFone 2 Laser (ZE500KL - Z00ED)
@@ -22,7 +22,7 @@ In theory, any phone running Android 2.3 or later can be hacked and run LDSP. In
 - Xiaomi Mi9 Lite/CC9 (pyxis)
 - Xiaomi Mi8 Lite (platina)
 
-Each comes with a pre-made configuration file, stored in [LDSP/phones](../phones) and orgnaized by vendor.
+Each comes with a pre-made configuration file, stored in [LDSP/phones](../phones) and organized by vendor.
 If you configure a new phone, please let us know and we will add the configuration file you created for it! 
 
 

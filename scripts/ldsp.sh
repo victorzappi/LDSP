@@ -178,6 +178,9 @@ configure () {
   fi
 
 # TODO: 
+#  mixer_paths_open, here and batch
+#  stop/start audioserver/media [>=a7/<a7]
+#  pass -s android device serial for whne more phones are plugged in
 #  scope!
 #  pass realease/debug configuration from ldsp script
 #  rapid lib?
