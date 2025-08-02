@@ -71,8 +71,8 @@ void LDSP_initCtrlInputs(LDSPinitSettings* settings)
     if(ctrlInputsVerbose && !ctrlInputsOff)
     {
         printf("\nLDSP_initCtrlInputs()\n");
-        //print_flags |= PRINT_DEVICE_ERRORS | PRINT_DEVICE | PRINT_DEVICE_NAME;
-        //print_flags |= PRINT_DEVICE | PRINT_DEVICE_NAME | PRINT_DEVICE_INFO | PRINT_VERSION;
+        // print_flags |= PRINT_DEVICE_ERRORS | PRINT_DEVICE | PRINT_DEVICE_NAME;
+        // print_flags |= PRINT_DEVICE_ERRORS | PRINT_DEVICE | PRINT_DEVICE_NAME | PRINT_DEVICE_INFO | PRINT_VERSION;
     }
 
     // if control inputs are off, we don't init them!
@@ -140,13 +140,14 @@ void* ctrlInputs_loop(void* arg)
         int pollres = poll(ufds, nfds, 1);
         if(pollres>0)
         {
-            for(int i = 0; i < nfds; i++) 
+            for(int i=0; i<nfds; i++) 
             {
                 if(ufds[i].revents) 
                 {
                     if(ufds[i].revents & POLLIN) 
                     {
                         int res = read(ufds[i].fd, &event, sizeof(event));
+                        // printf("____event %d, code %d, value %d\n", event.type, event.code, event.value);
                         if(res < (int)sizeof(event)) 
                         {
                             //fprintf(stderr, "could not get event\n");
@@ -233,7 +234,8 @@ bool checkEvents(int fd, int print_flags, const char *device, const char *name, 
             {
                 if(bits[j] & 1<<k) 
                 {   
-                    if(event!=EV_KEY && event!=EV_ABS)
+                    // on android/linux, buttons can raise both events EV_KEY and events EV_SW
+                    if(event!=EV_KEY && event!=EV_SW && event!=EV_ABS)
                         return false;
 
                     // if(count == 0)
@@ -335,7 +337,8 @@ bool checkEvents(int fd, int print_flags, const char *device, const char *name, 
 }
 
 
-int openCtrlInputDev(const char *device, int print_flags, DevInfo *devinfo) {
+int openCtrlInputDev(const char *device, int print_flags, DevInfo *devinfo) 
+{
     int version;
     int fd;
     int clkid = CLOCK_MONOTONIC;
