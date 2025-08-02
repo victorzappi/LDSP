@@ -35,8 +35,8 @@
 #include <thread> // number of cpus
 #include <dirent.h> // browse dirs
 #include <unistd.h> // getpid()
-
-#include <iostream>
+#include <cstdlib> // 
+#include <iostream> //system()
 
 #include "LDSP.h"
 #include "tinyalsaAudio.h"
@@ -76,6 +76,14 @@ bool ctrlInputsOff_ = false;
 bool ctrlOutputsOff_ = false;
 
 int cpuIndex = -1;
+
+#if __ANDROID_API__ > 24
+    // on Android 7 and above [api 24 and above], Android controls audio via the dedicated audioserver
+	string audio_server = "audioserver";
+#else
+    // on Android 6 and below [api 23 and below], Android controls audio via the generic media server
+    string audio_server = "media";
+#endif
 
 // function pointers set up in initFormatFunctions()
 // capture
@@ -143,7 +151,16 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 	if(audioVerbose)
 		printf("\nLDSP_initAudio()\n");
 
-	//TODO deactivate audio server
+
+	if(audioVerbose)
+		printf("\nTrying to stop Android audio server...\n");
+	string server_cmd = "stop "+audio_server;
+    if(system(server_cmd.c_str()) != 0)
+        printf("\tFailed to stop Android audio server (this should not be an issue)\n");
+	else if(audioVerbose) 
+		printf("\tAndroid audio server stopped!\n\n");
+
+
 
 	initAudioParams(settings, &pcmContext.playback, true);
 	initAudioParams(settings, &pcmContext.capture, false);
@@ -163,7 +180,7 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 
 	// once the pcm device is open, we can check if the requested params have been set
 	// and update our variables according to the actual params
-  updateAudioParams(settings, &pcmContext.playback, true);
+  	updateAudioParams(settings, &pcmContext.playback, true);
 	if(fullDuplex) 
 	{
     updateAudioParams(settings, &pcmContext.capture, false);
@@ -175,12 +192,12 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 
 	}
 
-  if(initLowLevelAudioStruct(pcmContext.playback)<0)
-  {
-    // try partial deallocation
-    deallocateLowLevelAudioStruct(pcmContext.playback);
-    return -4;
-  }
+	if(initLowLevelAudioStruct(pcmContext.playback)<0)
+	{
+		// try partial deallocation
+		deallocateLowLevelAudioStruct(pcmContext.playback);
+		return -4;
+	}
 
 	if(fullDuplex)
 	{
@@ -253,7 +270,13 @@ void LDSP_cleanupAudio()
 	if(!perfModeOff)
 		resetGovernorMode();
 	
-	//TODO reactivate audio server
+	if(audioVerbose)
+		printf("\nTrying to restart Android audio server...\n");
+	string server_cmd = "start "+audio_server;
+    if(system(server_cmd.c_str()) != 0)
+        printf("\tFailed to restart Android audio server (this should not be an issue)\n");
+	else if(audioVerbose)
+		printf("\tAndroid audio server restarted!\n\n");
 }
 
 void LDSP_requestStop()

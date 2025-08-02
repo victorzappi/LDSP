@@ -60,7 +60,7 @@ void set_cpu_affinity(int cpuIndex, std::string name, bool verbose)
     if(sched_setaffinity(pid, sizeof(cpu_set_t), &cpuset) != 0) 
 	{
 		// Print the error
-		printf("Unsuccessful in setting CPU %d affinity for %s thread (pid %d)\n", cpuIndex, name.c_str(), pid);
+		printf("\tUnsuccessful in setting CPU %d affinity for %s thread (pid %d)\n", cpuIndex, name.c_str(), pid);
 		if(verbose)
 			printf("*\n");
 		return;
@@ -83,7 +83,7 @@ void set_cpu_affinity(int cpuIndex, std::string name, bool verbose)
 void set_priority(int order, std::string name, bool verbose) 
 {
 	if(verbose)
-		printf("*\n");
+		printf("\n");
 
     // We'll operate on the currently running thread.
     pthread_t this_thread = pthread_self();
@@ -99,64 +99,72 @@ void set_priority(int order, std::string name, bool verbose)
 	}
 
 	// Attempt to set thread real-time priority to the SCHED_FIFO policy
-	if (pthread_setschedparam(this_thread, SCHED_FIFO, &params) != 0) {
+	if (pthread_setschedparam(this_thread, SCHED_FIFO, &params) != 0) 
+	{
+		if(verbose)
+			printf("\t");
 		// Print the error
 		printf("Unsuccessful in setting %s thread prio\n", name.c_str());
 		if(verbose)
-			printf("*\n");
+			printf("\n");
 		return;
 	}
 
+	// Print thread scheduling priority
+    if(verbose)
+    	printf("\tThread priority set to %d\n", params.sched_priority);
+
 	// Now verify the change in thread priority
     int policy = 0;
-    if (pthread_getschedparam(this_thread, &policy, &params) != 0) {
+    if (pthread_getschedparam(this_thread, &policy, &params) != 0) 
+	{
+		if(verbose)
+			printf("\t");
         printf("Couldn't retrieve real-time scheduling parameters\n");
-        if(verbose)
-        	printf("*\n");
+		if(verbose)
+			printf("\n");
         return;
     }
 
     // Check the correct policy was applied
-    if(policy != SCHED_FIFO) {
-        printf("Scheduling is NOT SCHED_FIFO!\n");
-    } else {
-    	if(verbose)
-    		printf("SCHED_FIFO OK\n");
-    }
+    if(policy != SCHED_FIFO) 
+	{
+		if(verbose)
+			printf("\t");
+        printf("Could not set scheduling to SCHED_FIFO!\n");
+		if(verbose)
+			printf("\n");
+    } else if(verbose)
+    	printf("\twith scheduling SCHED_FIFO\n");
 
-    // Print thread scheduling priority
-    if(verbose)
-    	printf("Thread priority is %d\n", params.sched_priority);
-
-    if(verbose)
-    	printf("*\n");
+	if(verbose)
+		printf("\n");
 }
 
 // set niceness of this thread
 void set_niceness(int niceness, std::string name, bool verbose) 
 {
 	if(verbose)
-		printf("*\n");
-
-	if(verbose)
-		printf("Trying to set %s thread niceness %d\n", name.c_str(), niceness);
+		printf("\nTrying to set %s thread niceness %d\n", name.c_str(), niceness);
 
 	 int which = PRIO_PROCESS;
 	 id_t pid = getpid();
 
 	 if(setpriority(which, pid, -20)!=0) 
 	 {
-		 printf("Unsuccessful in setting %s thread niceness\n", name.c_str());
-		 if(verbose)
-			 printf("*\n");
+		if(verbose)
+			printf("\t");
+		printf("\tUnsuccessful in setting %s thread niceness\n", name.c_str());
+		if(verbose)
+			printf("\n");
 		 return;
 	 }
 
 	if(verbose)
-		printf("Thread niceness is %d\n", getpriority(which, pid));
+		printf("\tThread niceness set to %d\n", getpriority(which, pid));
 
 	if(verbose)
-		printf("*\n");
+		printf("\n");
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -164,7 +172,7 @@ void set_niceness(int niceness, std::string name, bool verbose)
 void set_to_foreground(std::string name, bool verbose)
 {
 	if(verbose)
-		printf("*\n");
+		printf("\n");
 
 	auto pid = getpid();
     std::string pidStr = std::to_string(pid);
@@ -172,6 +180,9 @@ void set_to_foreground(std::string name, bool verbose)
     // Paths to the CPU set and scheduling group files
     std::string cpuSetPath = "/dev/cpuset/foreground/tasks";
     std::string schedGroupPath = "/dev/stune/foreground/tasks";
+
+	if(verbose)
+		printf("Trying to set %s thread (pid %d) to foreground in cpuset scheduling\n", name.c_str(), pid);
 
     // Write the PID to the CPU set file
     std::ofstream cpuSetFile(cpuSetPath, std::ios::out);
@@ -181,10 +192,18 @@ void set_to_foreground(std::string name, bool verbose)
         cpuSetFile.close();
 
 		if(verbose)
-			printf("%s thread (pid %d) set to foreground in cpuset scheduling\n", name.c_str(), pid);
+			printf("\t%s thread (pid %d) set to foreground\n", name.c_str(), pid);
     } 
-	else
-    	printf("Could not set %s thread (pid %d) to foreground in cpuset scheduling\n", name.c_str(), pid);
+	else 
+	{
+		if(verbose)
+			printf("\t");
+    	printf("Could not set %s thread (pid %d) to foreground in cpuset scheduling (not an issue)\n", name.c_str(), pid);
+	}
+
+
+	if(verbose)
+		printf("\nTrying to set %s thread (pid %d) to foreground in group scheduling\n", name.c_str(), pid);
 
     // Write the PID to the scheduling group file
     std::ofstream schedGroupFile(schedGroupPath, std::ios::out);
@@ -194,11 +213,15 @@ void set_to_foreground(std::string name, bool verbose)
         schedGroupFile.close();
 
 		if(verbose)
-			printf("%s thread (pid %d) set to foreground in group scheduling\n", name.c_str(), pid);
+			printf("\t%s thread (pid %d) set to foreground in group scheduling\n", name.c_str(), pid);
     } 
 	else 
-        printf("Could not set %s thread (pid %d) to foreground in group scheduling\n", name.c_str(), pid);
+	{
+		if(verbose)
+			printf("\t");
+        printf("Could not set %s thread (pid %d) to foreground in group scheduling (not an issue)\n", name.c_str(), pid);
+	}
 
 	if(verbose)
-		printf("*\n");
+		printf("\n");
 }
