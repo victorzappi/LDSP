@@ -178,7 +178,7 @@ configure () {
   fi
 
 # TODO: 
-#  mixer_paths_open, here and batch
+#  mixer_paths_open in batch
 #  stop/start audioserver/media [>=a7/<a7]
 #  pass -s android device serial for whne more phones are plugged in
 #  scope!
@@ -620,6 +620,11 @@ mixer_paths_rec() {
   adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh '$SEARCH_DIR'\""
 }
 
+# Run ldsp_mixerPaths_opened.sh script on the phone, with optional argument
+mixer_paths_opened() {
+  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_mixerPaths_opened.sh \"$1\"'"
+}
+
 
 
 
@@ -641,6 +646,7 @@ help () {
   echo -e "ldsp.sh phone_details"
   echo -e "ldsp.sh mixer_paths [optional dir]"
   echo -e "ldsp.sh mixer_paths_recursive [dir]"
+  echo -e "ldsp.sh mixer_paths opened [optional dir]"
   echo -e "\nSettings (used with the 'configure' step):"
   echo -e "  --configuration=CONFIGURATION, -c CONFIGURATION\tThe path to the folder containing the hardware configuration file of the chosen phone."
   echo -e "  --version=VERSION, -a VERSION\tThe Android version running on the phone."
@@ -663,7 +669,8 @@ help () {
   echo -e "  debugserver_stop\t\tStop the remote debug server."
   echo -e "  phone_details\t\t\tGet phone details to populate hardware configuration file."
   echo -e "  mixer_paths\t\t\tSearch on phone for mixer_paths.xml candidates, either in default dirs or in the one passed as argument."
-  echo -e "  mixer_paths_recursive\t\t\tSearch on phone for mixer_paths.xml candidates in the passed dir and all its subdirs."
+  echo -e "  mixer_paths_recursive\t\tSearch on phone for mixer_paths.xml candidates in the passed dir and all its subdirs."
+  echo -e "  mixer_paths_opened\t\t[Android 6.0+] Search on phone for mixer_paths.xml candidates in use by Android, either in default dir or in the one passed as argument."
 }
 
 STEPS=()
@@ -731,6 +738,10 @@ while [[ $# -gt 0 ]]; do
       STEPS+=("mixer_paths_recursive") # record the step, to allow for arguments forwarding
       break                  
       ;;
+      mixer_paths_opened)
+      STEPS+=("mixer_paths_opened") # record the step, to allow for arguments forwarding
+      break  
+      ;;
     *)
       STEPS+=("$1")
       shift
@@ -789,6 +800,9 @@ for i in "${STEPS[@]}"; do
       ;;
     mixer_paths_recursive)
       mixer_paths_rec "${@:2}"
+      ;;    
+    mixer_paths_opened)
+      mixer_paths_opened "${@:2}"
       ;;
     help)
       help
