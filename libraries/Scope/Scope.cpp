@@ -15,7 +15,7 @@
 #include <seasocks/PageHandler.h>
 #include <seasocks/Request.h>
 #include <seasocks/ResponseBuilder.h>
-#include <fstream>            // <<–– for std::ifstream 
+#include <fstream>
 #include <unistd.h>
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -25,121 +25,124 @@ namespace fs = std::filesystem;
 constexpr unsigned int triggerSleepUs = 10;
 
 
-class ScopePageHandler : public seasocks::PageHandler {
+class ScopePageHandler : public seasocks::PageHandler 
+{
 public:
     ScopePageHandler() {}
 
-    std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) override {
-    const auto uri = request.getRequestUri();
-    const std::string basePath = "/data/ldsp/resources/";
+    std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) override 
+    {
+        const auto uri = request.getRequestUri();
+        const std::string basePath = "/data/ldsp/resources/";
 
-    printf("uri: %s\n", uri.c_str());
+        // printf("uri: %s\n", uri.c_str());
 
-    // this is needed to pass web socket requests to the web socket handler
-    if(request.verb() == seasocks::Request::Verb::WebSocket)
-        return seasocks::Response::unhandled();
+        // this is needed to pass web socket requests to the web socket handler
+        if(request.verb() == seasocks::Request::Verb::WebSocket)
+            return seasocks::Response::unhandled();
 
-    printf("uri filtered: %s\n", uri.c_str());
+        // printf("uri filtered: %s\n", uri.c_str());
 
-    // ------------------------------
-    // 0) socket.io client + polling
-    // ------------------------------
-    if (uri == "/socket.io/socket.io.js") {
-        // serve the client library
-        return serveFile(basePath + "scope/js/socket.io.js",
-                            "application/javascript");
+        //TODO move some of these to default serve func?
+
+        // ------------------------------
+        // 1) CSS files under /css/
+        // ------------------------------
+        if (uri.find("/css/") == 0) 
+        {
+            // std::string filePath = basePath + "scope/stylesheet.css";
+            std::string filePath = basePath + "scope" + uri;
+            return serveFile(filePath, "text/css");
+        }
+
+        // ------------------------------
+        // 2) JS files under /js/
+        // ------------------------------
+        if (uri.find("/js/") == 0) 
+        {
+            std::string filePath = basePath + "scope" + uri;
+            return serveFile(filePath, "application/javascript");
+        }
+
+        // ------------------------------
+        // 3) Root index
+        // ------------------------------
+        if (uri == "/" || uri == "/index.html") 
+        {
+            std::string filePath = basePath + "scope/index.html";
+            return serveFile(filePath, "text/html");
+        }
+
+        // ------------------------------
+        // 4) Fonts
+        // ------------------------------
+        if (uri.find("/fonts/") == 0) 
+        {
+            std::string filePath = basePath + uri.substr(1);
+
+            // Extract the file extension
+            std::string extension = uri.substr(uri.find_last_of(".") + 1);
+
+            // Determine the MIME type based on the file extension
+            std::string mimeType;
+            if (extension == "woff")
+                mimeType = "font/woff";
+            else if (extension == "woff2")
+                mimeType = "font/woff2";
+            else if (extension == "ttf")
+                mimeType = "font/ttf";
+
+            return serveFile(filePath, mimeType);
+        }
+
+        // ------------------------------
+        // 5) Images
+        // ------------------------------
+        if (uri.find("/images/") == 0) 
+        {
+            std::string filePath = basePath + uri.substr(1);
+
+            // Extract the file extension
+            std::string extension = uri.substr(uri.find_last_of(".") + 1);
+
+            // Determine the MIME type based on the file extension
+            std::string mimeType;
+            if (extension == "png")
+                mimeType = "image/png";
+            else if (extension == "svg")
+                mimeType = "image/svg+xml";
+
+            return serveFile(filePath, mimeType);
+        }
+
+        // ------------------------------
+        // X) Fallback 404
+        // ------------------------------
+        seasocks::ResponseBuilder notFound(seasocks::ResponseCode::NotFound);
+        notFound.withContentType("text/plain")
+                << "Resource not found for URI: " << uri;
+        return notFound.build();
     }
-
-    // ------------------------------
-    // 1) CSS files under /css/
-    // ------------------------------
-    if (uri.find("/css/") == 0) {
-        std::string filePath = basePath + "scope/stylesheet.css";
-        return serveFile(filePath, "text/css");
-    }
-
-    // ------------------------------
-    // 2) JS files under /js/
-    // ------------------------------
-    if (uri.find("/js/") == 0) {
-        std::string filePath = basePath + "scope" + uri;
-        return serveFile(filePath, "application/javascript");
-    }
-
-    // ------------------------------
-    // 3) Root index
-    // ------------------------------
-    if (uri == "/" || uri == "/index.html") {
-        std::string filePath = basePath + "scope/index.html";
-        return serveFile(filePath, "text/html");
-    }
-
-    
-    // ------------------------------
-    // 4) Fonts
-    // ------------------------------
-    if (uri.find("/fonts/") == 0) {
-        std::string filePath = basePath + uri.substr(1);
-
-        // Extract the file extension
-        std::string extension = uri.substr(uri.find_last_of(".") + 1);
-
-        // Determine the MIME type based on the file extension
-        std::string mimeType;
-        if (extension == "woff") {
-            mimeType = "font/woff";
-        } else if (extension == "woff2") {
-            mimeType = "font/woff2";
-        } else if (extension == "ttf")
-            mimeType = "font/ttf";
-
-        return serveFile(filePath, mimeType);
-    }
-
-
-    // ------------------------------
-    // 5) Images
-    // ------------------------------
-    if (uri.find("/images/") == 0) {
-        std::string filePath = basePath + uri.substr(1);
-
-        // Extract the file extension
-        std::string extension = uri.substr(uri.find_last_of(".") + 1);
-
-        // Determine the MIME type based on the file extension
-        std::string mimeType;
-        if (extension == "png") {
-            mimeType = "image/png";
-        } else if (extension == "svg")
-            mimeType = "image/svg+xml";
-
-        return serveFile(filePath, mimeType);
-    }
-
-    // ------------------------------
-    // X) Fallback 404
-    // ------------------------------
-    seasocks::ResponseBuilder notFound(seasocks::ResponseCode::NotFound);
-    notFound.withContentType("text/plain")
-            << "Resource not found for URI: " << uri;
-    return notFound.build();
-}
 
 
 
 private:
-    std::shared_ptr<seasocks::Response> serveFile(const std::string& path, const std::string& mimeType) {
-    std::ifstream file(path, std::ios::binary);
-        printf("\ttrying to serve: %s\n", path.c_str());
-        if(file) {
-            printf("\t\tserved: %s\n", path.c_str());
+    std::shared_ptr<seasocks::Response> serveFile(const std::string& path, const std::string& mimeType) 
+    {
+        std::ifstream file(path, std::ios::binary);
+        // printf("\ttrying to serve: %s\n", path.c_str());
+        if(file) 
+        {
+            // printf("\t\tserved: %s\n", path.c_str());
             seasocks::ResponseBuilder builder(seasocks::ResponseCode::Ok);
             std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
             builder.withContentType(mimeType);
             builder << content;
             return builder.build();
-        } else {
-            printf("\t\tcannot serve: %s\n", path.c_str());
+        } 
+        else 
+        {
+            // printf("\t\tcannot serve: %s\n", path.c_str());
             seasocks::ResponseBuilder builder(seasocks::ResponseCode::NotFound);
             builder.withContentType("text/plain");
             builder << "File not found";
@@ -896,7 +899,7 @@ void Scope::scope_control_connected() {
 // }
 
 void Scope::scope_control_data(const char* data) {
-    printf("scope_control_data received: %s\n", data);
+    // printf("scope_control_data received: %s\n", data);
 
     nlohmann::json j;
     try {

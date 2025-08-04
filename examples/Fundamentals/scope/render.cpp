@@ -60,7 +60,7 @@ float lastOut2 = 0.0;
 void render(LDSPcontext *context, void *userData)
 {
 	// iterate over the audio frames and create three oscillators, seperated in phase by PI/2
-	for (unsigned int n = 0; n < context->audioFrames; ++n)
+	for(unsigned int n = 0; n < context->audioFrames; ++n)
 	{
 		float out = 0.8f * sinf(gPhase);
 		float out2 = 0.8f * sinf(gPhase - (float)M_PI/2.f);
@@ -74,9 +74,8 @@ void render(LDSPcontext *context, void *userData)
 
 		// optional - tell the scope to trigger when oscillator 1 becomes less than oscillator 2
 		// note this has no effect unless trigger mode is set to custom in the scope UI
-		// if (lastOut >= lastOut2 && out < out2){
-		// 	scope.trigger();
-		// }
+		if (lastOut >= lastOut2 && out < out2)
+			scope.trigger();
 
 		lastOut = out;
 		lastOut2 = out2;

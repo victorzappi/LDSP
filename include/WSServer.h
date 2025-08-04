@@ -34,7 +34,7 @@ namespace seasocks{
 //class AuxTaskNonRT;
 struct GuiWSHandler;
 
-constexpr unsigned int WSOutDataMax = 200;
+constexpr unsigned int WSOutDataMax = 230400;
 
 struct WSOutputData {
 	char* address;
