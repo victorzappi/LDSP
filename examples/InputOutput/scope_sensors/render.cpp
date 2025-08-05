@@ -18,74 +18,76 @@
  */
 
 #include "LDSP.h"
-#include <math.h> // sinf, powf
+#include <libraries/Scope/Scope.h>
+#include <cmath> 
+#include <ctime>
 
-float startingFrequency = 440.0;
 float amplitude = 0.2;
+float centralFrequency = 440.0;
+int octaveRange = 2;
 
-int edo = 22; // 22 equivally devided octave
 
 //------------------------------------------------
-float freq;
+float rootFrequency = centralFrequency;
 float phase;
 float inverseSampleRate;
 
-float step = 0;
+int btnDwn_prev = 0;
 
-// buttons prev states
-int pwr_prev = 0;
-int volUp_prev = 0;
-int volDwn_prev = 0;
+// instantiate the scope
+Scope scope;
+
+
 
 bool setup(LDSPcontext *context, void *userData)
 {
+
+	if( !context->sensorsSupported[chn_sens_accelX] ||
+		!context->sensorsSupported[chn_sens_accelY] )
+	{
+		printf("Accelerometer not present on this phone, the example cannot be run ):\n");
+		return false;	
+	}
+
     inverseSampleRate = 1.0 / context->audioSampleRate;
 	phase = 0.0;
 
-	freq = startingFrequency;
+	// tell the scope how many channels and the sample rate
+	scope.setup(3, context->audioSampleRate);
 
     return true;
 }
 
 void render(LDSPcontext *context, void *userData)
 {
-	// check for button presses!
-	int pwr = buttonRead(context, chn_btn_power);
-	int volUp = buttonRead(context, chn_btn_volUp);
-	int volDwn = buttonRead(context, chn_btn_volDown);
+	// check for button press (volume down) and generate new root frequency
+	int btnDwn = buttonRead(context, chn_btn_volDown);
+	if(btnDwn==1 && btnDwn_prev==0)
+	{
+		int octaveShift = std::rand() % (2*octaveRange+1) - octaveRange;    // gives -octaveRange to +octaveRange	
+		rootFrequency = centralFrequency * pow(2, octaveShift);
+	}
+	btnDwn_prev = btnDwn;
 
-	if(pwr==1 && pwr_prev==0)
-	{
-		// reset note to starting one
-		step = 0;
-		freq = startingFrequency; 
-	}
-	else if(volUp==1 && volUp_prev==0)
-	{
-		// note goes up a step 
-		step++;
-		freq = startingFrequency*powf(2.0, step/(float)edo);
-	}
-	else if(volDwn==1 && volDwn_prev==0)
-	{
-		// note goes down a step 
-		step--;
-		freq = startingFrequency*powf(2.0, step/(float)edo);
-	}
-
-	pwr_prev = pwr;
-	volUp_prev = volUp;
-	volDwn_prev = volDwn;
+	// read accelerometer x channel
+	float acc_x = sensorRead(context, chn_sens_accelX);
+	// clip to -1 g and 1 g and normalize
+	acc_x = constrain(acc_x, -9.8, 9.8) / 9.8;
+	// map to a fith above and below root note
+	float bent_freq = map(acc_x, -1.0, 1.0, rootFrequency * 2.0f / 3.0f, rootFrequency * 3.0f / 2.0f); // map x acceleration to osc frquency
 
 	for(int n=0; n<context->audioFrames; n++)
 	{
 		float out = amplitude * sinf(phase);
-		phase += 2.0f * (float)M_PI * freq * inverseSampleRate;
+		phase += 2.0f * (float)M_PI * bent_freq * inverseSampleRate;
 		while(phase > 2.0f *M_PI)
 			phase -= 2.0f * (float)M_PI;
 		
 		for(int chn=0; chn<context->audioOutChannels; chn++)
             audioWrite(context, n, chn, out);
+
+		// log audio output, normalized acceleration and state of button (cannot be an int! and we scale it down for visibility)
+		scope.log(out, acc_x, btnDwn*0.5);
 	}
 }
 

@@ -17,75 +17,29 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "LDSP.h"
-#include <math.h> // sinf, powf
+#include <LDSP.h>
+#include <libraries/Scope/Scope.h>
 
-float startingFrequency = 440.0;
-float amplitude = 0.2;
-
-int edo = 22; // 22 equivally devided octave
-
-//------------------------------------------------
-float freq;
-float phase;
-float inverseSampleRate;
-
-float step = 0;
-
-// buttons prev states
-int pwr_prev = 0;
-int volUp_prev = 0;
-int volDwn_prev = 0;
+// instantiate the scope
+Scope scope;
 
 bool setup(LDSPcontext *context, void *userData)
 {
-    inverseSampleRate = 1.0 / context->audioSampleRate;
-	phase = 0.0;
+	// tell the scope how many channels and the sample rate
+	scope.setup(1, context->audioSampleRate);
 
-	freq = startingFrequency;
-
-    return true;
+	return true;
 }
 
 void render(LDSPcontext *context, void *userData)
 {
-	// check for button presses!
-	int pwr = buttonRead(context, chn_btn_power);
-	int volUp = buttonRead(context, chn_btn_volUp);
-	int volDwn = buttonRead(context, chn_btn_volDown);
-
-	if(pwr==1 && pwr_prev==0)
+	// iterate over the audio frames and create three oscillators, seperated in phase by PI/2
+	for(unsigned int n = 0; n < context->audioFrames; ++n)
 	{
-		// reset note to starting one
-		step = 0;
-		freq = startingFrequency; 
-	}
-	else if(volUp==1 && volUp_prev==0)
-	{
-		// note goes up a step 
-		step++;
-		freq = startingFrequency*powf(2.0, step/(float)edo);
-	}
-	else if(volDwn==1 && volDwn_prev==0)
-	{
-		// note goes down a step 
-		step--;
-		freq = startingFrequency*powf(2.0, step/(float)edo);
-	}
-
-	pwr_prev = pwr;
-	volUp_prev = volUp;
-	volDwn_prev = volDwn;
-
-	for(int n=0; n<context->audioFrames; n++)
-	{
-		float out = amplitude * sinf(phase);
-		phase += 2.0f * (float)M_PI * freq * inverseSampleRate;
-		while(phase > 2.0f *M_PI)
-			phase -= 2.0f * (float)M_PI;
-		
-		for(int chn=0; chn<context->audioOutChannels; chn++)
-            audioWrite(context, n, chn, out);
+		// audio capture
+		float in = audioRead(context, n, 0);
+		// log audio capture
+		scope.log(in);
 	}
 }
 

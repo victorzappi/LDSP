@@ -38,6 +38,9 @@ when the triggering mode is set to custom in the scope UI.
 
 // set the frequency of the oscillators
 float gFrequency = 110.0;
+
+//------------------------------------------------
+
 float gPhase;
 float gInverseSampleRate;
 
