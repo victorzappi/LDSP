@@ -41,14 +41,14 @@ set(VARIABLE_NAMES
 # designed to work with n strings per dependency separated by escaped ';', 
 # including those to detect ldsp lib inclusion and those to detect direct dependency inclusion
 # Fft is decoupled from fftw3 and Ne10; when Fft is included, cmake automatically includes one or the other 
-# according to phone details because, lower down in this script 
+# according to phone details, lower down in this script 
 set(SEARCH_STRINGS 
 "libraries/Fft/Fft.h\;libraries/Scope/Scope.h" 
 "fftw3" 
 "NE10" 
 "libraries/WSServer/WSServer.h\;libraries/WebServer/WebServer.h\;libraries/Gui/Gui.h\;libraries/Scope/Scope.h\;seasocks" 
 "libraries/OrtModel/OrtModel.h\;onnx" 
-"RTNeural/RTNeural.h\;rtneural" 
+"libraries/RTNeural/RTNeural.h\;rtneural" 
 "math-neon"
 )
 #TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
@@ -63,14 +63,6 @@ foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
 endforeach()
 # call the script that checks for strings
 include("${CMAKE_CURRENT_SOURCE_DIR}/../check_dependencies_inclusion.cmake")
-
-
-#TODO
-# make WSServer and WebServer libraries, so that core does not depend on seasocks anymore?
-# make ne10 optional in Scope
-# add/change this logic 
-# set(ADD_NE10 TRUE CACHE BOOL "Enable NE10 globally" FORCE)
-
 
 
 # --------------- Source files ---------------
@@ -102,7 +94,7 @@ if(ADD_LIBPD AND NOT EXISTS ${LDSP_PROJECT}/render.cpp)
   list(APPEND SOURCES default_render_pd.cpp)
 endif()
 
-# we define PROJECT_NAME -D to main.cpp only
+# we define PROJECT_NAME with -D to main.cpp only
 # instead of doing a global target_compile_definitions on the whole ldsp target
 # so that changing project name doesn’t force every source to recompile, but only main.cpp
 GET_FILENAME_COMPONENT(LDSP_PROJECT_NAME ${LDSP_PROJECT} NAME)

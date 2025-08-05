@@ -1,6 +1,6 @@
 # CMakeLists.txt in the libraries directory
 
-# Find all source files excluding libraries that are not built
+# Find all source files, then we'll exclude libraries that should not be built
 file(GLOB_RECURSE ALL_SOURCES CONFIGURE_DEPENDS *.cpp *.c)
 
 # Exclude FFT sources if not building with Fft lib
@@ -9,7 +9,7 @@ if(NOT ADD_FFT)
   list(REMOVE_ITEM ALL_SOURCES ${FFT_SOURCES})
 endif()
 
-# Exclude Gui sources if not building with Seasocks lib
+# Exclude Seasocks-dependent sources if not building with Seasocks lib
 if(NOT ADD_SEASOCKS)
   file(GLOB_RECURSE WSSERVER_SOURCES CONFIGURE_DEPENDS WSServer/*.cpp)
   list(REMOVE_ITEM ALL_SOURCES ${WSSERVER_SOURCES})
@@ -19,7 +19,7 @@ if(NOT ADD_SEASOCKS)
   list(REMOVE_ITEM ALL_SOURCES ${GUI_SOURCES})
   file(GLOB_RECURSE GUICONTROLLER_SOURCES CONFIGURE_DEPENDS GuiController/*.cpp)
   list(REMOVE_ITEM ALL_SOURCES ${GUICONTROLLER_SOURCES})
-  file(GLOB_RECURSE SCOPE_SOURCES CONFIGURE_DEPENDS Scope/*.cpp)
+  file(GLOB_RECURSE SCOPE_SOURCES CONFIGURE_DEPENDS Scope/*.cpp) # Scope depends on FFT too, but ADD_FFT is activated is Scope is used
   list(REMOVE_ITEM ALL_SOURCES ${SCOPE_SOURCES})
 endif()
 
@@ -55,11 +55,14 @@ target_include_directories(libraries PUBLIC UdpClient)
 target_include_directories(libraries PUBLIC UdpServer)
 target_include_directories(libraries PUBLIC XML)
 
+# include - LDSP libraries that use dependencies
 if(ADD_FFT)
   target_include_directories(libraries PUBLIC Fft)
 endif()
 
 if(ADD_SEASOCKS)
+  target_include_directories(libraries PUBLIC WSServer)
+  target_include_directories(libraries PUBLIC WebServer)
   target_include_directories(libraries PUBLIC Gui)
   target_include_directories(libraries PUBLIC GuiController)
   target_include_directories(libraries PUBLIC Scope)

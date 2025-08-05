@@ -164,10 +164,10 @@ Scope::Scope(): isUsingOutBuffer(false),
                 downSampling(1), 
                 triggerPrimed(false), 
                 started(false), 
-		windowFFT(NULL),
-		inFFT(NULL),
-		outFFT(NULL),
-		cfg(NULL)
+		windowFFT(NULL)//,
+		// inFFT(NULL),
+		// outFFT(NULL),
+		// cfg(NULL)
 		{}
 
 Scope::Scope(unsigned int numChannels, float sampleRate){
@@ -186,9 +186,9 @@ Scope::~Scope(){
 
 void Scope::dealloc(){
 	delete[] windowFFT;
-	NE10_FREE(inFFT);
-	NE10_FREE(outFFT);
-	NE10_FREE(cfg);
+	// NE10_FREE(inFFT);
+	// NE10_FREE(outFFT);
+	// NE10_FREE(cfg);
 }
 
 void* Scope::trigger_func_static(void* arg) {
@@ -352,9 +352,14 @@ void Scope::setPlotMode(){
         
     if (FREQ_DOMAIN == plotMode){
 		dealloc();
-		inFFT  = (ne10_fft_cpx_float32_t*) NE10_MALLOC (FFTLength * sizeof (ne10_fft_cpx_float32_t));
-		outFFT = (ne10_fft_cpx_float32_t*) NE10_MALLOC (FFTLength * sizeof (ne10_fft_cpx_float32_t));
-		cfg = ne10_fft_alloc_c2c_float32_neon (FFTLength);
+		
+        // inFFT  = (ne10_fft_cpx_float32_t*) NE10_MALLOC (FFTLength * sizeof (ne10_fft_cpx_float32_t));
+		// outFFT = (ne10_fft_cpx_float32_t*) NE10_MALLOC (FFTLength * sizeof (ne10_fft_cpx_float32_t));
+		// cfg = ne10_fft_alloc_c2c_float32_neon (FFTLength);
+
+        fft.cleanup();
+        fft.setup(FFTLength);
+
     	windowFFT = new float[FFTLength];
     	
     	pointerFFT = 0;
@@ -605,12 +610,14 @@ void Scope::doFFT(){
     	
         // prepare the FFT input & do windowing
         for (int i=0; i<FFTLength; i++){
-            inFFT[i].r = (ne10_float32_t)(buffer[(ptr+i)%channelWidth+c*channelWidth] * windowFFT[i]);
-            inFFT[i].i = 0;
+            // inFFT[i].r = (ne10_float32_t)(buffer[(ptr+i)%channelWidth+c*channelWidth] * windowFFT[i]);
+            // inFFT[i].i = 0;
+            fft.td(i) = buffer[(ptr + i) % channelWidth + c*channelWidth] * windowFFT[i];
         }
         
         // do the FFT
-        ne10_fft_c2c_1d_float32_neon (outFFT, inFFT, cfg, 0);
+        // ne10_fft_c2c_1d_float32_neon (outFFT, inFFT, cfg, 0);
+        fft.fft();
         
         if (ratio < 1.0f){
         
@@ -629,10 +636,12 @@ void Scope::doFFT(){
                 
 				float yAxis[2];
 				for(unsigned int n = 0; n < 2; ++n){
-					float magSquared = outFFT[index + n].r * outFFT[index + n].r + outFFT[index + n].i * outFFT[index + n].i;
+                    // float magSquared = outFFT[index + n].r * outFFT[index + n].r + outFFT[index + n].i * outFFT[index + n].i;
 					if (FFTYAxis == 0){ // normalised linear magnitude
-						yAxis[n] = FFTScale * sqrtf(magSquared);
+						// yAxis[n] = FFTScale * sqrtf(magSquared);
+                        yAxis[n] = FFTScale * fft.fda(index + n);
 					} else { // Otherwise it is going to be (FFTYAxis == 1): decibels
+                        float magSquared = fft.fdr(index + n) * fft.fdr(index + n) + fft.fdi(index + n) * fft.fdi(index + n);
 						yAxis[n] = 10.0f * log10f(magSquared) + FFTLogOffset;
 					}
 				}
@@ -667,7 +676,8 @@ void Scope::doFFT(){
                 // do all magnitudes first, then search? - turns out this doesnt help
                 float maxVal = 0.0f;
                 for (int j=mindex; j<=maxdex; j++){
-                    float mag = (float)(outFFT[j].r * outFFT[j].r + outFFT[j].i * outFFT[j].i);
+                    // float mag = (float)(outFFT[j].r * outFFT[j].r + outFFT[j].i * outFFT[j].i);
+                    float mag = (float)(fft.fdr(j) * fft.fdr(j) + fft.fdi(j) * fft.fdi(j));
                     if (mag > maxVal){
                         maxVal = mag;
                     }

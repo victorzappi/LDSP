@@ -3,7 +3,8 @@
 
 #pragma once
 // #include <ne10/NE10_types.h>
-#include <NE10_types.h>
+// #include <NE10_types.h>
+#include "libraries/Fft/Fft.h"
 #include <vector>
 #include <map>
 #include <memory>
@@ -170,9 +171,10 @@ class Scope{
         int FFTXAxis;
         int FFTYAxis;
         
-        ne10_fft_cpx_float32_t* inFFT;
-        ne10_fft_cpx_float32_t* outFFT;
-        ne10_fft_cfg_float32_t cfg;
+        // ne10_fft_cpx_float32_t* inFFT;
+        // ne10_fft_cpx_float32_t* outFFT;
+        // ne10_fft_cfg_float32_t cfg;
+        Fft fft;
         
         //std::unique_ptr<AuxTaskRT> scopeTriggerTask;
         pthread_t scopeTrigger_thread;
