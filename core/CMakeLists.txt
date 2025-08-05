@@ -30,23 +30,24 @@ endif()
 # Check whether or not to add other large dependencies
 # Define the variable names and corresponding strings to search for
 set(VARIABLE_NAMES 
-"ADD_SEASOCKS" 
 "ADD_FFT" 
 "ADD_FFTW3" 
 "ADD_NE10" 
+"ADD_SEASOCKS" 
 "ADD_ONNX" 
 "ADD_RTNEURAL" 
 "ADD_MATHNEON"
 )
-# designed to work with two strings per dependency, one specific to ldsp and one to the dependency
+# designed to work with n strings per dependency separated by escaped ';', 
+# including those to detect ldsp lib inclusion and those to detect direct dependency inclusion
 set(SEARCH_STRINGS 
-"libraries/Gui/Gui.h;seasocks" 
-"Fft.h;Fft.h" 
-"fftw3;fftw3" 
-"NE10;NE10" 
-"libraries/OrtModel/OrtModel.h;onnx" 
-"RTNeural/RTNeural.h;rtneural" 
-"math-neon;math-neon"
+"libraries/Fft/Fft.h\;libraries/Scope/Scope.h" 
+"fftw3" 
+"NE10" 
+"libraries/Gui/Gui.h\;libraries/Scope/Scope.h\;seasocks" 
+"libraries/OrtModel/OrtModel.h\;onnx" 
+"RTNeural/RTNeural.h\;rtneural" 
+"math-neon"
 )
 #TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
 # the main pd file needs to be excluded and an extra check needs to be added:
@@ -62,11 +63,13 @@ endforeach()
 include("${CMAKE_CURRENT_SOURCE_DIR}/../check_dependencies_inclusion.cmake")
 
 
+#TODO
+# make WSServer and WebServer libraries, so that core does not depend on seasocks anymore?
+# make ne10 optional in Scope
+# add/change this logic 
+# set(ADD_NE10 TRUE CACHE BOOL "Enable NE10 globally" FORCE)
 
-#VIC add/change logic here and move refines choices here... 
-set(ADD_NE10 TRUE CACHE BOOL "Enable NE10 globally" FORCE)
-set(ADD_SEASOCKS TRUE CACHE BOOL "Enable Seasocks globally" FORCE)
-# and make WSServer and WebServer libraries, so that core does not depend on seasocks anymore?
+
 
 # --------------- Source files ---------------
 
