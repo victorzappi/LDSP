@@ -6,12 +6,12 @@
 #include <NE10.h>
 #include <math.h>
 // #include <libraries/WSServer/WSServer.h>
-#include <WSServer.h>
+#include "libraries/WSServer/WSServer.h"
 // #include <JSON.h>
 // #include <AuxTaskRT.h>
 #include <stdexcept>
 
-#include "WebServer.h"
+#include "libraries/WebServer/WebServer.h"
 #include <seasocks/PageHandler.h>
 #include <seasocks/Request.h>
 #include <seasocks/ResponseBuilder.h>

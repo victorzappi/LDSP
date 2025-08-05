@@ -18,7 +18,7 @@ A project of the Augmented Instruments Laboratory within the Centre for Digital 
 
 The Bela software is distributed under the GNU Lesser General Public License (LGPL 3.0), available here: https://www.gnu.org/licenses/lgpl-3.0.txt */
 
-#include "WSServer.h"
+#include "libraries/WSServer/WSServer.h"
 #include <seasocks/IgnoringLogger.h>
 #include <seasocks/Server.h>
 #include <seasocks/WebSocket.h>

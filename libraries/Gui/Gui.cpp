@@ -20,7 +20,7 @@ The Bela software is distributed under the GNU Lesser General Public License (LG
 
 
 #include "Gui.h"
-#include "WebServer.h"
+#include "libraries/WebServer/WebServer.h"
 #include <seasocks/PageHandler.h>
 #include <seasocks/Request.h>
 #include <seasocks/ResponseBuilder.h>

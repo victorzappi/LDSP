@@ -1,7 +1,7 @@
 #ifndef WEBSERVER_H
 #define WEBSERVER_H
 
-#include "WSServer.h"
+#include "libraries/WSServer/WSServer.h"
 
 
 // forward declarations for faster render.cpp compiles

@@ -40,11 +40,13 @@ set(VARIABLE_NAMES
 )
 # designed to work with n strings per dependency separated by escaped ';', 
 # including those to detect ldsp lib inclusion and those to detect direct dependency inclusion
+# Fft is decoupled from fftw3 and Ne10; when Fft is included, cmake automatically includes one or the other 
+# according to phone details because, lower down in this script 
 set(SEARCH_STRINGS 
 "libraries/Fft/Fft.h\;libraries/Scope/Scope.h" 
 "fftw3" 
 "NE10" 
-"libraries/Gui/Gui.h\;libraries/Scope/Scope.h\;seasocks" 
+"libraries/WSServer/WSServer.h\;libraries/WebServer/WebServer.h\;libraries/Gui/Gui.h\;libraries/Scope/Scope.h\;seasocks" 
 "libraries/OrtModel/OrtModel.h\;onnx" 
 "RTNeural/RTNeural.h\;rtneural" 
 "math-neon"
@@ -85,30 +87,24 @@ list(REMOVE_ITEM SOURCES ${MAIN_SOURCES})
 file(GLOB_RECURSE DEFAULT_PD_SOURCES CONFIGURE_DEPENDS default_render_pd.cpp)
 list(REMOVE_ITEM SOURCES ${DEFAULT_PD_SOURCES})
 
-# If Seasocks dependency is not in use, exclude core sources that depend on it
-if(NOT ADD_SEASOCKS)
-  file(GLOB_RECURSE SEASOCKS_SOURCES CONFIGURE_DEPENDS WebServer.cpp WSServer.cpp)
-  list(REMOVE_ITEM SOURCES ${SEASOCKS_SOURCES})
-endif()
-
 # Source files in the user's project
 file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS ${LDSP_PROJECT}/*.cpp ${LDSP_PROJECT}/*.c)
 
 list(APPEND SOURCES ${PROJECT_SOURCES})
-
-# Use the LDSP default_render_pd.cpp if the user doesn't provide their own for a PD project
-if (ADD_LIBPD AND NOT EXISTS ${LDSP_PROJECT}/render.cpp)
-  list(APPEND SOURCES default_render_pd.cpp)
-endif()
 
 # Use the LDSP default main.cpp if the user doesn't provide their own
 if(NOT EXISTS ${LDSP_PROJECT}/main.cpp AND NOT EXISTS ${LDSP_PROJECT}/main.c)
   list(APPEND SOURCES main.cpp)
 endif()
 
-# set preprocessor directives:
-# Avoid rebuilding things we don't need to when switching projects,
-# By only passing the definition to main.cpp
+# Use the LDSP default_render_pd.cpp if the user doesn't provide their own for a PD project
+if(ADD_LIBPD AND NOT EXISTS ${LDSP_PROJECT}/render.cpp)
+  list(APPEND SOURCES default_render_pd.cpp)
+endif()
+
+# we define PROJECT_NAME -D to main.cpp only
+# instead of doing a global target_compile_definitions on the whole ldsp target
+# so that changing project name doesn’t force every source to recompile, but only main.cpp
 GET_FILENAME_COMPONENT(LDSP_PROJECT_NAME ${LDSP_PROJECT} NAME)
 set_property(
   SOURCE ${CMAKE_CURRENT_LIST_DIR}/main.cpp 
@@ -226,6 +222,8 @@ if(ADD_MATHNEON)
   message(STATUS "\tMath-neon")
   target_link_libraries(ldsp PRIVATE mathneon)
 endif()
+
+message(STATUS "") # end dependencies to config
 
 target_link_libraries(ldsp
   PRIVATE dependencies
