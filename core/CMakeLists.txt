@@ -29,9 +29,28 @@ endif()
 
 # Check whether or not to add other large dependencies
 # Define the variable names and corresponding strings to search for
-set(VARIABLE_NAMES "ADD_SEASOCKS" "ADD_FFT" "ADD_FFTW3" "ADD_NE10" "ADD_ONNX" "ADD_RTNEURAL" "ADD_MATHNEON")
-# designed to work with two strings per dependency, one specific to ldsp and one to the dependency
-set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "Fft.h;Fft.h" "fftw3;fftw3" "NE10;NE10" "libraries/OrtModel/OrtModel.h;onnx" "RTNeural/RTNeural.h;rtneural" "math-neon;math-neon")
+set(VARIABLE_NAMES 
+"ADD_FFT" 
+"ADD_FFTW3" 
+"ADD_NE10" 
+"ADD_SEASOCKS" 
+"ADD_ONNX" 
+"ADD_RTNEURAL" 
+"ADD_MATHNEON"
+)
+# designed to work with n strings per dependency separated by escaped ';', 
+# including those to detect ldsp lib inclusion and those to detect direct dependency inclusion
+# Fft is decoupled from fftw3 and Ne10; when Fft is included, cmake automatically includes one or the other 
+# according to phone details, lower down in this script 
+set(SEARCH_STRINGS 
+"libraries/Fft/Fft.h\;libraries/Scope/Scope.h" 
+"fftw3" 
+"NE10" 
+"libraries/WSServer/WSServer.h\;libraries/WebServer/WebServer.h\;libraries/Gui/Gui.h\;libraries/Scope/Scope.h\;seasocks" 
+"libraries/OrtModel/OrtModel.h\;onnx" 
+"libraries/RTNeural/RTNeural.h\;rtneural" 
+"math-neon"
+)
 #TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
 # the main pd file needs to be excluded and an extra check needs to be added:
 # if pd and any patch has a 'gui send' or 'gui receive' ---> then ADD_SEASOCKS
@@ -40,11 +59,10 @@ set(SEARCH_STRINGS "libraries/Gui/Gui.h;seasocks" "Fft.h;Fft.h" "fftw3;fftw3" "N
 
 # Initialize global cache variables based on VARIABLE_NAMES
 foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
-    set(${VAR_NAME} FALSE CACHE BOOL "Initially, ${VAR_NAME} is not found" FORCE)
+    set(${VAR_NAME} FALSE CACHE BOOL "Initially, ${VAR_NAME} is set to FALSE" FORCE)
 endforeach()
 # call the script that checks for strings
 include("${CMAKE_CURRENT_SOURCE_DIR}/../check_dependencies_inclusion.cmake")
-
 
 
 # --------------- Source files ---------------
@@ -61,30 +79,24 @@ list(REMOVE_ITEM SOURCES ${MAIN_SOURCES})
 file(GLOB_RECURSE DEFAULT_PD_SOURCES CONFIGURE_DEPENDS default_render_pd.cpp)
 list(REMOVE_ITEM SOURCES ${DEFAULT_PD_SOURCES})
 
-# If Seasocks dependency is not in use, exclude core sources that depend on it
-if(NOT ADD_SEASOCKS)
-  file(GLOB_RECURSE SEASOCKS_SOURCES CONFIGURE_DEPENDS WebServer.cpp WSServer.cpp)
-  list(REMOVE_ITEM SOURCES ${SEASOCKS_SOURCES})
-endif()
-
 # Source files in the user's project
 file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS ${LDSP_PROJECT}/*.cpp ${LDSP_PROJECT}/*.c)
 
 list(APPEND SOURCES ${PROJECT_SOURCES})
-
-# Use the LDSP default_render_pd.cpp if the user doesn't provide their own for a PD project
-if (ADD_LIBPD AND NOT EXISTS ${LDSP_PROJECT}/render.cpp)
-  list(APPEND SOURCES default_render_pd.cpp)
-endif()
 
 # Use the LDSP default main.cpp if the user doesn't provide their own
 if(NOT EXISTS ${LDSP_PROJECT}/main.cpp AND NOT EXISTS ${LDSP_PROJECT}/main.c)
   list(APPEND SOURCES main.cpp)
 endif()
 
-# set preprocessor directives:
-# Avoid rebuilding things we don't need to when switching projects,
-# By only passing the definition to main.cpp
+# Use the LDSP default_render_pd.cpp if the user doesn't provide their own for a PD project
+if(ADD_LIBPD AND NOT EXISTS ${LDSP_PROJECT}/render.cpp)
+  list(APPEND SOURCES default_render_pd.cpp)
+endif()
+
+# we define PROJECT_NAME with -D to main.cpp only
+# instead of doing a global target_compile_definitions on the whole ldsp target
+# so that changing project name doesn’t force every source to recompile, but only main.cpp
 GET_FILENAME_COMPONENT(LDSP_PROJECT_NAME ${LDSP_PROJECT} NAME)
 set_property(
   SOURCE ${CMAKE_CURRENT_LIST_DIR}/main.cpp 
@@ -112,6 +124,8 @@ target_link_libraries(ldsp PRIVATE core)
 
 # --------------- Dependencies choice ---------------
 # check which dependencies to build and add as libs
+
+# Refine choices
 
 # math-neon lib is available for armv7a only 
 # if user wants to use math-neon lib but architecture is not armv7a, we stop config!
@@ -200,6 +214,8 @@ if(ADD_MATHNEON)
   message(STATUS "\tMath-neon")
   target_link_libraries(ldsp PRIVATE mathneon)
 endif()
+
+message(STATUS "") # end dependencies to config
 
 target_link_libraries(ldsp
   PRIVATE dependencies

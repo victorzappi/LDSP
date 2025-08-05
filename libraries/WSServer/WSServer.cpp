@@ -18,7 +18,7 @@ A project of the Augmented Instruments Laboratory within the Centre for Digital 
 
 The Bela software is distributed under the GNU Lesser General Public License (LGPL 3.0), available here: https://www.gnu.org/licenses/lgpl-3.0.txt */
 
-#include "WSServer.h"
+#include "libraries/WSServer/WSServer.h"
 #include <seasocks/IgnoringLogger.h>
 #include <seasocks/Server.h>
 #include <seasocks/WebSocket.h>
@@ -28,8 +28,8 @@ The Bela software is distributed under the GNU Lesser General Public License (LG
 constexpr unsigned int WSServerClientSleepUs = 100;
 
 WSServer::WSServer(){}
-WSServer::WSServer(unsigned int port){
-	setup(port);
+WSServer::WSServer(unsigned int port, std::string resourceRoot){
+	setup(port, resourceRoot);
 }
 WSServer::~WSServer(){
 	cleanup();
@@ -64,8 +64,10 @@ struct GuiWSHandler : seasocks::WebSocket::Handler {
 };
 
 
-void WSServer::setup(unsigned int port) {
+void WSServer::setup(unsigned int port, std::string resourceRoot) {
 	_port = port;
+	_resourceRoot = resourceRoot;
+
 	auto logger = std::make_shared<seasocks::IgnoringLogger>();
 	server = std::make_shared<seasocks::Server>(logger);
 
@@ -100,8 +102,8 @@ int WSServer::send(const char* address, const void* buf, unsigned int size)
 {
 	// ensure the size does not exceed the buffer capacity
     if (size > WSOutDataMax) {
-        size = WSOutDataMax; // truncate data
-		printf("Web socket server warning! The data buffer sent to %s is too long and will be truncated!\n", address);
+		printf("Web socket server warning! The data buffer sent to %s is too long (size %d) and will be truncated (new size %d)!\n", address, size, WSOutDataMax);
+		size = WSOutDataMax; // truncate data
     }
 
 
@@ -134,11 +136,11 @@ void WSServer::cleanup()
 
 
 
-void* WSServer::serve_func()
+void* WSServer::serve_func(std::string resourceRoot)
 {
 	// no need to loop, Server::serve is looping already. 
 	// also, serve is killed via void WSServer::cleanup(), with server->terminate()
-	server->serve("/dev/null", _port);
+	server->serve(resourceRoot.c_str(), _port);
 	return (void *)0;
 }
 
@@ -151,7 +153,7 @@ void* WSServer::serve_func_static(void* arg)
  	set_niceness(-20, "WebSocketServe", false);
 
 	WSServer* wsServer = static_cast<WSServer*>(arg);    
-    return wsServer->serve_func();
+    return wsServer->serve_func(wsServer->getResourceRoot());
 }
 
 void* WSServer::client_func()
@@ -180,12 +182,12 @@ void* WSServer::client_func()
 			try  
 			{
 				// send, via execute
-				if (handler->binary)
+				if(handler->binary)
 				{
 					// make a copy of the data before we send it out
 					auto data = std::make_shared<std::vector<void*> >(size);
 					memcpy(data->data(), buf, size);
-					handler->server->execute([handler, data, size]{
+					handler->server->execute([handler, data, size] {
 						for (auto c : handler->connections){
 							c->send((uint8_t*) data->data(), size);
 						}
@@ -193,13 +195,13 @@ void* WSServer::client_func()
 				} else {
 					// make a copy of the data before we send it out
 					std::string str = (const char*)buf;
-					handler->server->execute([handler, str]{
-						for (auto c : handler->connections){
+					handler->server->execute([handler, str] {
+						for (auto c : handler->connections) {
 							c->send(str.c_str());
 						}
 					});
 				}
-			} catch (std::exception& e) 
+			} catch(std::exception& e) 
 			{
 				std::cerr << "Could not send data via web server, exception caught: " << e.what() << std::endl;
 			}

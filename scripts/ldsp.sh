@@ -9,7 +9,7 @@ settings_file="ldsp_settings.conf" # this is created by this script via configur
 dependencies_file="ldsp_dependencies.conf" # this is created by CMake after configure()
 
 # Convert a human-readable Android version (e.g. 13, 6.0.1, 4.4) into an API level.
-get_api_level () {
+get_api_level() {
 	version_major=$(echo $VERSION | cut -d . -f 1 )
 	version_minor=$(echo $VERSION | cut -d . -f 2 )
 	version_patch=$(echo $VERSION | cut -d . -f 3 )
@@ -132,7 +132,7 @@ get_api_level () {
 }
 
 # Retrieve the correct version of the onnxruntime library, based on Android version
-get_onnx_version () {
+get_onnx_version() {
   if [[ $api_level -ge 24 ]]; then 
     onnx_version="aboveOrEqual24"
   else 
@@ -152,7 +152,7 @@ install_scripts() {
 }
 
 # Configure the LDSP build system to build for the given phone model, Android version, and project path.
-configure () {
+configure() {
   if [[ $CONFIG == "" ]]; then
     echo "Cannot configure: hardware configuration file path not specified"
     echo "Please specify a hardware configuration file path with --configuration"
@@ -321,7 +321,7 @@ configure () {
 }
 
 # Build the user project.
-build () {
+build() {
   if ! [[ -f $settings_file ]]; then
     echo "Cannot build: project not configured. Please run \"ldsp.sh configure\" first."
   fi
@@ -394,7 +394,7 @@ push_onnxruntime() {
 }
 
 # Install the user project, LDSP hardware config and resources to the phone
-install () {
+install() {
   if [[ ! -f build/bin/ldsp ]]; then
     echo "Cannot install: no ldsp executable found. Please run \"ldsp.sh configure\" and \"ldsp.sh build\" first."
     exit 1
@@ -502,7 +502,7 @@ run () {
 }
 
 # Run the user project on the phone in the background.
-run_persistent () {
+run_persistent() {
   # Retrieve variables from settings file
   if [[ -f $settings_file ]]; then
       source $settings_file
@@ -523,7 +523,7 @@ EOF
 }
 
 # Stop the currently-running user project on the phone.
-stop () {
+stop() {
   echo "Stopping LDSP..."
   adb shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
 }
@@ -536,7 +536,7 @@ handle_stop() {
 }
 
 # Clean the built files
-clean () {
+clean() {
   cd build
   ninja clean
   cd ..
@@ -546,7 +546,7 @@ clean () {
 }
 
 # Remove current project from directory from the device
-clean_phone () {
+clean_phone() {
   # Retrieve variables from settings file
   if [[ -f $settings_file ]]; then
       source $settings_file
@@ -559,12 +559,12 @@ clean_phone () {
 }
 
 # Remove the ldsp directory from the device
-clean_ldsp () {
+clean_ldsp() {
   adb shell "su -c 'rm -r /data/ldsp/'" 
 }
 
 # Prepare for remote debugging
-debugserver_start () {
+debugserver_start() {
   # Retrieve variables from settings file
   if [[ -f $settings_file ]]; then
       source $settings_file
@@ -584,7 +584,7 @@ debugserver_start () {
 }
 
 # Clean up remote debugging
-debugserver_stop () {
+debugserver_stop() {
 
   echo "Stopping debug server..."
   adb shell "su -c 'sh /data/ldsp/scripts/ldsp_debugserver_stop.sh'"
@@ -628,7 +628,7 @@ mixer_paths_opened() {
 
 
 # Print usage information.
-help () {
+help() {
   echo -e "Usage:"
   echo -e "ldsp.sh install_scripts"
   echo -e "ldsp.sh configure [settings]"

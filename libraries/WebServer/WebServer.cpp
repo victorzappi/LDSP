@@ -2,6 +2,7 @@
 #include <seasocks/Server.h>
 #include <seasocks/PageHandler.h>
 #include <seasocks/IgnoringLogger.h>
+// #include <seasocks/PrintfLogger.h> //VIC for debug
 #include <array>
 #include <regex>
 //#include <fstream>   // include to use system()
@@ -9,22 +10,25 @@
 
 WebServer::WebServer() {}
 
-WebServer::WebServer(unsigned int port) {
+WebServer::WebServer(unsigned int port, std::string resourceRoot) {
     setup("", "", port);
 }
 
 WebServer::~WebServer() {
 }
 
-void WebServer::setup(unsigned int port) {
-    setup("", "", port);
+void WebServer::setup(unsigned int port, std::string resourceRoot) {
+    setup("", "", port, resourceRoot);
 }
 
-void WebServer::setup(std::string projectName, std::string serverName, unsigned int port) {
+void WebServer::setup(std::string projectName, std::string serverName, unsigned int port, std::string resourceRoot) {
     _projectName = projectName;
     _serverName = serverName;
     _port = port;
+    _resourceRoot = resourceRoot;
+
     auto logger = std::make_shared<seasocks::IgnoringLogger>();
+    // auto logger = std::make_shared<seasocks::PrintfLogger>(); //VIC for debug with proper header up
 	server = std::make_shared<seasocks::Server>(logger);
 
     // prepare client loop vars
@@ -45,11 +49,11 @@ void WebServer::run() {
 }
 
 
-void* WebServer::serve_func()
+void* WebServer::serve_func(std::string resourceRoot)
 {
 	// no need to loop, Server::serve is looping already. 
 	// also, serve is killed via void WebServer::cleanup(), with server->terminate()
-    server->serve("/dev/null", _port);
+    server->serve(resourceRoot.c_str(), _port);
     printf("%s web server terminated!\n", _serverName.c_str());
 	return (void *)0;
 }
@@ -63,7 +67,7 @@ void* WebServer::serve_func_static(void* arg)
  	set_niceness(-20, "WebServerServe", false);
 
 	WebServer* webServer = static_cast<WebServer*>(arg);    
-    return webServer->serve_func();
+    return webServer->serve_func(webServer->getResourceRoot());
 }
 
 void WebServer::printServerAddress() {

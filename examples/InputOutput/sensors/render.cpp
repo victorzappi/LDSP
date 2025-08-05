@@ -19,7 +19,7 @@
 
 #include "LDSP.h"
 #include "libraries/Biquad/Biquad.h"
-#include <math.h> // sin, fabs
+#include <cmath> // sin, fabs
 
 float frequency = 440.0;
 float amplitude = 0.3;
