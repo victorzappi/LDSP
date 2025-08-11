@@ -17,7 +17,6 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * LDSP Gesture Classifier using RapidLib
  * Classifies phone gestures using accelerometer data
@@ -29,6 +28,15 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
+
+// User settings
+float class0Frequency = 220.0f;  // Frequency for Class 0
+float class1Frequency = 880.0f;  // Frequency for Class 1
+
+float frequencyChangeSpeed = 0.3f;  // 0.01 = very slow, 0.5 = fast, 1.0 = instant
+float amplitudeChangeSpeed = 0.05f;  // 0.01 = very slow, 0.5 = fast, 1.0 = instant (only to/from idle)
+
+//------------------------------------------------
 
 // RapidLib classifier
 rapidLib::classification classifier;
@@ -58,8 +66,8 @@ bool prevVolumeDown = false;
 bool prevPower = false;
 
 // Audio synthesis
-float frequency = 440.0f;
-float targetFrequency = 440.0f;
+float frequency = class0Frequency;
+float targetFrequency = class0Frequency;
 float amplitude = 0.0f;  // Start silent
 float targetAmplitude = 0.0f;
 float phase = 0.0f;
@@ -68,22 +76,76 @@ float inverseSampleRate;
 // For real-time classification
 std::vector<std::vector<double>> recentSamples;
 int slidingWindowSize = 0;  // Will be calculated in setup()
-int classificationPrintInterval = 0;  // Will be calculated in setup()
+int previousPredictedClass = -1;  // Track class changes
 
-//------------------------------------------------
 
-void detectButtonEdges(LDSPcontext *context) {
-    // Read actual button states from LDSP
-    volumeUpPressed = buttonRead(context, chn_btn_volUp);
-    volumeDownPressed = buttonRead(context, chn_btn_volDown);
-    powerPressed = buttonRead(context, chn_btn_power);
+
+// Helper function to compute mean and standard deviation features from gesture data
+std::vector<double> computeGestureFeatures(const std::vector<std::vector<double>>& gestureData) 
+{
+    double meanX = 0, meanY = 0, meanZ = 0;
+    double stdX = 0, stdY = 0, stdZ = 0;
+    
+    // Calculate means
+    for (const auto& sample : gestureData) 
+	{
+        meanX += sample[0];
+        meanY += sample[1];
+        meanZ += sample[2];
+    }
+    meanX /= gestureData.size();
+    meanY /= gestureData.size();
+    meanZ /= gestureData.size();
+    
+    // Calculate standard deviations
+    for (const auto& sample : gestureData) 
+	{
+        stdX += pow(sample[0] - meanX, 2);
+        stdY += pow(sample[1] - meanY, 2);
+        stdZ += pow(sample[2] - meanZ, 2);
+    }
+    stdX = sqrt(stdX / gestureData.size());
+    stdY = sqrt(stdY / gestureData.size());
+    stdZ = sqrt(stdZ / gestureData.size());
+    
+    return {meanX, meanY, meanZ, stdX, stdY, stdZ};
 }
 
-bool setup(LDSPcontext *context, void *userData) {
+// Helper function to handle gesture recording
+void handleGestureRecording(State& nextState, int classLabel, const std::string& className,
+                           std::vector<std::vector<double>>& currentGesture,
+                           std::vector<rapidLib::trainingExample>& trainingSet,
+                           int& exampleCount) 
+{
+    if (currentGesture.size() > 10) 
+	{
+        // Compute features from the gesture
+        std::vector<double> features = computeGestureFeatures(currentGesture);
+        
+        // Create training example
+        rapidLib::trainingExample example;
+        example.input = features;
+        example.output = {(double)classLabel};
+        trainingSet.push_back(example);
+        exampleCount++;
+        
+        // Update state and print info
+        nextState = IDLE;
+        std::cout << "<<< " << className << " gesture recorded! (Total: " << exampleCount << ")" << std::endl;
+        std::cout << "Samples collected: " << currentGesture.size() << std::endl;
+        std::cout << "Features: [" << features[0] << ", " << features[1] << ", " << features[2] 
+                 << ", " << features[3] << ", " << features[4] << ", " << features[5] << "]" << std::endl;
+        std::cout << "State: IDLE\n" << std::endl;
+    }
+}
+
+bool setup(LDSPcontext *context, void *userData) 
+{
     // Check if accelerometer is available
     if (!context->sensorsSupported[chn_sens_accelX] ||
         !context->sensorsSupported[chn_sens_accelY] ||
-        !context->sensorsSupported[chn_sens_accelZ]) {
+        !context->sensorsSupported[chn_sens_accelZ]) 
+	{
         printf("Accelerometer not present on this phone, the example cannot be run :(\n");
         return false;
     }
@@ -91,13 +153,11 @@ bool setup(LDSPcontext *context, void *userData) {
     inverseSampleRate = 1.0f / context->audioSampleRate;
     phase = 0.0f;
     currentState = IDLE;
+    previousPredictedClass = -1;
     
     // Calculate sliding window size for ~500ms of data
     float bufferPeriod = (float)context->audioFrames / context->audioSampleRate;  // Time per buffer in seconds
     slidingWindowSize = (int)(0.5f / bufferPeriod);  // Number of buffers for 500ms
-    
-    // Calculate print interval for ~1 second
-    classificationPrintInterval = (int)(1.0f / bufferPeriod);
     
     std::cout << "\n=== LDSP Gesture Classifier ===" << std::endl;
     std::cout << "Controls:" << std::endl;
@@ -109,49 +169,75 @@ bool setup(LDSPcontext *context, void *userData) {
     return true;
 }
 
-void render(LDSPcontext *context, void *userData) {
+void render(LDSPcontext *context, void *userData) 
+{
     // Read accelerometer data
     float accelX = sensorRead(context, chn_sens_accelX);
     float accelY = sensorRead(context, chn_sens_accelY);
     float accelZ = sensorRead(context, chn_sens_accelZ);
     
+    // Read button states directly
+    volumeUpPressed = buttonRead(context, chn_btn_volUp);
+    volumeDownPressed = buttonRead(context, chn_btn_volDown);
+    powerPressed = buttonRead(context, chn_btn_power);
+
     // Detect button presses (edge detection)
-    detectButtonEdges(context);
     bool volumeUpTrigger = volumeUpPressed && !prevVolumeUp;
     bool volumeDownTrigger = volumeDownPressed && !prevVolumeDown;
     bool powerTrigger = powerPressed && !prevPower;
-
+    
     // Update button history
     prevVolumeUp = volumeUpPressed;
     prevVolumeDown = volumeDownPressed;
     prevPower = powerPressed;
     
     // FSM Logic
-    switch(currentState) {
+    switch(currentState) 
+	{
         case IDLE:
             targetAmplitude = 0.0f;  // Silent
             
-            if (volumeUpTrigger) {
+            if(volumeUpTrigger) 
+			{
                 currentState = RECORDING_CLASS_0;
                 currentGesture.clear();
                 std::cout << ">>> Recording Class 0 gesture... Move the phone!" << std::endl;
-            } else if (volumeDownTrigger) {
+            } 
+			else if(volumeDownTrigger) 
+			{
                 currentState = RECORDING_CLASS_1;
                 currentGesture.clear();
                 std::cout << ">>> Recording Class 1 gesture... Move the phone!" << std::endl;
-            } else if (powerTrigger && class0Examples > 0 && class1Examples > 0) {
-                // Train if we have examples
-                bool success = classifier.train(trainingSet);
-                if (success) {
-                    currentState = CLASSIFYING;
-                    targetAmplitude = 0.2f;
-                    recentSamples.clear();
-                    std::cout << "*** Classifier trained successfully! ***" << std::endl;
-                    std::cout << "Class 0 examples: " << class0Examples << std::endl;
-                    std::cout << "Class 1 examples: " << class1Examples << std::endl;
-                    std::cout << "State: CLASSIFYING (making sound)\n" << std::endl;
-                } else {
-                    std::cout << "!!! Training failed !!!" << std::endl;
+            } 
+			else if(powerTrigger) 
+			{
+                // Either train (if we have examples of both classes) or reset (if any examples exist)
+                if(class0Examples > 0 && class1Examples > 0) 
+				{
+                    // Train if we have examples of both classes
+                    bool success = classifier.train(trainingSet);
+                    if(success) 
+					{
+                        currentState = CLASSIFYING;
+                        targetAmplitude = 0.2f;
+                        recentSamples.clear();
+                        std::cout << "*** Classifier trained successfully! ***" << std::endl;
+                        std::cout << "Class 0 examples: " << class0Examples << std::endl;
+                        std::cout << "Class 1 examples: " << class1Examples << std::endl;
+                        std::cout << "State: CLASSIFYING (making sound)\n" << std::endl;
+                    } 
+					else
+                        std::cout << "!!! Training failed !!!" << std::endl;
+                } 
+				else if(class0Examples > 0 || class1Examples > 0) 
+				{
+                    // Reset if we have any examples but not both classes
+                    trainingSet.clear();
+                    class0Examples = 0;
+                    class1Examples = 0;
+                    std::cout << "\n*** RESET - Incomplete training data deleted ***" << std::endl;
+                    std::cout << "Need examples from both classes to train!" << std::endl;
+                    std::cout << "State: IDLE (silent)\n" << std::endl;
                 }
             }
             break;
@@ -164,44 +250,8 @@ void render(LDSPcontext *context, void *userData) {
             }
             
             // Stop recording on button press
-            if (volumeUpTrigger && currentGesture.size() > 10) {
-                // Calculate features from the gesture (mean and std)
-                double meanX = 0, meanY = 0, meanZ = 0;
-                double stdX = 0, stdY = 0, stdZ = 0;
-                
-                for (auto& sample : currentGesture) {
-                    meanX += sample[0];
-                    meanY += sample[1];
-                    meanZ += sample[2];
-                }
-                meanX /= currentGesture.size();
-                meanY /= currentGesture.size();
-                meanZ /= currentGesture.size();
-                
-                for (auto& sample : currentGesture) {
-                    stdX += pow(sample[0] - meanX, 2);
-                    stdY += pow(sample[1] - meanY, 2);
-                    stdZ += pow(sample[2] - meanZ, 2);
-                }
-                stdX = sqrt(stdX / currentGesture.size());
-                stdY = sqrt(stdY / currentGesture.size());
-                stdZ = sqrt(stdZ / currentGesture.size());
-                
-                // Create training example with features
-                std::vector<double> features = {meanX, meanY, meanZ, stdX, stdY, stdZ};
-                rapidLib::trainingExample example;
-                example.input = features;
-                example.output = {0.0};  // Class 0
-                trainingSet.push_back(example);
-                class0Examples++;
-                
-                currentState = IDLE;
-                std::cout << "<<< Class 0 gesture recorded! (Total: " << class0Examples << ")" << std::endl;
-                std::cout << "Samples collected: " << currentGesture.size() << std::endl;
-                std::cout << "Features: [" << meanX << ", " << meanY << ", " << meanZ 
-                         << ", " << stdX << ", " << stdY << ", " << stdZ << "]" << std::endl;
-                std::cout << "State: IDLE\n" << std::endl;
-            }
+            if(volumeUpTrigger)
+                handleGestureRecording(currentState, 0, "Class 0", currentGesture, trainingSet, class0Examples);
             break;
             
         case RECORDING_CLASS_1:
@@ -212,44 +262,8 @@ void render(LDSPcontext *context, void *userData) {
             }
             
             // Stop recording on button press
-            if (volumeDownTrigger && currentGesture.size() > 10) {
-                // Calculate features from the gesture
-                double meanX = 0, meanY = 0, meanZ = 0;
-                double stdX = 0, stdY = 0, stdZ = 0;
-                
-                for (auto& sample : currentGesture) {
-                    meanX += sample[0];
-                    meanY += sample[1];
-                    meanZ += sample[2];
-                }
-                meanX /= currentGesture.size();
-                meanY /= currentGesture.size();
-                meanZ /= currentGesture.size();
-                
-                for (auto& sample : currentGesture) {
-                    stdX += pow(sample[0] - meanX, 2);
-                    stdY += pow(sample[1] - meanY, 2);
-                    stdZ += pow(sample[2] - meanZ, 2);
-                }
-                stdX = sqrt(stdX / currentGesture.size());
-                stdY = sqrt(stdY / currentGesture.size());
-                stdZ = sqrt(stdZ / currentGesture.size());
-                
-                // Create training example with features
-                std::vector<double> features = {meanX, meanY, meanZ, stdX, stdY, stdZ};
-                rapidLib::trainingExample example;
-                example.input = features;
-                example.output = {1.0};  // Class 1
-                trainingSet.push_back(example);
-                class1Examples++;
-                
-                currentState = IDLE;
-                std::cout << "<<< Class 1 gesture recorded! (Total: " << class1Examples << ")" << std::endl;
-                std::cout << "Samples collected: " << currentGesture.size() << std::endl;
-                std::cout << "Features: [" << meanX << ", " << meanY << ", " << meanZ 
-                         << ", " << stdX << ", " << stdY << ", " << stdZ << "]" << std::endl;
-                std::cout << "State: IDLE\n" << std::endl;
-            }
+            if(volumeDownTrigger)
+                handleGestureRecording(currentState, 1, "Class 1", currentGesture, trainingSet, class1Examples);
             break;
             
         case CLASSIFYING:
@@ -260,73 +274,54 @@ void render(LDSPcontext *context, void *userData) {
             recentSamples.push_back({(double)accelX, (double)accelY, (double)accelZ});
             
             // Keep a sliding window of ~500ms based on actual sample rate and buffer size
-            if (recentSamples.size() > (size_t)slidingWindowSize) {
+            if(recentSamples.size() > (size_t)slidingWindowSize)
                 recentSamples.erase(recentSamples.begin());
-            }
             
             // Classify when we have enough samples (at least ~130ms of data)
-            if (recentSamples.size() >= (size_t)(slidingWindowSize / 4)) {
+            if(recentSamples.size() >= (size_t)(slidingWindowSize / 4)) 
+			{
                 // Calculate features from sliding window
-                double meanX = 0, meanY = 0, meanZ = 0;
-                double stdX = 0, stdY = 0, stdZ = 0;
-                
-                for (auto& sample : recentSamples) {
-                    meanX += sample[0];
-                    meanY += sample[1];
-                    meanZ += sample[2];
-                }
-                meanX /= recentSamples.size();
-                meanY /= recentSamples.size();
-                meanZ /= recentSamples.size();
-                
-                for (auto& sample : recentSamples) {
-                    stdX += pow(sample[0] - meanX, 2);
-                    stdY += pow(sample[1] - meanY, 2);
-                    stdZ += pow(sample[2] - meanZ, 2);
-                }
-                stdX = sqrt(stdX / recentSamples.size());
-                stdY = sqrt(stdY / recentSamples.size());
-                stdZ = sqrt(stdZ / recentSamples.size());
+                std::vector<double> features = computeGestureFeatures(recentSamples);
                 
                 // Classify
-                std::vector<double> features = {meanX, meanY, meanZ, stdX, stdY, stdZ};
                 std::vector<double> output = classifier.run(features);
                 int predictedClass = (output.size() > 0 && output[0] > 0.5) ? 1 : 0;
                 
                 // Set frequency based on class
-                targetFrequency = (predictedClass == 0) ? 440.0f : 880.0f;
+                targetFrequency = (predictedClass == 0) ? class0Frequency : class1Frequency;
                 
-                // Print occasionally (every ~1 second)
-                static int printCounter = 0;
-                if (++printCounter >= classificationPrintInterval) {
-                    printCounter = 0;
-                    std::cout << "Class: " << predictedClass 
-                             << " | Freq: " << targetFrequency << " Hz"
-                             << " | Accel: [" << accelX << ", " << accelY << ", " << accelZ << "]" 
-                             << std::endl;
+                // Print only when class changes
+                if(predictedClass != previousPredictedClass) 
+				{
+                    std::cout << "*** Class changed: " << previousPredictedClass << " -> " << predictedClass 
+                             << " | Freq: " << targetFrequency << " Hz" << std::endl;
+                    previousPredictedClass = predictedClass;
                 }
             }
             
             // Reset on power button
-            if (powerTrigger) {
+            if(powerTrigger) 
+			{
                 trainingSet.clear();
                 class0Examples = 0;
                 class1Examples = 0;
                 currentState = IDLE;
                 targetAmplitude = 0.0f;
                 recentSamples.clear();
+                previousPredictedClass = -1;  // Reset class tracking
                 std::cout << "\n*** RESET - All training data deleted ***" << std::endl;
                 std::cout << "State: IDLE (silent)\n" << std::endl;
             }
             break;
     }
     
-    // Smooth parameter changes
-    amplitude = amplitude * 0.95f + targetAmplitude * 0.05f;
-    frequency = frequency * 0.98f + targetFrequency * 0.02f;
+    // Smooth parameter changes (faster response for frequency)
+    amplitude = amplitude * (1.0f - amplitudeChangeSpeed) + targetAmplitude * amplitudeChangeSpeed;
+	frequency = frequency * (1.0f - frequencyChangeSpeed) + targetFrequency * frequencyChangeSpeed;
     
     // Generate audio output
-    for(int n = 0; n < context->audioFrames; n++) {
+    for(int n = 0; n < context->audioFrames; n++)
+	{
         float out = amplitude * sinf(phase);
         phase += 2.0f * (float)M_PI * frequency * inverseSampleRate;
         
@@ -334,13 +329,13 @@ void render(LDSPcontext *context, void *userData) {
             phase -= 2.0f * M_PI;
         
         // Write to all output channels
-        for(int chn = 0; chn < context->audioOutChannels; chn++) {
+        for(int chn = 0; chn < context->audioOutChannels; chn++)
             audioWrite(context, n, chn, out);
-        }
     }
 }
 
-void cleanup(LDSPcontext *context, void *userData) {
+void cleanup(LDSPcontext *context, void *userData) 
+{
     std::cout << "LDSP Gesture Classifier Cleanup" << std::endl;
     trainingSet.clear();
     currentGesture.clear();
