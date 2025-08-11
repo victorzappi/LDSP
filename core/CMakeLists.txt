@@ -33,10 +33,11 @@ set(VARIABLE_NAMES
 "ADD_FFT" 
 "ADD_FFTW3" 
 "ADD_NE10" 
+"ADD_MATHNEON"
 "ADD_SEASOCKS" 
 "ADD_ONNX" 
 "ADD_RTNEURAL" 
-"ADD_MATHNEON"
+"ADD_RAPIDLIB"
 )
 # designed to work with n strings per dependency separated by escaped ';', 
 # including those to detect ldsp lib inclusion and those to detect direct dependency inclusion
@@ -47,9 +48,10 @@ set(SEARCH_STRINGS
 "fftw3" 
 "NE10" 
 "libraries/WSServer/WSServer.h\;libraries/WebServer/WebServer.h\;libraries/Gui/Gui.h\;libraries/Scope/Scope.h\;seasocks" 
+"math-neon"
 "libraries/OrtModel/OrtModel.h\;onnx" 
 "libraries/RTNeural/RTNeural.h\;rtneural" 
-"math-neon"
+"rapidLib"
 )
 #TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
 # the main pd file needs to be excluded and an extra check needs to be added:
@@ -191,6 +193,11 @@ if(ADD_NE10)
   target_link_libraries(ldsp PRIVATE NE10)
 endif()
 
+if(ADD_MATHNEON)
+  message(STATUS "\tMath-neon")
+  target_link_libraries(ldsp PRIVATE mathneon)
+endif()
+
 if(ADD_SEASOCKS)
   message(STATUS "\tSeasocks")
   target_link_libraries(ldsp PRIVATE seasocks)
@@ -210,9 +217,9 @@ if(ADD_RTNEURAL)
   target_link_libraries(ldsp PRIVATE RTNeural)
 endif()
 
-if(ADD_MATHNEON)
-  message(STATUS "\tMath-neon")
-  target_link_libraries(ldsp PRIVATE mathneon)
+if(ADD_RAPIDLIB)
+  message(STATUS "\tRapidLib")
+  target_link_libraries(ldsp PRIVATE rapidLib)
 endif()
 
 message(STATUS "") # end dependencies to config

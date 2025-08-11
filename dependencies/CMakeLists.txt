@@ -132,10 +132,26 @@ if(ADD_NE10)
     endif()
 endif()
 
+if(ADD_MATHNEON)
+    # We are using a custom version of the original math-neon: https://github.com/andrepuschmann/math-neon/tree/master
+    # this lib is compatible with armv7a only (aarch64 compilation should achieve same performance), which supports soft-float only on Android!
+    # our version underwent several edits (all marked with '//VIC'):
+    # - added return statement to all sfp math functions
+    # - hid hfp implementation of fabs [the asm was not recognize as corect]
+    # - added extern "C" guard in main inlcude so that C++ compiler looks for the unmangled names
+    message(STATUS "\tConfiguring Math-neon...")
+    add_subdirectory(math-neon)
+    target_link_libraries(dependencies INTERFACE mathneon)
+    # mathneon does not need to explicitly add includes with:
+    # target_include_directories()
+    # because its CMakelists.txt file propagates them to any target linking against the lib with:
+    # target_include_directories(mathneon PUBLIC include)
+endif()
+
 if(ADD_SEASOCKS)
     # We are using a custom version of seasocks that builds for Android
     # seasocks source: https://github.com/mattgodbolt/seasocks
-    # our version of the lib have several edits (all marked with '//VIC'), including:
+    # our version of the lib has several edits (all marked with '//VIC'), including:
     # - adds woff and woff2 in the list of supported fonts
     # - removed SO_REUSEPORT, not supported on older Android versions
     # - removed 'inline' available only when using -Wno-c++17-extensions flag
@@ -153,6 +169,11 @@ if(ADD_SEASOCKS)
 endif()
 
 if(ADD_ONNX)
+    # We are using a pre-built dynamic lib here (.a)!
+    # and we have 4 different builds for 4 differet traget archs/API leve
+    # reasons for dynamic libs:
+    # - building process is too long 
+    # - the lib is quite large and a dymanic one is installed once instead of making the bin very heavy
     message(STATUS "\tConfiguring ONNX...")
     add_subdirectory(onnxruntime)
     target_include_directories(dependencies INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime/include/headers)
@@ -171,28 +192,20 @@ if(ADD_RTNEURAL)
     # rtneural does not need to explicitly add includes with:
     # target_include_directories()
     # because its CMakelists.txt file propagates them to any target linking against the lib with:
-    # target_include_directories(RTNeural PUBLIC include)?
 endif()
 
-if(ADD_MATHNEON)
-    # We are using a custom version of the original math-neon: https://github.com/andrepuschmann/math-neon/tree/master
-    # this lib is compatible with armv7a only (aarch64 compilation should achieve same performance), which supports soft-float only on Android!
-    # our version underwent several edits (all marked with '//VIC'):
-    # - added return statement to all sfp math functions
-    # - hid hfp implementation of fabs [the asm was not recognize as corect]
-    # - added extern "C" guard in main inlcude so that C++ compiler looks for the unmangled names
-    message(STATUS "\tConfiguring Math-neon...")
-    add_subdirectory(math-neon)
-    target_link_libraries(dependencies INTERFACE mathneon)
-    # mathneon does not need to explicitly add includes with:
+if(ADD_RAPIDLIB)
+    # We are using a custom version of RapiLib that builds for Android and uses C++ 17 as LDSP does
+    # RapiLib source: https://github.com/mzed/RapidLib
+    # our version of the lib has a few edits (all marked with '//VIC'), including:
+    # - removed range-based for loop initializations (C++ 20)
+    # - added cmath instead of relying on std:: math functions (Android NDK)
+    # - made custom lighweigth CMakeLists.txt
+    message(STATUS "\tConfiguring RapidLib...")
+    add_subdirectory(RapidLib)
+    target_link_libraries(dependencies INTERFACE rapidLib)
+    # RapiLib does not need to explicitly add includes with:
     # target_include_directories()
     # because its CMakelists.txt file propagates them to any target linking against the lib with:
-    # target_include_directories(mathneon PUBLIC include)
 endif()
-
-
-message(STATUS "\tConfiguring RapidLib...")
-add_subdirectory(RapidLib)
-target_link_libraries(dependencies INTERFACE rapidLib)
-
 
