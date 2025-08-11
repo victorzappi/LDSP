@@ -18,7 +18,7 @@
  */
 
 #include "LDSP.h"
-#include <math.h> // sinf
+#include <cmath> // sinf
 #include <unistd.h> // ulseep
 
 

@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 
 #include "LDSP.h"
 #include "libraries/OscSender/OscSender.h"

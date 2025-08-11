@@ -22,7 +22,7 @@
 // Example usage can be found in examples/Audio/fft_boilerplate
 
 #include "LDSP.h"
-#include <math.h> // sin
+#include <cmath> // sin
 #include "NE10.h"
 
 #define SAMPLES 16

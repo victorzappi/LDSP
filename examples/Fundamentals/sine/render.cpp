@@ -18,7 +18,8 @@
  */
 
 #include "LDSP.h"
-#include <math.h> // sin
+#include <cmath> // sin
+#include <rapidLib.h>
 
 float frequency = 440.0;
 float amplitude = 0.2;
@@ -26,6 +27,8 @@ float amplitude = 0.2;
 //------------------------------------------------
 float phase;
 float inverseSampleRate;
+
+rapidLib::classification classifier;
 
 
 

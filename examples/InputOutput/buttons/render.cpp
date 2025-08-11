@@ -18,7 +18,7 @@
  */
 
 #include "LDSP.h"
-#include <math.h> // sinf, powf
+#include <cmath> // sinf, powf
 
 float startingFrequency = 440.0;
 float amplitude = 0.2;
@@ -53,6 +53,11 @@ void render(LDSPcontext *context, void *userData)
 	int pwr = buttonRead(context, chn_btn_power);
 	int volUp = buttonRead(context, chn_btn_volUp);
 	int volDwn = buttonRead(context, chn_btn_volDown);
+
+	if(volUp)
+		printf("-----==========---------========--------==========\n");
+	else
+		printf("no\n");
 
 	if(pwr==1 && pwr_prev==0)
 	{

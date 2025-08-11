@@ -23,7 +23,7 @@
 #include "libraries/OscSender/OscSender.h"
 #include "libraries/OscReceiver/OscReceiver.h"
 
-#include <math.h> // sin
+#include <cmath> // sin
 
 
 float duration = -1; // [s]

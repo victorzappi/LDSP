@@ -191,3 +191,8 @@ if(ADD_MATHNEON)
 endif()
 
 
+message(STATUS "\tConfiguring RapidLib...")
+add_subdirectory(RapidLib)
+target_link_libraries(dependencies INTERFACE rapidLib)
+
+

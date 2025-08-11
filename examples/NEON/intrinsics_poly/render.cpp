@@ -24,7 +24,7 @@
 
 #include "LDSP.h"
 #include <arm_neon.h>
-#include <math.h>   // sinf()
+#include <cmath>   // sinf()
 
 // ------------------------------------------------------------------------
 // Configuration

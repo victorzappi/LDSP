@@ -20,7 +20,7 @@
 #include "LDSP.h"
 #include "libraries/OscSender/OscSender.h"
 #include "libraries/OscReceiver/OscReceiver.h"
-#include <math.h> // sinf
+#include <cmath> // sinf
 
 
 float frequency = 880.0; 

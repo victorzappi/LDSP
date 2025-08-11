@@ -18,7 +18,7 @@
  */
 
 #include "LDSP.h"
-#include <math.h> // sin
+#include <cmath> // sin
 
 
 float freqMax = 880;
