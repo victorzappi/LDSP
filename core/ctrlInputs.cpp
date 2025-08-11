@@ -506,7 +506,7 @@ int initCtrlInputs()
         for(auto &v : ctrlIn.value)
         {
             v = std::make_shared< atomic<signed int> >(); // we allocate the atomic container
-            if(i <= chn_btn_volUp)
+            if(i < chn_btn_count)
                 v->store(0); // init all button values to 0 [not pressed]
             else
                 v->store(-1); // init all other values to -1 [not set]
