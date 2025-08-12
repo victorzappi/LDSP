@@ -178,10 +178,9 @@ configure() {
   fi
 
 # TODO: 
-#  pass -s android device serial for whne more phones are plugged in
-#  merge scope!
+#  scope for libpd
 #  pass realease/debug configuration from ldsp script
-#  rapid lib?
+#  pass -s android device serial for whne more phones are plugged in
 #  script for slimbus detection + continue docs 
 
   # get major NDK version

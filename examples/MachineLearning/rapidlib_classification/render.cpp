@@ -24,7 +24,7 @@
  */
 
 #include "LDSP.h"
-#include <rapidLib.h>
+#include "rapidLib.h"
 #include <vector>
 #include <cmath>
 #include <iostream>

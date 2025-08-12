@@ -24,7 +24,7 @@
  */
 
 #include "LDSP.h"
-#include <rapidLib.h>
+#include "rapidLib.h"
 #include "libraries/Biquad/Biquad.h"
 #include <vector>
 #include <cmath>
