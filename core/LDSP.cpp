@@ -54,6 +54,8 @@ void LDSP_defaultSettings(LDSPinitSettings *settings)
     settings->sensorsOff = 0; // sensors are on by default
     settings->ctrlInputsOff = 0; // control inputs are on by default
     settings->ctrlOutputsOff = 0; // control outputs are on by default
+    settings->keepAudioserver = 0; // android audioserver is stopped while LDSP is running by default
+    settings->perfModeOff = 0; // performance mode is on by default
     settings->verbose = 0; // shut up by default
     settings->deviceOutId = ""; // if not specified at run-time, it is obtained from device num
     settings->deviceInId = ""; // if not specified at run-time, it is obtained from device num

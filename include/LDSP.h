@@ -42,6 +42,7 @@ struct LDSPinitSettings {
     int sensorsOff;
     int ctrlInputsOff;
     int ctrlOutputsOff;
+    int keepAudioserver;
     int perfModeOff;
     int verbose;
     // these have priority over deviceOut/InNum and if not specificied are automatically populated according to device numbers
@@ -197,10 +198,10 @@ static inline int buttonRead(LDSPcontext *context, btnInputChannel channel);
 static inline int multiTouchRead(LDSPcontext *context, multiTouchInputChannel channel, int touchSlot=0);
 static inline void ctrlOutputWrite(LDSPcontext *context, ctrlOutputChannel channel, float value);
 
-//static inline float analogInNormFactor(LDSPcontext *context, sensorChannel channel);
-
 //TODO ctrlOutputs/InputsState(...)
 //TODO ctrlOutputs/InputsDetails(...)
+
+void controlAudioserver(int serverState);
 
 void screenSetState(bool stateOn, float brightness=1, bool stayOn=false);
 bool screenGetState(); // this is a heavy function, use with caution

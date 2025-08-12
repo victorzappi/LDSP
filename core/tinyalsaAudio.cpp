@@ -77,6 +77,7 @@ bool ctrlOutputsOff_ = false;
 
 int cpuIndex = -1;
 
+bool audioServerStopped = false;
 #if __ANDROID_API__ > 24
     // on Android 7 and above [api 24 and above], Android controls audio via the dedicated audioserver
 	string audio_server = "audioserver";
@@ -85,9 +86,8 @@ int cpuIndex = -1;
     string audio_server = "media";
 #endif
 
-// function pointers set up in initFormatFunctions()
-// capture
 
+// function pointers set up in initFormatFunctions()
 // Depending on if NEON_AUDIO_FORMAT, fromRawToFloat_int and fromFloatToRaw_int will be implenented with NEON or not
 
 // playback
@@ -131,7 +131,7 @@ void cleanupLowLevelAudioStruct(LDSPpcmContext *pcmContext);
 void setGovernorMode();
 void resetGovernorMode();
 void *audioLoop(void*); 
-void setTaskToForeground();
+void controlAudioserver(int serverState);
 
 
 int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
@@ -152,14 +152,8 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 		printf("\nLDSP_initAudio()\n");
 
 
-	if(audioVerbose)
-		printf("\nTrying to stop Android audio server...\n");
-	string server_cmd = "stop "+audio_server;
-    if(system(server_cmd.c_str()) != 0)
-        printf("\tFailed to stop Android audio server (this should not be an issue)\n");
-	else if(audioVerbose) 
-		printf("\tAndroid audio server stopped!\n\n");
-
+	if(!settings->keepAudioserver)
+		controlAudioserver(0);
 
 
 	initAudioParams(settings, &pcmContext.playback, true);
@@ -270,13 +264,8 @@ void LDSP_cleanupAudio()
 	if(!perfModeOff)
 		resetGovernorMode();
 	
-	if(audioVerbose)
-		printf("\nTrying to restart Android audio server...\n");
-	string server_cmd = "start "+audio_server;
-    if(system(server_cmd.c_str()) != 0)
-        printf("\tFailed to restart Android audio server (this should not be an issue)\n");
-	else if(audioVerbose)
-		printf("\tAndroid audio server restarted!\n\n");
+	if(audioServerStopped)
+		controlAudioserver(1);
 }
 
 void LDSP_requestStop()
@@ -1241,3 +1230,39 @@ void resetGovernorMode()
 			*(sampleBytes + audio_struct->physBps - 1 - i) = (value >> i * 8) & 0xff; 
 	}
 #endif
+
+
+void controlAudioserver(int serverState) 
+{
+	if(serverState == 0) 
+	{
+		if(audioVerbose)
+			printf("\nTrying to stop Android audio server...\n");
+		string server_cmd = "stop "+audio_server;
+		if(system(server_cmd.c_str()) != 0)
+			printf("\tFailed to stop Android audio server (this should not be an issue)\n");
+		else 
+		{
+			audioServerStopped = true;
+			if(audioVerbose) 
+				printf("\tAndroid audio server stopped!\n\n");
+		}
+	}
+	else if(audioServerStopped) // && serverState == 1 or else
+	{
+		if(audioVerbose)
+			printf("\nTrying to restart Android audio server...\n");
+		string server_cmd = "start "+audio_server;
+		if(system(server_cmd.c_str()) != 0)
+			printf("\tFailed to restart Android audio server (this should not be an issue)\n");
+		else
+		{ 
+			audioServerStopped = false;
+			if(audioVerbose)
+				printf("\tAndroid audio server restarted!\n\n");
+		}
+	
+	}
+	else if(audioVerbose)
+		printf("\nRequest to restart the Android audio server ignored, because already running\n\n");
+}

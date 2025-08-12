@@ -74,7 +74,8 @@ void LDSP_usage(const char *argv)
 	fprintf(stderr, "-P | --sensors-off\t\t\t\tDisables sensors [sensors enabled]\n");
 	fprintf(stderr, "-Q | --ctrl-inputs-off\t\t\t\tDisables control inputs [control inputs enabled]\n");
 	fprintf(stderr, "-R | --ctrl-outputs-off\t\t\t\tDisables control outputs [control outputs enabled]\n");
-	fprintf(stderr, "-A | --perf-mode-off\t\t\t\tDisables CPU's governor peformance mode [performance mode enabled]\n");
+	fprintf(stderr, "-A | --keep-audioserver-on\t\t\t\tKeeps the Android audio server enabled while LDSP is running [audioserver disabled]\n");
+	fprintf(stderr, "-M | --perf-mode-off\t\t\t\tDisables CPU's governor peformance mode [performance mode enabled]\n");
 	fprintf(stderr, "-C | --cpu-affinity <cpu index>\t\t\tSets CPU affinity for the audio thread\n");
 	fprintf(stderr, "-v | --verbose\t\t\t\t\tPrints all phone's info, current settings main function calls [off]\n");
 	fprintf(stderr, "-h | --help\t\t\t\t\tPrints this and exits [off]\n");
@@ -120,7 +121,8 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 		{ "sensors-off",       	'P', OPTPARSE_NONE },
 		{ "ctrl-inputs-off",    'Q', OPTPARSE_NONE },
 		{ "ctrl-outputs-off",   'R', OPTPARSE_NONE },
-		{ "perf-mode-off",      'A', OPTPARSE_NONE },
+		{ "keep-audioserver-on",'A', OPTPARSE_NONE },
+		{ "perf-mode-off",      'M', OPTPARSE_NONE },
 		{ "cpu-affinity",      	'C', OPTPARSE_REQUIRED },
 		{ "verbose",         	'v', OPTPARSE_NONE },
 		{ "help",         		'h', OPTPARSE_NONE },
@@ -186,6 +188,9 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 			case 'R':
 				settings->ctrlOutputsOff = 1;
 			case 'A':
+				settings->keepAudioserver = 1;
+				break;
+			case 'M':
 				settings->perfModeOff = 1;
 			 	break;
 			case 'v':
