@@ -161,7 +161,7 @@ bool setup(LDSPcontext *context, void *userData)
     
     std::cout << "\n=== LDSP Gesture Classifier ===" << std::endl;
     std::cout << "Controls:" << std::endl;
-    std::cout << "  Volume UP: Start/stop recording gesture for Class 0" << std::endl;
+    std::cout << "  Volume UP: Start/stop recording gesture for Class 0 (neutral pose)" << std::endl;
     std::cout << "  Volume DOWN: Start/stop recording gesture for Class 1" << std::endl;
     std::cout << "  Power: Train classifier (if examples exist) or reset" << std::endl;
     std::cout << "\nState: IDLE (silent)\n" << std::endl;
@@ -201,7 +201,7 @@ void render(LDSPcontext *context, void *userData)
 			{
                 currentState = RECORDING_CLASS_0;
                 currentGesture.clear();
-                std::cout << ">>> Recording Class 0 gesture... Move the phone!" << std::endl;
+                std::cout << ">>> Recording Class 0 gesture... Keep the phone in neutral pose!" << std::endl;
             } 
 			else if(volumeDownTrigger) 
 			{
@@ -236,7 +236,7 @@ void render(LDSPcontext *context, void *userData)
                     class0Examples = 0;
                     class1Examples = 0;
                     std::cout << "\n*** RESET - Incomplete training data deleted ***" << std::endl;
-                    std::cout << "Need examples from both classes to train!" << std::endl;
+                    std::cout << "To train, provide examples from both classes" << std::endl;
                     std::cout << "State: IDLE (silent)\n" << std::endl;
                 }
             }
