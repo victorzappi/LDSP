@@ -1,5 +1,8 @@
 #include "LDSP.h"
 #include "PdBase.hpp"
+#ifdef PD_SCOPE
+#include <libraries/Scope/Scope.h>
+#endif
 
 #define PD_MINIMUM_BLOCK_SIZE 64
 #define PD_AUDIO_IN_CHANNELS 2
@@ -8,7 +11,6 @@
 #define PD_MT_RECEIVE_OBJ_PER_SLOT 1
 
 pd::PdBase lpd;
-
 
 LDSPcontext * g_ctx;
 
@@ -27,6 +29,9 @@ std::string pd_enableBtnObj = "ldsp_enable_buttons";
 std::string pd_btnInputObjPrefix = "ldsp_btn_";
 std::string pd_screenObj = "ldsp_screen";
 
+#ifdef PD_SCOPE
+Scope scope;
+#endif
 
 class LDSP_EventHandler : public pd::PdReceiver 
 {
@@ -297,6 +302,11 @@ bool setup(LDSPcontext *context, void *userData)
     // Turn on audio
     lpd.computeAudio(true);
     pdBlockSize = libpd_blocksize(); 
+
+#ifdef PD_SCOPE
+    scope.setup(4, context->audioSampleRate);
+#endif
+
 
     return true;
 }

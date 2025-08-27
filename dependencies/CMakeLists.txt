@@ -51,7 +51,9 @@ target_link_libraries(dependencies INTERFACE sndfile)
 # GLOB
 # Glob is included in bionic (Android's C++ runtime) only since Android 9 (API 28)
 # Hence, we are building bionic's Glob explicitly to support older versions of Android too!
+# Referenced at: https://github.com/android/ndk/issues/718
 # Android glob source that we use: https://cs.android.com/android/platform/superproject/+/master:bionic/libc/upstream-freebsd/lib/libc/gen/glob.c
+# glob is always handy and necessary tp compile libpd!
 message(STATUS "\tConfiguring Glob...")
 add_subdirectory(glob)
 target_link_libraries(dependencies INTERFACE glob)
@@ -76,6 +78,7 @@ target_link_libraries(dependencies INTERFACE serial)
 
 if(ADD_LIBPD)
     message(STATUS "\tConfiguring Libpd...")
+    link_libraries(glob) # libpd needs globfree symbols!
     add_subdirectory(libpd)
     #VIC we get some warnings from libpd and we cannot do anything about them
     # this line hides some of them [not sure why not all of them]

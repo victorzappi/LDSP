@@ -1,5 +1,5 @@
 # Gather all project files under LDSP_PROJECT
-file(GLOB FILES_TO_SEARCH "${LDSP_PROJECT}/*")
+file(GLOB_RECURSE FILES_TO_SEARCH "${LDSP_PROJECT}/*")
 
 # How many variables?
 list(LENGTH VARIABLE_NAMES num_vars)

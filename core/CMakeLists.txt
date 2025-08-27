@@ -21,11 +21,12 @@ endif()
 
 # Check if this is a libpd project
 # and whether or not to add libpd dependency
-if (EXISTS ${LDSP_PROJECT}/_main.pd)
+if(EXISTS ${LDSP_PROJECT}/_main.pd)
   set(ADD_LIBPD TRUE CACHE BOOL "Enable ADD_LIBPD globally" FORCE)
 else()
   set(ADD_LIBPD FALSE CACHE BOOL "Disable ADD_LIBPD globally" FORCE)
 endif()
+#TODO update libpd submodule seasocks config warning with armv32
 
 # Check whether or not to add other large dependencies
 # Define the variable names and corresponding strings to search for
@@ -53,11 +54,6 @@ set(SEARCH_STRINGS
 "libraries/RTNeural/RTNeural.h\;rtneural" 
 "rapidLib"
 )
-#TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
-# the main pd file needs to be excluded and an extra check needs to be added:
-# if pd and any patch has a 'gui send' or 'gui receive' ---> then ADD_SEASOCKS
-# along with a define that removes the seaksocks code from main pd if those objects are not found
-
 
 # Initialize global cache variables based on VARIABLE_NAMES
 foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
@@ -65,7 +61,6 @@ foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
 endforeach()
 # call the script that checks for strings
 include("${CMAKE_CURRENT_SOURCE_DIR}/../check_dependencies_inclusion.cmake")
-
 
 # --------------- Source files ---------------
 
@@ -82,24 +77,24 @@ file(GLOB_RECURSE DEFAULT_PD_SOURCES CONFIGURE_DEPENDS default_render_pd.cpp)
 list(REMOVE_ITEM SOURCES ${DEFAULT_PD_SOURCES})
 
 # Source files in the user's project
-file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS ${LDSP_PROJECT}/*.cpp ${LDSP_PROJECT}/*.c)
+file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS "${LDSP_PROJECT}/*.cpp" "${LDSP_PROJECT}/*.c")
 
 list(APPEND SOURCES ${PROJECT_SOURCES})
 
 # Use the LDSP default main.cpp if the user doesn't provide their own
-if(NOT EXISTS ${LDSP_PROJECT}/main.cpp AND NOT EXISTS ${LDSP_PROJECT}/main.c)
+if(NOT EXISTS ${LDSP_PROJECT}/main.cpp AND NOT EXISTS "${LDSP_PROJECT}/main.c")
   list(APPEND SOURCES main.cpp)
 endif()
 
 # Use the LDSP default_render_pd.cpp if the user doesn't provide their own for a PD project
-if(ADD_LIBPD AND NOT EXISTS ${LDSP_PROJECT}/render.cpp)
+if(ADD_LIBPD AND NOT EXISTS "${LDSP_PROJECT}/render.cpp")
   list(APPEND SOURCES default_render_pd.cpp)
 endif()
 
 # we define PROJECT_NAME with -D to main.cpp only
 # instead of doing a global target_compile_definitions on the whole ldsp target
 # so that changing project name doesn’t force every source to recompile, but only main.cpp
-GET_FILENAME_COMPONENT(LDSP_PROJECT_NAME ${LDSP_PROJECT} NAME)
+GET_FILENAME_COMPONENT(LDSP_PROJECT_NAME "${LDSP_PROJECT}" NAME)
 set_property(
   SOURCE ${CMAKE_CURRENT_LIST_DIR}/main.cpp 
   PROPERTY COMPILE_DEFINITIONS PROJECT_NAME="${LDSP_PROJECT_NAME}"
@@ -128,6 +123,25 @@ target_link_libraries(ldsp PRIVATE core)
 # check which dependencies to build and add as libs
 
 # Refine choices
+
+# the pd_render source includes code to stream dac~ 27-30 to 4 scope channels
+# but it's guaded by '#ifdef PD_SCOPE's, activated only if the user's pd pathces include 'dac~ 27/28/29/30'
+if(ADD_LIBPD)
+  # call the script that checks for scope dac~ in user's pd patches
+  include("${CMAKE_CURRENT_SOURCE_DIR}/../check_pd_scope.cmake")
+
+  if(PD_SCOPE_FOUND)
+    # tjese had likely been not added if we are here... and we need it!
+    set(ADD_SEASOCKS TRUE CACHE BOOL "Enable Seasokcs globally" FORCE)
+    #TODO fix seasocks config warning with armv32
+    set(ADD_FFT TRUE CACHE BOOL "Enable FFT globally" FORCE)
+    target_compile_definitions(ldsp PRIVATE PD_SCOPE="ON")
+  endif()
+endif()
+#TODO ADD_SEASOCKS when/if gui gets ever extended to pd, gui will always be included in pd main 
+# the main pd file needs to be excluded and an extra check needs to be added:
+# if pd and any patch has a 'gui send' or 'gui receive' ---> then ADD_SEASOCKS
+# along with a define that removes the seaksocks code from main pd if those objects are not found
 
 # math-neon lib is available for armv7a only 
 # if user wants to use math-neon lib but architecture is not armv7a, we stop config!
@@ -180,27 +194,27 @@ message(STATUS "\tSerial")
 
 if(ADD_LIBPD)
   message(STATUS "\tLibpd")
-    target_link_libraries(ldsp PRIVATE libpd_static)
+  # target_link_libraries(ldsp PRIVATE libpd_static)
 endif()
 
 if(ADD_FFTW3)
   message(STATUS "\tFftw3")
-  target_link_libraries(ldsp PRIVATE fftw3f)
+  # target_link_libraries(ldsp PRIVATE fftw3f)
 endif()
 
 if(ADD_NE10)
   message(STATUS "\tNe10")
-  target_link_libraries(ldsp PRIVATE NE10)
+  # target_link_libraries(ldsp PRIVATE NE10)
 endif()
 
 if(ADD_MATHNEON)
   message(STATUS "\tMath-neon")
-  target_link_libraries(ldsp PRIVATE mathneon)
+  # target_link_libraries(ldsp PRIVATE mathneon)
 endif()
 
 if(ADD_SEASOCKS)
   message(STATUS "\tSeasocks")
-  target_link_libraries(ldsp PRIVATE seasocks)
+  # target_link_libraries(ldsp PRIVATE seasocks)
 endif()
 
 if(ADD_ONNX)
@@ -209,23 +223,23 @@ if(ADD_ONNX)
   target_link_directories(ldsp 
     PRIVATE "../dependencies/onnxruntime/${DEVICE_ARCH}/${ONNX_VERSION}"
   )
-  target_link_libraries(ldsp PRIVATE onnxruntime)
+  # target_link_libraries(ldsp PRIVATE onnxruntime)
 endif()
 
 if(ADD_RTNEURAL)
   message(STATUS "\tRTNeural")
-  target_link_libraries(ldsp PRIVATE RTNeural)
+  # target_link_libraries(ldsp PRIVATE RTNeural)
 endif()
 
 if(ADD_RAPIDLIB)
   message(STATUS "\tRapidLib")
-  target_link_libraries(ldsp PRIVATE rapidLib)
+  # target_link_libraries(ldsp PRIVATE rapidLib)
 endif()
 
 message(STATUS "") # end dependencies to config
 
 target_link_libraries(ldsp
-  PRIVATE dependencies
+  PRIVATE dependencies # this contains/links all dependencies, including those dynamically added
   PRIVATE libraries
   PRIVATE android # this is found in the NDK!
 )
