@@ -26,7 +26,7 @@ if(EXISTS "${LDSP_PROJECT}/_main.pd")
 else()
   set(ADD_LIBPD FALSE CACHE BOOL "Disable ADD_LIBPD globally" FORCE)
 endif()
-#TODO update libpd submodule seasocks config warning with armv32
+#TODO update libpd submodule, soon cmake version will be deprecated
 
 # Check whether or not to add other large dependencies
 # Define the variable names and corresponding strings to search for
