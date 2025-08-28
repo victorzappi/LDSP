@@ -16,20 +16,8 @@ endif()
 if(${NE10_FFT} STREQUAL "ON")  
 endif()
 
-# extract API level numbers from ANDROID_PLATFORM string
-# used by a few dependencies, inlcuding: glob, ne10
-string(REGEX MATCH "[0-9]+" LEVEL "${ANDROID_PLATFORM}")
-set(API_LEVEL ${LEVEL} CACHE STRING "Set Android API level globally" FORCE) #VIC string here???
 
 # --------------- Prepare dynamic dependency build/inclusion ---------------
-
-# Glob is included in bionic (Android's C++ runtime) only since Android 9 (API 28)
-# Hence, on older Androids we build bionic's Glob explicitly!
-if(${API_LEVEL} < 28) #VIC is this 'lower than'?
-  set(ADD_GLOB TRUE CACHE BOOL "Enable ADD_GLOB globally" FORCE)
-else()
-  set(ADD_GLOB FALSE CACHE BOOL "Disable ADD_GLOB globally" FORCE)
-endif()
 
 # Check if this is a libpd project
 # and whether or not to add libpd dependency
@@ -94,7 +82,7 @@ file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS "${LDSP_PROJECT}/*.cpp" "${L
 list(APPEND SOURCES ${PROJECT_SOURCES})
 
 # Use the LDSP default main.cpp if the user doesn't provide their own
-if(NOT EXISTS ${LDSP_PROJECT}/main.cpp AND NOT EXISTS "${LDSP_PROJECT}/main.c")
+if(NOT EXISTS "${LDSP_PROJECT}/main.cpp" AND NOT EXISTS "${LDSP_PROJECT}/main.c")
   list(APPEND SOURCES main.cpp)
 endif()
 
@@ -201,11 +189,8 @@ endif()
 message(STATUS "Dependencies to configure:")
 message(STATUS "\tTinyalsa")
 message(STATUS "\tLibsndfile")
+message(STATUS "\tGlob")
 message(STATUS "\tSerial")
-
-if(ADD_GLOB)
-  message(STATUS "\tGlob")
-endif()
 
 if(ADD_LIBPD)
   message(STATUS "\tLibpd")
@@ -277,6 +262,5 @@ file(WRITE "${output_file}" "")  # empty initialization
 foreach(VAR_NAME IN LISTS VARIABLE_NAMES)
     file(APPEND "${output_file}" "${VAR_NAME}=\"${${VAR_NAME}}\"\n")
 endforeach()
-# manually add the ones that are not in the list
-file(APPEND "${output_file}" "ADD_GLOB=\"${ADD_GLOB}\"\n")
+# manually add this one cos it's not in the list
 file(APPEND "${output_file}" "ADD_LIBPD=\"${ADD_LIBPD}\"\n")

@@ -48,6 +48,22 @@ target_link_libraries(dependencies INTERFACE sndfile)
 #-------
 
 #-------
+# GLOB
+# Glob is included in bionic (Android's C++ runtime) only since Android 9 (API 28)
+# Hence, we are building bionic's Glob explicitly to support older versions of Android too!
+# Referenced at: https://github.com/android/ndk/issues/718
+# Android glob source that we use: https://cs.android.com/android/platform/superproject/+/master:bionic/libc/upstream-freebsd/lib/libc/gen/glob.c
+# glob is always handy and necessary tp compile libpd!
+message(STATUS "\tConfiguring Glob...")
+add_subdirectory(glob)
+target_link_libraries(dependencies INTERFACE glob)
+# glob does not need to explicitly add includes with:
+# target_include_directories()
+# because we made a CMakelists.txt file inside it that  propagates them to any target linking against the lib with:
+# target_include_directories(glob PUBLIC include)
+#-------
+
+#-------
 # SERIAL
 # We are using a custom version of this serial lib: https://github.com/Christian-Prather/youtube-serail-tutorial/tree/main
 # that is in turn a stripped down version of this one: https://github.com/wjwwood/serial/tree/main
@@ -60,29 +76,11 @@ target_link_libraries(dependencies INTERFACE serial)
 # target_include_directories(serial PUBLIC include)
 #-------
 
-
-if(ADD_GLOB)
-    # Glob is included in bionic (Android's C++ runtime) only since Android 9 (API 28)
-    # Hence, on older Androids we build bionic's Glob explicitly!
-    # Referenced at: https://github.com/android/ndk/issues/718
-    # Android glob source that we use: https://cs.android.com/android/platform/superproject/+/master:bionic/libc/upstream-freebsd/lib/libc/gen/glob.c
-    # glob is always handy and necessary tp compile libpd!
-    message(STATUS "\tConfiguring Glob...")
-    add_subdirectory(glob)
-    target_link_libraries(dependencies INTERFACE glob)
-    # glob does not need to explicitly add includes with:
-    # target_include_directories()
-    # because we made a CMakelists.txt file inside it that  propagates them to any target linking against the lib with:
-    # target_include_directories(glob PUBLIC include)
-endif()
-
 if(ADD_LIBPD)
     message(STATUS "\tConfiguring Libpd...")
-    # libpd needs glob and globsfree symbols, hence we need an explicit link here if we have built it manually!
-    if(ADD_GLOB)
-        link_libraries(glob) # libpd needs globfree symbols!
-    endif()
+    link_libraries(glob) # libpd needs glbob and globfree symbols!
     add_subdirectory(libpd)
+    set_property(DIRECTORY PROPERTY LINK_LIBRARIES "") # Clear the directory property that link_libraries sets, to avoid issues with seasocks
     #VIC we get some warnings from libpd and we cannot do anything about them
     # this line hides some of them [not sure why not all of them]
     target_compile_options(libpd PRIVATE "-Wno-everything")
@@ -121,7 +119,9 @@ if(ADD_NE10)
         set(NE10_ARM_HARD_FLOAT OFF CACHE BOOL " Build Ne10 for hard float abi" FORCE)
     endif()
 
-    # explicitly set NE10 ANDROID_API_LEVEL to match our phone's API_LEVEL
+    # extract API level numbers from ANDROID_PLATFORM string 
+    string(REGEX MATCH "[0-9]+" API_LEVEL "${ANDROID_PLATFORM}")
+    # explicitly set NE10 ANDROID_API_LEVEL to match our phone API_LEVEL
     set(ANDROID_API_LEVEL ${API_LEVEL} CACHE STRING "Ne10 Android API level" FORCE)
 
     set(NE10_BUILD_SHARED OFF CACHE BOOL "Turn off Build shared library, build as static" FORCE)

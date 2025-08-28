@@ -6,9 +6,8 @@
 
 #define PD_MINIMUM_BLOCK_SIZE 64
 #define PD_AUDIO_IN_CHANNELS 2
+//VIC set PD_AUDIO_IN_CHANNELS to 8, to support external interfaces
 
-//VIC is this needed?
-#define PD_MT_RECEIVE_OBJ_PER_SLOT 1
 
 pd::PdBase lpd;
 
@@ -152,9 +151,16 @@ LDSP_MidiHandler midiHandler;
 
 int pdBlockSize;
 int pdInChannels;
+int pdOutChannels;
 
-float * inBuffer;
+float *inBuffer;
 int inBufferSize;
+#ifdef PD_SCOPE
+float *outBuffer;
+int outBufferSize;
+#endif
+
+
 
 // Button Input
 std::vector<float> buttonInputStates;
@@ -226,7 +232,20 @@ bool setup(LDSPcontext *context, void *userData)
         pdInChannels = context->audioInChannels;
     }
 
-    if (!lpd.init(pdInChannels, context->audioOutChannels, context->audioSampleRate, true)) {
+#ifdef PD_SCOPE
+    pdOutChannels = 30; // if scope if used, we need to be abel to accomodate channels 27, 28, 29 and 30! //VIC is this really needed?
+    outBufferSize = context->audioFrames*pdOutChannels;
+    printf("Pure data output buffer size is: %d\n" , outBufferSize);
+    outBuffer = (float *) malloc(outBufferSize * sizeof(float));
+    if (outBuffer == NULL) {
+        std::cout << "Failed to allocate memory for output channels" << std::endl;
+        return false;
+    }
+#else
+    pdOutChannels = context->audioOutChannels;
+#endif
+
+    if (!lpd.init(pdInChannels, /*context->audioOutChannels*/ pdOutChannels, context->audioSampleRate, true)) {
         std::cout << "Failed to initialize libpd instance" << std::endl;
     }
 
@@ -368,29 +387,65 @@ void render(LDSPcontext *context, void *userData)
         }
     }
 
+    const float *inBuffPtr;
+
     if (gSensorsEnabled) {
         int audioChunkStart, sensorChunkStart;
         for (int i = 0; i < context->audioFrames; i++) {
+            int frameOffset = i * pdInChannels;
+            
+            // Fill the first N channels with audio data 
+            memcpy(&inBuffer[frameOffset], 
+                   &context->audioIn[i * context->audioInChannels], 
+                   context->audioInChannels * sizeof(float));
+            
+            // if audioInChannels < PD_AUDIO_IN_CHANNELS, there are empty frames between audio frames and sensor frames!
+            
+            // Fill the rest of the channels with the sensor data
+            memcpy(&inBuffer[frameOffset + PD_AUDIO_IN_CHANNELS], 
+                   context->sensors, 
+                   context->sensorChannels * sizeof(float));
 
             // Fill the first N channels with audio data (force 2 even if unused)
-            audioChunkStart = i*pdInChannels;
-            for (int audioChannel = 0; audioChannel < context->audioInChannels; audioChannel++) {
-                inBuffer[audioChunkStart+audioChannel] = audioRead(context, i, audioChannel);
-            }
+            // audioChunkStart = i*pdInChannels;
+            // for (int audioChannel = 0; audioChannel < context->audioInChannels; audioChannel++) {
+            //     inBuffer[audioChunkStart+audioChannel] = audioRead(context, i, audioChannel);
+            // }
 
-            // Fill the rest of the channels with the sensor data
-            sensorChunkStart = audioChunkStart+PD_AUDIO_IN_CHANNELS;
-            for (int sensorIdx = 0; sensorIdx < context->sensorChannels; sensorIdx++) {
-                inBuffer[sensorChunkStart+sensorIdx] = sensorRead(context, (sensorChannel) sensorIdx); 
-            }
+            // // Fill the rest of the channels with the sensor data
+            // sensorChunkStart = audioChunkStart+PD_AUDIO_IN_CHANNELS;
+            // for (int sensorIdx = 0; sensorIdx < context->sensorChannels; sensorIdx++) {
+            //     inBuffer[sensorChunkStart+sensorIdx] = sensorRead(context, (sensorChannel) sensorIdx); 
         }
-        lpd.processFloat(pdBlocks, inBuffer, context->audioOut);
+        // lpd.processFloat(pdBlocks, inBuffer, context->audioOut);
+        inBuffPtr = inBuffer;
     }
     else {
         // Process audio as normal if not using sens
-        lpd.processFloat(pdBlocks, context->audioIn, context->audioOut);
+        // lpd.processFloat(pdBlocks, context->audioIn, context->audioOut);
+        inBuffPtr = context->audioIn;
     }
 
+#ifdef PD_SCOPE
+    lpd.processFloat(pdBlocks, inBuffPtr, outBuffer);
+    
+    for (int i = 0; i < context->audioFrames; i++) {
+        // Copy the first audioOutChannels from each frame
+        memcpy(&context->audioOut[i * context->audioOutChannels], 
+               &outBuffer[i * pdOutChannels],
+               context->audioOutChannels * sizeof(float));
+
+        // Extract scope channels 27-30 (indices 26-29) for this frame
+        float scope1 = outBuffer[i * pdOutChannels + 26];  
+        float scope2 = outBuffer[i * pdOutChannels + 27];  
+        float scope3 = outBuffer[i * pdOutChannels + 28];  
+        float scope4 = outBuffer[i * pdOutChannels + 29]; 
+        
+        scope.log(scope1, scope2, scope3, scope4);
+    }
+#else
+    lpd.processFloat(pdBlocks, inBuffPtr, context->audioOut);
+#endif
 
 
     lpd.receiveMessages();
@@ -399,6 +454,9 @@ void render(LDSPcontext *context, void *userData)
 
 void cleanup(LDSPcontext *context, void *userData)
 {
-
+    free(inBuffer);
+#ifdef PD_SCOPE
+    free(outBuffer);
+#endif
     
 }
