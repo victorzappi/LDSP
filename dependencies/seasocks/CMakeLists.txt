@@ -51,13 +51,16 @@ if (COVERAGE)
 endif ()
 
 find_package(Threads REQUIRED)
-find_package(PythonInterp)
 
-if (NOT PYTHONINTERP_FOUND)
-    message(SEND_ERROR "Python not found")
-else()
-    message(STATUS "Using Python: '${PYTHON_EXECUTABLE}'")
-endif ()
+#VIC updated way to lookg for Python
+# find_package(PythonInterp)
+# if (NOT PYTHONINTERP_FOUND)
+#     message(SEND_ERROR "Python not found")
+# else()
+#     message(STATUS "Using Python: '${PYTHON_EXECUTABLE}'")
+# endif ()
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+message(STATUS "Using Python: '${Python3_EXECUTABLE}'")
 
 if (DEFLATE_SUPPORT)
     find_package(ZLIB REQUIRED)

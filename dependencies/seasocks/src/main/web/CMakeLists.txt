@@ -13,7 +13,8 @@ set(EMBEDDED_FILES
 
 
 add_custom_command(OUTPUT Embedded.cpp
-        COMMAND "${PYTHON_EXECUTABLE}" "${SCRIPT}" -o Embedded.cpp -f ${EMBEDDED_FILES}
+        # COMMAND "${PYTHON_EXECUTABLE}" "${SCRIPT}" -o Embedded.cpp -f ${EMBEDDED_FILES}
+        COMMAND "${Python3_EXECUTABLE}" "${SCRIPT}" -o Embedded.cpp -f ${EMBEDDED_FILES} #VIC mew name of Python exe
         COMMENT "Generating embedded content"
         DEPENDS "${SCRIPT}"
         )

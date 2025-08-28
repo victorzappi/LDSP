@@ -160,7 +160,8 @@ if(ADD_SEASOCKS)
     # - adds woff and woff2 in the list of supported fonts
     # - removed SO_REUSEPORT, not supported on older Android versions
     # - removed 'inline' available only when using -Wno-c++17-extensions flag
-    # -  changed __bswap_64 with __swap_64
+    # - changed __bswap_64 with __swap_64
+    # - updated how Python package is searched for and the exe is invoked
     # Set the options for Seasocks
     message(STATUS "\tConfiguring Seasocks...")
     set(SEASOCKS_SHARED OFF CACHE BOOL "Build seasocks as a shared library" FORCE)

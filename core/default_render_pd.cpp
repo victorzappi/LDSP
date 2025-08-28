@@ -5,8 +5,9 @@
 #endif
 
 #define PD_MINIMUM_BLOCK_SIZE 64
-#define PD_AUDIO_IN_CHANNELS 2
-//VIC set PD_AUDIO_IN_CHANNELS to 8, to support external interfaces
+#define PD_AUDIO_IN_CHANNELS 8
+// this macro is needed to make sure that the input channels to access sensor streams in teh patches are fixed
+// as a side consequence, this values determines the max num of input channels an card can have to work in libpd!
 
 
 pd::PdBase lpd;
