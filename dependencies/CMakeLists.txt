@@ -15,6 +15,7 @@ endif()
 
 # all dependencies' includes are exposed as an INTERFACE target, so that they can be used by core and libraries targets too
 
+message(STATUS "Configuring dependencies:")
 
 #-------
 # TINYALSA

@@ -219,8 +219,7 @@ configure() {
   # Neon settings
   if [[ $neon == "ON" ]]; then
     # Passing the --no-neon-audio-format flag configures to not use parallel audio streams formatting with NEON
-    if [[ $NO_NEON_AUDIO != "" ]]
-    then
+    if [[ $NO_NEON_AUDIO != "" ]] then
       echo "Configuring to not use NEON audio streams formatting"
       neon_audio_format="OFF"
     else  
@@ -228,8 +227,7 @@ configure() {
     fi
 
     # Passing the --no-neon-fft flag configures to not use parallel fft with NEON (uses fftw instead)
-    if [[ $NO_NEON_FFT != "" ]]
-    then
+    if [[ $NO_NEON_FFT != "" ]] then
       echo "Configuring to not use NEON to parallelize FFT"
       neon_fft="OFF"
     else  
@@ -291,12 +289,23 @@ configure() {
     TOOLCHAIN_VER=""
   fi
 
+  # build type: set to debug if --debug flag was passed
+  if [[ $DEBUG != "" ]] then
+    build_type="Debug"
+  else  
+    build_type="Release"
+  fi
+  echo "Build type: $build_type"
+
+  echo ""
+  echo "CMake:"
+  echo ""
   # run CMake configuration 
   cmake -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
         -DDEVICE_ARCH="$arch" -DANDROID_ABI="$abi" -DANDROID_PLATFORM="android-$api_level" -DANDROID_NDK="$NDK" $TOOLCHAIN_VER \
         -DNEON_SUPPORTED="$neon" -DNEON_AUDIO_FORMAT="$neon_audio_format" -DNE10_FFT="$neon_fft"\
         -DLDSP_PROJECT="$project_dir" -DONNX_VERSION="$onnx_version" \
-        -G Ninja -B"$build_dir" -S".."
+        -G Ninja -B"$build_dir" -S".." -DCMAKE_BUILD_TYPE="$build_type"
 
 
   exit_code=$?
@@ -706,6 +715,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-neon-fft)
       NO_NEON_FFT=1
+      shift
+      ;;
+    --debug)
+      DEBUG=1
       shift
       ;;
     --help|-h)

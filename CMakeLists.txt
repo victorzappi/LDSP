@@ -7,19 +7,15 @@ project(ldsp)
 
 set(LDSP_PROJECT "core" CACHE FILEPATH "Path to the LDSP project to build")
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-Ofast") #VIC better than "-O3 -ffast-math"
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -DNDEBUG -flto") #VIC -Ofast is better than "-O3 -ffast-math", -flto is link-time optimization
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 add_compile_options(-fdiagnostics-color=always)
-
-
 
 add_subdirectory(core)
 add_subdirectory(dependencies)
