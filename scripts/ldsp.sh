@@ -178,7 +178,6 @@ configure() {
   fi
 
 # TODO: 
-#  pass realease/debug configuration from ldsp script
 #  pass -s android device serial for whne more phones are plugged in
 #  script for slimbus detection + continue docs 
 
