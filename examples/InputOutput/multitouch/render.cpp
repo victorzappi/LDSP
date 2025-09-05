@@ -74,7 +74,7 @@ void render(LDSPcontext *context, void *userData)
 		bool touch = (multiTouchRead(context, chn_mt_id, i) != -1);
 		// new touch
 		if(touch && !touchPrev[i])
-			amp[i] = ampMax; // silence output
+			amp[i] = ampMax; // activate output
 		// touch released
 		else if(!touch && touchPrev[i]) 
 			amp[i] = 0; // silence output

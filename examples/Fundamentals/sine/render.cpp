@@ -19,7 +19,6 @@
 
 #include "LDSP.h"
 #include <cmath> // sin
-#include <rapidLib.h>
 
 float frequency = 440.0;
 float amplitude = 0.2;
@@ -28,14 +27,11 @@ float amplitude = 0.2;
 float phase;
 float inverseSampleRate;
 
-rapidLib::classification classifier;
-
-
 
 bool setup(LDSPcontext *context, void *userData)
 {
     inverseSampleRate = 1.0 / context->audioSampleRate;
-	phase = 0.0;
+    phase = 0.0;
 
     return true;
 }
