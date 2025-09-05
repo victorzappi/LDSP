@@ -164,14 +164,15 @@ rem End of :install_scripts
   
   rem Process ALL flags already
   for %%A in (%OPT_LIST%) do (
-      set "flag=%%~A"
-      if "%%A"=="--no-neon-audio-format" (
-          set "neon_audio_format=OFF"
-      ) else if "%%A"=="--no-neon-fft" (
-          set "neon_fft=OFF"
-      ) else if "%%A"=="--debug" (
-          set "build_type=Debug"
-      )
+    set "flag=%%~A"
+    if "%%A"=="--no-neon-audio-format" (
+      set "neon_audio_format=OFF"
+    ) else if "%%A"=="--no-neon-fft" (
+      set "neon_fft=OFF"
+    ) else if "%%A"=="--debug" (
+      rem build type: set to debug if --debug flag was passed
+      set "build_type=Debug"
+    )
   )
 
   if "%config%" == "" (
@@ -347,9 +348,9 @@ rem End of :install_scripts
     set "TOOLCHAIN_VER="
   )
 
-  rem build type: set to debug if --debug flag was passed
-  echo Build type: %build_type%
-    
+  echo.
+  echo CMake configuration:
+  echo.
   rem Run CMake configuration
   cmake -DCMAKE_TOOLCHAIN_FILE="%NDK%/build/cmake/android.toolchain.cmake" ^
         -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% -DANDROID_NDK="%NDK%" %TOOLCHAIN_VER% ^
@@ -787,7 +788,7 @@ rem End of :mixer_paths_opened
   echo   ldsp.bat mixer_paths [optional dir]
   echo   ldsp.bat mixer_paths_recursive [dir]
   echo   ldsp.bat mixer_paths_opened [optional dir]
-  echo
+  echo.
   echo Description:
   echo   install_scripts        Install the LDSP scripts on the phone.
   echo   configure              Configure the LDSP build system for the specified phone and project. It requires the following settings, in this order:

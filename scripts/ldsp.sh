@@ -295,7 +295,6 @@ configure() {
   else  
     build_type="Release"
   fi
-  echo "Build type: $build_type"
 
   echo ""
   echo "CMake configuration:"
