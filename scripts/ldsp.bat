@@ -7,9 +7,9 @@ rem using LDSP, and running the resulting binary on a phone.
 rem Before running, you need to set the path to the Android NDK, e.g.:
 rem set NDK=C:\Users\%USERNAME%\...\android-ndk-r25b
 
-rem this is created by this script via configure()
+rem this is created by this script via :configure
 set "settings_file=ldsp_settings.conf"
-rem this is created by CMake after configure()
+rem this is created by CMake after :configure
 set "dependencies_file=ldsp_dependencies.conf"
 
 goto main
@@ -152,6 +152,27 @@ rem End of :install_scripts
   set project=%~3
   set opt_arg_0=%~4
   set opt_arg_1=%~5
+  set opt_arg_2=%~6
+
+  rem combine your opts into a single list
+  set "OPT_LIST=%opt_arg_0% %opt_arg_1% %opt_arg_2%"
+  
+  rem defaults
+  set "neon_audio_format=ON"
+  set "neon_fft=ON"
+  set "build_type=Release"
+  
+  rem Process ALL flags already
+  for %%A in (%OPT_LIST%) do (
+      set "flag=%%~A"
+      if "%%A"=="--no-neon-audio-format" (
+          set "neon_audio_format=OFF"
+      ) else if "%%A"=="--no-neon-fft" (
+          set "neon_fft=OFF"
+      ) else if "%%A"=="--debug" (
+          set "build_type=Debug"
+      )
+  )
 
   if "%config%" == "" (
     echo Cannot configure: harwdware configuration file path not specified
@@ -242,24 +263,12 @@ rem End of :install_scripts
   
 	rem Neon settings
   if "%neon%"=="ON" (
-    rem assume neon_audio_format and neon_fft default to ON
-    set "neon_audio_format=ON"
-    set "neon_fft=ON"
-    
-    rem combine your opts into a single list
-    set "OPT_LIST=%opt_arg_0% %opt_arg_1%"
-
-    for %%A in (%opt_arg_0% %opt_arg_1%) do (
-      set "flag=%%~A"
-      if "%%A"=="--no-neon-audio-format" (
-        rem Passing the --no-neon-audio-format flag configures to not use parallel audio streams formatting with NEON
-        echo Configuring to not use NEON audio stream formatting
-        set "neon_audio_format=OFF"
-      ) else if "%%A"=="--no-neon-fft" (
-        rem Passing the --no-neon-fft flag configures to not use parallel fft with NEON (uses fftw instead)
-        echo Configuring to not use NEON to parallelize FFT
-        set "neon_fft=OFF"
-      )
+    if "%neon_audio_format%"=="OFF" (
+      rem Passing the --no-neon-audio-format flag configures to not use parallel audio streams formatting with NEON
+      echo Configuring to not use NEON audio stream formatting
+    ) else if "%neon_fft%"=="OFF" (
+      rem Passing the --no-neon-fft flag configures to not use parallel fft with NEON (uses fftw instead)
+      echo Configuring to not use NEON to parallelize FFT
     )
   ) else (
     echo NEON floating-point unit not present on phone
@@ -338,12 +347,15 @@ rem End of :install_scripts
     set "TOOLCHAIN_VER="
   )
 
+  rem build type: set to debug if --debug flag was passed
+  echo Build type: %build_type%
+    
   rem Run CMake configuration
   cmake -DCMAKE_TOOLCHAIN_FILE="%NDK%/build/cmake/android.toolchain.cmake" ^
         -DDEVICE_ARCH=%arch% -DANDROID_ABI=%abi% -DANDROID_PLATFORM=android-%api_level% -DANDROID_NDK="%NDK%" %TOOLCHAIN_VER% ^
         -DNEON_SUPPORTED=%neon% -DNEON_AUDIO_FORMAT=%neon_audio_format% -DNE10_FFT=%neon_fft%^
         -DLDSP_PROJECT="%project_dir%" -DONNX_VERSION=%onnx_version% ^
-        -G Ninja -B"%build_dir%" -S".."
+        -G Ninja -B"%build_dir%" -S".." -DCMAKE_BUILD_TYPE=%build_type%
 
 
   if not %ERRORLEVEL% == 0 (
@@ -782,8 +794,9 @@ rem End of :mixer_paths_opened
   echo                            the path to the folder containing the hardware configuration file of the chosen phone 
   echo                            Android version running on the phone
   echo                            the path to the project to build
-  echo                            the optional flag to not use NEON parallel sample formatting (--no-neon-audio-format)
-  echo                            the optional flag to not use NEON to parallelize FFT (--no-neon-fft)
+  echo                            --no-neon-audio-format  --- optional flag to not use NEON parallel sample formatting
+  echo                            --no-neon-fft           --- optional flag to not use NEON to parallelize FFT
+  echo                            --debug                 --- optional flag to switch build type from Release to Debug (debug symbols, no optimizations)
   echo   build                  Build the configured project.
   echo   install                Install the configured project, LDSP hardware config, scripts and resources to the phone.
   echo   run                    Run the configured project on the phone.
@@ -809,7 +822,7 @@ if "%1" == "install_scripts" (
   call :install_scripts
   exit /b %ERRORLEVEL%
 ) else if "%1" == "configure" (
-  call :configure %2 %3 %4 %5 %6
+  call :configure %2 %3 %4 %5 %6 %7
   exit /b %ERRORLEVEL%
 ) else if "%1" == "build" (
   call :build

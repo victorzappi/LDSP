@@ -298,7 +298,7 @@ configure() {
   echo "Build type: $build_type"
 
   echo ""
-  echo "CMake:"
+  echo "CMake configuration:"
   echo ""
   # run CMake configuration 
   cmake -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
@@ -658,6 +658,7 @@ help() {
   echo -e "  --project=PROJECT, -p PROJECT\tThe path to the project to build."
   echo -e "  --no-neon-audio-format\tConfigure to not use NEON parallel audio streams formatting"
   echo -e "  --no-neon-fft\t\t\tConfigure to not use NEON to parallelize FFT"
+  echo -e "  --debug\t\t\tSwitch build type from Release to Debug (debug symbols, no optimizations)"
   echo -e "\nDescription:"
   echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone."
   echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone and project."
