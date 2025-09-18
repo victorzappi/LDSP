@@ -42,7 +42,7 @@ void render(LDSPcontext *context, void *userData)
 	{
 		float out = amplitude * sinf(phase);
 		phase += 2.0f * (float)M_PI * frequency * inverseSampleRate;
-		while(phase > 2.0f *M_PI)
+		while(phase > 2.0f * (float)M_PI)
 			phase -= 2.0f * (float)M_PI;
 		
 		for(int chn=0; chn<context->audioOutChannels; chn++)
