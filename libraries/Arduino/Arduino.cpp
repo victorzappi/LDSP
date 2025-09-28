@@ -125,14 +125,14 @@ int Arduino::read(int* values)
 		if(my_serial->isOpen())
         {
             // read the first input
-            int retval = inputs[0]->load();
+            int retval = inputs[0]->load(std::memory_order_relaxed);
 
             // if we are set to read more than one input, copy all the inputs into the container
             if(values !=  nullptr)
             {
                 values[0] = retval;
                 for(int i=1; i<_numOfInputs; i++)
-                    values[i] = inputs[i]->load();
+                    values[i] = inputs[i]->load(std::memory_order_relaxed);
             }       
 
             // no matter what, return the first one
@@ -254,7 +254,7 @@ void* Arduino::readLoop(void*)
                     {
                         for (int i = 0; i < _numOfInputs; i++)
                         {
-                            inputs[i]->store(values[i]);
+                            inputs[i]->store(values[i], std::memory_order_relaxed);
                             //printf("\tinputs %d: %d\n", i, values[i]);
                         }
                     }

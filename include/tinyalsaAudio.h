@@ -87,6 +87,8 @@ struct audio_struct {
 struct LDSPpcmContext {
     audio_struct *playback;
     audio_struct *capture;
+    bool isBigEndian;
+    bool isFloat;
 };
 
 struct LDSPinternalContext {

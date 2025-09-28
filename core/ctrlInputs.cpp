@@ -123,6 +123,7 @@ void LDSP_cleanupCtrlInputs()
 
 //--------------------------------------------------------------------------------------------------
 
+//TODO improve this code in terms of identation and atomics!
 void* ctrlInputs_loop(void* arg)
 {
     struct input_event event;
@@ -178,7 +179,7 @@ void* ctrlInputs_loop(void* arg)
                                 if(ctrlIn.isMultiInput)
                                      idx = slot;
                                 //printf("____event %d, code %d, value %d, chn %d, idx %d, vec %d\n", event.type, event.code, event.value, chn, idx, ctrlIn.value.size());
-                                ctrlIn.value[idx]->store(event.value); // atomic store, thread-safe!
+                                ctrlIn.value[idx]->store(event.value, std::memory_order_relaxed); // atomic store, thread-safe!
                             }
                         }
                     }
@@ -599,7 +600,7 @@ void readCtrlInputs()
     for(int chn=0; chn<offset; chn++) // includes chn_mt_anyTouch
     {
         if(ctrlInputsContext.ctrlInputs[chn].supported)
-            ctrlInputsContext.ctrlInBuffer[chn] = ctrlInputsContext.ctrlInputs[chn].value[0]->load();
+            ctrlInputsContext.ctrlInBuffer[chn] = ctrlInputsContext.ctrlInputs[chn].value[0]->load(std::memory_order_relaxed);
     }
 
     int touchSlots = ctrlInputsContext.mtInfo.touchSlots;
@@ -609,7 +610,7 @@ void readCtrlInputs()
             continue;
 
         for(int slot=0; slot<touchSlots; slot++)
-            ctrlInputsContext.ctrlInBuffer[offset+chn*touchSlots+slot] = ctrlInputsContext.ctrlInputs[offset+chn].value[slot]->load();
+            ctrlInputsContext.ctrlInBuffer[offset+chn*touchSlots+slot] = ctrlInputsContext.ctrlInputs[offset+chn].value[slot]->load(std::memory_order_relaxed);
         
     }    
 }
