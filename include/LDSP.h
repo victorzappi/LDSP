@@ -45,11 +45,11 @@ struct LDSPinitSettings {
     int keepAudioserver;
     int perfModeOff;
     int verbose;
-    // these have priority over deviceOut/InNum and if not specificied are automatically populated according to device numbers
-    string deviceOutId;
-    string deviceInId;
+    string deviceOutId; // this have priority over deviceOutNum and if not specificied is automatically populated according to device number
+    string deviceInId;  // this have priority over deviceInNum and if not specificied is automatically populated according to device number
     string projectName;
     int cpuIndex;
+    int preserveMixer;
 };
 
 /* enum digitalOuput {

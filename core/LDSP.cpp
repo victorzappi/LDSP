@@ -60,4 +60,5 @@ void LDSP_defaultSettings(LDSPinitSettings *settings)
     settings->deviceOutId = ""; // if not specified at run-time, it is obtained from device num
     settings->deviceInId = ""; // if not specified at run-time, it is obtained from device num
     settings->cpuIndex = -1; // if not specified, no cpu affinity for audio thread, hence thread can run on any cpu
+    settings->preserveMixer = 0; // by default, mixer paths are set to defaults at startup/cleanup, not allowing for more than one alsa device to be routed to/from the codec at once
 }

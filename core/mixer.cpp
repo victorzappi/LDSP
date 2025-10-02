@@ -41,6 +41,8 @@ bool mixerVerbose = false;
 
 bool skipMixerPaths = false;
 
+bool preserveMixerPaths = false;
+
 mixer *mix = nullptr;
 
 
@@ -63,6 +65,8 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	skipMixerPaths = (settings->card != 0);
 	
     mixerVerbose = settings->verbose;
+
+	preserveMixerPaths = settings->preserveMixer;
 
 	
 	if(mixerVerbose && !skipMixerPaths)
@@ -122,8 +126,10 @@ int LDSP_setMixerPaths(LDSPinitSettings *settings, LDSPhwConfig *hwconfig)
 	} 
 		
 
-	// always start from loading default paths
-	setDefaultMixerPath(mix, &mixer_docs[0]);
+	// start from loading default paths, unless requested to preserve the current paths
+	// if paths are preservered, more than one alsa device can be routed to the codec at once
+	if(!preserveMixerPaths)
+		setDefaultMixerPath(mix, &mixer_docs[0]);
 
 
 	
@@ -186,7 +192,7 @@ void LDSP_resetMixerPaths(LDSPhwConfig *hwconfig)
 		printf("LDSP_resetMixerPaths()\n");
 
 	xml_document mixer_docs;
-    if(mixer_docs.load_file(hwconfig->xml_paths_file.c_str()))
+    if(!preserveMixerPaths && mixer_docs.load_file(hwconfig->xml_paths_file.c_str()))
 		setDefaultMixerPath(mix, &mixer_docs); // deactivates devices too, if necessary on phone
 
 	if (mix != nullptr) 

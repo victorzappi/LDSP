@@ -500,13 +500,13 @@ int initPcm(audio_struct *audio_struct_p, audio_struct *audio_struct_c)
 			printf("Playback and Capture audio device linked!\n");
 	}
 
-	if( pcm_prepare(audio_struct_p->pcm) < 0)
+	if(pcm_prepare(audio_struct_p->pcm) < 0)
 	{
 		fprintf(stderr, "Failed to prepare playback audio device. %s\n", pcm_get_error(audio_struct_p->pcm));
 		return -3;
 	}
 
-	if( fullDuplex && pcm_prepare(audio_struct_c->pcm) < 0)
+	if(fullDuplex && pcm_prepare(audio_struct_c->pcm) < 0)
 	{
 		fprintf(stderr, "Failed to prepare capture audio device. %s\n", pcm_get_error(audio_struct_c->pcm));
 		return -3;

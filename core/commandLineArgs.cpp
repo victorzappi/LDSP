@@ -75,7 +75,8 @@ void LDSP_usage(const char *argv)
 	fprintf(stderr, "-Q | --ctrl-inputs-off\t\t\t\tDisables control inputs [control inputs enabled]\n");
 	fprintf(stderr, "-R | --ctrl-outputs-off\t\t\t\tDisables control outputs [control outputs enabled]\n");
 	fprintf(stderr, "-A | --keep-audioserver-on\t\t\tKeeps the Android audio server enabled while LDSP is running [audioserver disabled]\n");
-	fprintf(stderr, "-M | --perf-mode-off\t\t\t\tDisables CPU's governor peformance mode [performance mode enabled]\n");
+	fprintf(stderr, "-m | --preserve-mixer-paths\t\t\tDoes not reset mixer paths to defaults at startup [mixer paths not preserved]\n");
+	fprintf(stderr, "-F | --perf-mode-off\t\t\t\tDisables CPU's governor peformance mode [performance mode enabled]\n");
 	fprintf(stderr, "-C | --cpu-affinity <cpu index>\t\t\tSets CPU affinity for the audio thread\n");
 	fprintf(stderr, "-v | --verbose\t\t\t\t\tPrints all phone's info, current settings main function calls [off]\n");
 	fprintf(stderr, "-h | --help\t\t\t\t\tPrints this and exits [off]\n");
@@ -104,28 +105,29 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 	int c;
 	struct optparse opts;
 	struct optparse_long long_options[] = {
-		{ "card",         		'c', OPTPARSE_REQUIRED },
-		{ "output-device-num",	'd', OPTPARSE_REQUIRED },
-		{ "input-device-num",   'D', OPTPARSE_REQUIRED },
-		{ "output-device-id",	's', OPTPARSE_REQUIRED },
-		{ "input-device-id",    'S', OPTPARSE_REQUIRED },
-		{ "period-size",  		'p', OPTPARSE_REQUIRED },
-		{ "period-count", 		'b', OPTPARSE_REQUIRED },
-		{ "output-channels", 	'n', OPTPARSE_REQUIRED },
-		{ "input-channels",  	'N', OPTPARSE_REQUIRED },
-		{ "samplerate",    		'r', OPTPARSE_REQUIRED },
-		{ "format",       		'f', OPTPARSE_REQUIRED },
-		{ "output-path",       	'o', OPTPARSE_REQUIRED },
-		{ "input-path",       	'i', OPTPARSE_REQUIRED },
-		{ "capture-off",       	'O', OPTPARSE_NONE },
-		{ "sensors-off",       	'P', OPTPARSE_NONE },
-		{ "ctrl-inputs-off",    'Q', OPTPARSE_NONE },
-		{ "ctrl-outputs-off",   'R', OPTPARSE_NONE },
-		{ "keep-audioserver-on",'A', OPTPARSE_NONE },
-		{ "perf-mode-off",      'M', OPTPARSE_NONE },
-		{ "cpu-affinity",      	'C', OPTPARSE_REQUIRED },
-		{ "verbose",         	'v', OPTPARSE_NONE },
-		{ "help",         		'h', OPTPARSE_NONE },
+		{ "card",         			'c', OPTPARSE_REQUIRED },
+		{ "output-device-num",		'd', OPTPARSE_REQUIRED },
+		{ "input-device-num",   	'D', OPTPARSE_REQUIRED },
+		{ "output-device-id",		's', OPTPARSE_REQUIRED },
+		{ "input-device-id",    	'S', OPTPARSE_REQUIRED },
+		{ "period-size",  			'p', OPTPARSE_REQUIRED },
+		{ "period-count", 			'b', OPTPARSE_REQUIRED },
+		{ "output-channels", 		'n', OPTPARSE_REQUIRED },
+		{ "input-channels",  		'N', OPTPARSE_REQUIRED },
+		{ "samplerate",    			'r', OPTPARSE_REQUIRED },
+		{ "format",       			'f', OPTPARSE_REQUIRED },
+		{ "output-path",			'o', OPTPARSE_REQUIRED },
+		{ "input-path",       	 	'i', OPTPARSE_REQUIRED },
+		{ "capture-off",       	 	'O', OPTPARSE_NONE },
+		{ "sensors-off",       	 	'P', OPTPARSE_NONE },
+		{ "ctrl-inputs-off",     	'Q', OPTPARSE_NONE },
+		{ "ctrl-outputs-off",    	'R', OPTPARSE_NONE },
+		{ "keep-audioserver-on", 	'A', OPTPARSE_NONE },
+		{ "preserve-mixer-paths",	'm', OPTPARSE_NONE },
+		{ "perf-mode-off",      	'F', OPTPARSE_NONE },
+		{ "cpu-affinity",      		'C', OPTPARSE_REQUIRED },
+		{ "verbose",         		'v', OPTPARSE_NONE },
+		{ "help",         			'h', OPTPARSE_NONE },
 		{ 0, 0, OPTPARSE_NONE }
 	};
 
@@ -187,10 +189,13 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 			 	break;
 			case 'R':
 				settings->ctrlOutputsOff = 1;
+			case 'm':
+				settings->preserveMixer = 1;
+				break;
 			case 'A':
 				settings->keepAudioserver = 1;
 				break;
-			case 'M':
+			case 'F':
 				settings->perfModeOff = 1;
 			 	break;
 			case 'v':
