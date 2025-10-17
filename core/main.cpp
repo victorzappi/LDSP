@@ -1,6 +1,7 @@
 // LineageDSP
 #include <iostream>
 #include <signal.h> //SIGINT, SIGTERM
+#include <atomic>
 
 #include "LDSP.h"
 #include "commandLineArgs.h"
@@ -19,17 +20,18 @@ using std::string;
 using std::cout;
 
 
+std::atomic<bool> shutdown_requested(false);
 // Handle Ctrl-C by requesting that the audio rendering stop
 void interrupt_handler(int sig)
 {
+	bool expected = false;
+    if(!shutdown_requested.compare_exchange_strong(expected, true))
+        return;  // Already handling shutdown, ignore
+    
 	printf("--->Signal caught!<---\n");
 	LDSP_requestStop();
 }
 
-
-//TODO move mixer setup/reset into audio calls
-// and combine sensors ctrl inputs and outputs calls into a single container file
-// this will simplify a lot the default main file
 
 int main(int argc, char** argv)
 {
