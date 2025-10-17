@@ -79,11 +79,11 @@ int cpuIndex = -1;
 
 bool audioServerStopped = false;
 #if __ANDROID_API__ > 24
-    // on Android 7 and above [api 24 and above], Android controls audio via the dedicated audioserver
-	string audio_server = "audioserver";
+// on Android 7 and above [api 24 and above], Android controls audio via the dedicated audioserver
+string audio_server = "audioserver";
 #else
-    // on Android 6 and below [api 23 and below], Android controls audio via the generic media server
-    string audio_server = "media";
+// on Android 6 and below [api 23 and below], Android controls audio via the generic media server
+string audio_server = "media";
 #endif
 
 
@@ -974,12 +974,12 @@ void *audioLoop(void*)
 			// Load the four floating-point inputs into a NEON vector
 			float32x4_t inputVec = vld1q_f32(&src[n]);
 			
-			#ifndef __BIG_ENDIAN__
+#ifndef __BIG_ENDIAN__
 			// CPU is little-endian, format needs to be big-endian - swap
 			uint8x16_t bytes = vreinterpretq_u8_f32(inputVec);
 			bytes = vrev32q_u8(bytes);  // Reverse bytes in each 32-bit word  
 			inputVec = vreinterpretq_f32_u8(bytes);
-			#endif
+#endif
 			// If CPU is big-endian, no swap needed (native = output format)
 			
 			vst1q_f32(&dst[n], inputVec);
@@ -1011,17 +1011,17 @@ void *audioLoop(void*)
 				// Handle endianness
 				if(!pcmContext->isBigEndian)
 				{
-					#ifdef __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
 					// CPU is big-endian, format is little-endian - swap
 					i16_vec = vreinterpretq_s16_u8(vrev16q_u8(vreinterpretq_u8_s16(i16_vec)));
-					#endif
+#endif
 				}
 				else
 				{
-					#ifndef __BIG_ENDIAN__
+#ifndef __BIG_ENDIAN__
 					// CPU is little-endian, format is big-endian - swap
 					i16_vec = vreinterpretq_s16_u8(vrev16q_u8(vreinterpretq_u8_s16(i16_vec)));
-					#endif
+#endif
 				}
 				
 				// Convert to unsigned (matching your byteCombine behavior)
@@ -1101,7 +1101,7 @@ void *audioLoop(void*)
 	// ** This has yet to be tested since we do not have a bigEndian phone
 	void fromFloatToRaw_float_littleEndian(audio_struct *audio_struct)
 	{
-		#ifdef __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
 		// On big-endian system, need to swap bytes
 		uint32_t *dst = (uint32_t*)audio_struct->rawBuffer;
 		union {
@@ -1114,10 +1114,10 @@ void *audioLoop(void*)
 			fval.f = audio_struct->audioBuffer[n];
 			*dst++ = __builtin_bswap32(fval.i);  // Swap 4 bytes for little-endian output
 		}
-		#else
+#else
 		// On little-endian system, writing little-ending floats - direct copy
 		memcpy(audio_struct->rawBuffer, audio_struct->audioBuffer, audio_struct->numOfSamples * sizeof(float));
-		#endif
+#endif
 		
 		// clean up buffer for next period
 		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
@@ -1126,10 +1126,10 @@ void *audioLoop(void*)
 	// ** This has yet to be tested since we do not have a bigEndian phone
 	void fromFloatToRaw_float_bigEndian(audio_struct *audio_struct)
 	{
-		#ifdef __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
 		// On big-endian system, direct copy (already big-endian)
 		memcpy(audio_struct->rawBuffer, audio_struct->audioBuffer, audio_struct->numOfSamples * sizeof(float));
-		#else
+#else
 		// On little-endian system (x86/ARM), need to swap bytes
 		uint32_t *dst = (uint32_t*)audio_struct->rawBuffer;
 		union {
@@ -1142,12 +1142,15 @@ void *audioLoop(void*)
 			fval.f = audio_struct->audioBuffer[n];
 			*dst++ = __builtin_bswap32(fval.i);  // Swap to big-endian
 		}
-		#endif
+#endif
 		
 		// clean up buffer for next period
 		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
 	}
 
+	//TODO:
+	//_drop BE arch support and then revise, simplify all conversions [24 and 32 can use bswap32! the only case thta needs manual swap is 24_3]
+	//_handle asymmetric quantization on all playback and capture format conversions, including neon!
 	//VIC on android, it seems that interleaved is the only way to go
 	void fromFloatToRaw(LDSPpcmContext *pcmContext)
 	{
@@ -1165,11 +1168,11 @@ void *audioLoop(void*)
 				for(unsigned int n = 0; n < audio_struct->numOfSamples; n++) 
 				{
 					uint16_t val = (uint16_t)(audio_struct->maxVal * audio_struct->audioBuffer[n]);
-					#ifdef __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
 					*dst++ = __builtin_bswap16(val);  // Byte swap if running on big-endian CPUs
-					#else  
+#else  
 					*dst++ = val;  // Direct write if running on little-endian CPUs
-					#endif
+#endif
 				}
 					
 			}
@@ -1179,11 +1182,11 @@ void *audioLoop(void*)
 				for(unsigned int n = 0; n < audio_struct->numOfSamples; n++) 
 				{
 					uint16_t val = (uint16_t)(audio_struct->maxVal * audio_struct->audioBuffer[n]);
-					#ifdef __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
 					*dst++ = val;  // Direct write if running on big-endian CPUs
-					#else  
+#else  
 					*dst++ = __builtin_bswap16(val);  // Byte swap if running on little-endian CPUs
-					#endif
+#endif
 				}
 			}
 
@@ -1247,7 +1250,7 @@ void *audioLoop(void*)
 	// ** This has yet to be tested since we do not have a bigEndian phone
 	void fromRawToFloat_float_littleEndian(audio_struct *audio_struct)
 	{
-		#ifdef __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
 		// On big-endian CPU, reading little-endian floats - need to swap
 		uint32_t *src = (uint32_t*)audio_struct->rawBuffer;
 		union {
@@ -1260,19 +1263,19 @@ void *audioLoop(void*)
 			fval.i = __builtin_bswap32(*src++);  // Swap from little-endian
 			audio_struct->audioBuffer[n] = fval.f;
 		}
-		#else
+#else
 		// On little-endian CPU, reading little-endian floats - direct copy
 		memcpy(audio_struct->audioBuffer, audio_struct->rawBuffer, audio_struct->numOfSamples * sizeof(float));
-		#endif
+#endif
 	}
 
 	// ** This has yet to be tested since we do not have a bigEndian phone
 	void fromRawToFloat_float_bigEndian(audio_struct *audio_struct)
 	{
-		#ifdef __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
 		// On big-endian CPU, reading big-endian floats - direct copy
 		memcpy(audio_struct->audioBuffer, audio_struct->rawBuffer, audio_struct->numOfSamples * sizeof(float));
-		#else
+#else
 		// On little-endian CPU, reading big-endian floats - need to swap
 		uint32_t *src = (uint32_t*)audio_struct->rawBuffer;
 		union {
@@ -1285,7 +1288,7 @@ void *audioLoop(void*)
 			fval.i = __builtin_bswap32(*src++);  // Swap from big-endian
 			audio_struct->audioBuffer[n] = fval.f;
 		}
-		#endif
+#endif
 	}
 
 	//VIC on android, it seems that interleaved is the only way to go
@@ -1305,9 +1308,9 @@ void *audioLoop(void*)
 				for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
 				{
 					uint16_t val = *src++;
-					#ifdef __BIG_ENDIAN__
+#ifdef __BIG_ENDIAN__
 					val = __builtin_bswap16(val);  // Byte swap if running on big-endian CPUs
-					#endif
+#endif
 					int res = (int)val;
 					audio_struct->audioBuffer[n] = (float)res / audio_struct->maxVal; // Direct write if running on little-endian CPUs
 				}
@@ -1318,9 +1321,9 @@ void *audioLoop(void*)
 				for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
 				{
 					uint16_t val = *src++;
-					#ifndef __BIG_ENDIAN__
+#ifndef __BIG_ENDIAN__
 					val = __builtin_bswap16(val);  // Byte swap if running on little-endian CPUs
-					#endif
+#endif
 					int res = (int)val;
 					audio_struct->audioBuffer[n] = (float)res / audio_struct->maxVal;
 				}

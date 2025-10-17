@@ -3,7 +3,7 @@
 
 #include "Scope.h"
 // #include <libraries/ne10/NE10.h>
-#include <NE10.h>
+//#include <NE10.h>
 #include <math.h>
 // #include <libraries/WSServer/WSServer.h>
 #include "libraries/WSServer/WSServer.h"

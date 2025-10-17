@@ -48,10 +48,10 @@ set(SEARCH_STRINGS
 "libraries/Fft/Fft.h\;libraries/Scope/Scope.h" 
 "fftw3" 
 "NE10" 
-"libraries/WSServer/WSServer.h\;libraries/WebServer/WebServer.h\;libraries/Gui/Gui.h\;libraries/Scope/Scope.h\;seasocks" 
 "math-neon"
+"libraries/WSServer/WSServer.h\;libraries/WebServer/WebServer.h\;libraries/Gui/Gui.h\;libraries/Scope/Scope.h\;seasocks" 
 "libraries/OrtModel/OrtModel.h\;onnx" 
-"libraries/RTNeural/RTNeural.h\;rtneural" 
+"RTNeural/RTNeural.h\;rtneural" 
 "rapidLib"
 )
 

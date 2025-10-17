@@ -19,7 +19,11 @@ if(NOT ADD_SEASOCKS)
   list(REMOVE_ITEM ALL_SOURCES ${GUI_SOURCES})
   file(GLOB_RECURSE GUICONTROLLER_SOURCES CONFIGURE_DEPENDS GuiController/*.cpp)
   list(REMOVE_ITEM ALL_SOURCES ${GUICONTROLLER_SOURCES})
-  file(GLOB_RECURSE SCOPE_SOURCES CONFIGURE_DEPENDS Scope/*.cpp) # Scope depends on FFT too, but ADD_FFT is activated is Scope is used
+endif()
+
+# Scope depends on FFT too, ADD_FFT is activated if Scope is used
+if(NOT ADD_FFT OR NOT ADD_SEASOCKS)
+  file(GLOB_RECURSE SCOPE_SOURCES CONFIGURE_DEPENDS Scope/*.cpp)
   list(REMOVE_ITEM ALL_SOURCES ${SCOPE_SOURCES})
 endif()
 
@@ -65,6 +69,9 @@ if(ADD_SEASOCKS)
   target_include_directories(libraries PUBLIC WebServer)
   target_include_directories(libraries PUBLIC Gui)
   target_include_directories(libraries PUBLIC GuiController)
+endif()
+
+if(ADD_SEASOCKS AND ADD_FFT)
   target_include_directories(libraries PUBLIC Scope)
 endif()
 
