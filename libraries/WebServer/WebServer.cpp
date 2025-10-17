@@ -7,6 +7,11 @@
 #include <regex>
 //#include <fstream>   // include to use system()
 //#include <unistd.h>  // include for close()
+#if __ANDROID_API__ >= 24
+#include <ifaddrs.h> // for the API specific content of getWiFiIPAddress()
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
 
 WebServer::WebServer() {}
 
@@ -71,12 +76,17 @@ void* WebServer::serve_func_static(void* arg)
 }
 
 void WebServer::printServerAddress() {
+        std::string lastValidIPAddress;    
         std::string command;
-        std::string lastValidIPAddress;
+        
+        lastValidIPAddress = getWiFiIPAddress();
 
-        // run ifconfig and parse output
-        command = "ifconfig";
-        lastValidIPAddress = runIpCommand(command);
+        // if ifconfig is not available
+        if(lastValidIPAddress.empty()) {
+            // run ifconfig and parse output
+            command = "ifconfig";
+            lastValidIPAddress = runIpCommand(command);
+        }
         
         // if ifconfig is not available
         if(lastValidIPAddress.empty())
@@ -86,13 +96,75 @@ void WebServer::printServerAddress() {
             lastValidIPAddress = runIpCommand(command);
         }
         
-
          // if none found, use default local host
         if(lastValidIPAddress.empty())
           lastValidIPAddress = "127.0.0.1";
           
         printf("%s web server listening on: %s:%d\n", _serverName.c_str(), lastValidIPAddress.c_str(), _port);
 
+}
+
+const std::vector<std::string> BLOCKED_INTERFACES = {
+    "rmnet",    // Qualcomm cellular
+    "dummy",    // dummy interface
+    "lo",       // loopback
+    "p2p",      // WiFi Direct
+    //"tun",      // VPN tunnels
+    "ppp",      // PPP (older cellular)
+    "ccmni",    // MediaTek cellular
+    //"usb",      // USB tethering
+    //"rndis",    // USB tethering (Windows style)
+    //"bt-pan"    // Bluetooth tethering
+};
+
+// this methods uses functionalities available only from API 24 on
+// in lower APIs it return an empty string
+// Add as a class member or global
+std::string WebServer::getWiFiIPAddress() {
+    std::string wifiIP;
+#if __ANDROID_API__ >= 24
+    struct ifaddrs *interfaces = nullptr;
+    struct ifaddrs *temp_addr = nullptr;
+    
+    if (getifaddrs(&interfaces) == 0) {
+        temp_addr = interfaces;
+        while (temp_addr != nullptr) {
+            if (temp_addr->ifa_addr && temp_addr->ifa_addr->sa_family == AF_INET) {
+                std::string ifname = temp_addr->ifa_name;
+                
+                // Skip blocked interfaces
+                bool skip = false;
+                for (const auto& blocked : BLOCKED_INTERFACES) {
+                    if (ifname.find(blocked) != std::string::npos) {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (skip) {
+                    temp_addr = temp_addr->ifa_next;
+                    continue;
+                }
+                
+                char addressBuffer[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET,
+                         &((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr,
+                         addressBuffer, INET_ADDRSTRLEN);
+                
+                std::string ip(addressBuffer);
+                /// returns the first non-localhost
+                if (ip.substr(0, 3) != "127") {
+                    wifiIP = ip;
+                    break;
+                }
+            }
+            temp_addr = temp_addr->ifa_next;
+        }
+    }
+    
+    if (interfaces != nullptr)
+        freeifaddrs(interfaces);
+#endif
+    return wifiIP;
 }
 
 
@@ -108,16 +180,26 @@ std::string WebServer::runIpCommand(std::string command)
         std::smatch ipMatch;
 
         std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
-        if (!pipe)
+        if(!pipe)
             throw std::runtime_error("popen() failed!");
 
         // removes all strings that start and end with 255 and returns the last one
-        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) 
+        while(fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) 
         {
             result = buffer.data();
-            if (std::regex_search(result, ipMatch, ipRegex)) 
+            if(std::regex_search(result, ipMatch, ipRegex)) 
             {
                 std::string ip = ipMatch[1];
+                bool skip = false;
+                for (const auto& blocked : BLOCKED_INTERFACES) {
+                    if (result.find(blocked) != std::string::npos) {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (skip) continue;
+
+                // printf("---------> ip %s\n", ip.c_str());
                 if(ip.substr(0, 1) != "0" && ip.substr(0, 3) != "255" && 
                    ip.substr(0, 3) != "127" && ip.substr(ip.size() - 4) != ".255")
                     lastValidIPAddress = ip;

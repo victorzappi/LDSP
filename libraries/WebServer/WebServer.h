@@ -28,6 +28,7 @@ private:
     std::string _serverName;
 
     void printServerAddress();
+    std::string getWiFiIPAddress();
     std::string runIpCommand(std::string command);
 
 	void* serve_func(std::string resourceRoot);
