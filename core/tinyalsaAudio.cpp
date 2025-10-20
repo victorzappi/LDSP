@@ -173,7 +173,7 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
   	updateAudioParams(settings, &pcmContext.playback, true);
 	if(fullDuplex) 
 	{
-    updateAudioParams(settings, &pcmContext.capture, false);
+    	updateAudioParams(settings, &pcmContext.capture, false);
 		if(pcmContext.playback->config.period_size != pcmContext.capture->config.period_size) 
 		{
 		  fprintf(stderr, "The requested period size results in different sizes for playback (%d) and capture (%d)! Please choose a different one\n", pcmContext.playback->config.period_size, pcmContext.capture->config.period_size);
@@ -314,11 +314,11 @@ void initAudioParams(LDSPinitSettings *settings, audio_struct **audioStruct, boo
     (*audioStruct)->config.period_count = settings->periodCount;
     (*audioStruct)->config.rate = settings->samplerate;
     (*audioStruct)->config.format = (pcm_format) gFormats[settings->pcmFormatString];
-	(*audioStruct)->config.avail_min = 1;
-    (*audioStruct)->config.start_threshold = 1;//settings->periodSize; //1; 
-    (*audioStruct)->config.stop_threshold = 2 * settings->periodSize * settings->periodCount; //0;
-    (*audioStruct)->config.silence_threshold = 0; //1; 
-    (*audioStruct)->config.silence_size = 0;
+	(*audioStruct)->config.avail_min = 0; // minimum available frames before wakeup from poll(), where 0 means let tinyalsa decicde best values for each configuration---we don't use poll(), this is irrelevant
+    (*audioStruct)->config.start_threshold = settings->periodSize; // this is used with in playback/audio out only, it starts the pcm when as low as 1 period is written [full duplex calls pcm_start on the first pcm_read instead]
+    (*audioStruct)->config.stop_threshold = 0; // this controls after how many xruns the pcm stops and 0 means the largest num possible, effectively never stopping 
+    (*audioStruct)->config.silence_threshold = 0; // here we are disabling automatic 0 padding to mask out underuns
+    (*audioStruct)->config.silence_size = 0; // size of zero padding, which is disabled!
 
 
 
@@ -709,8 +709,8 @@ void *audioLoop(void*)
 
 			sampleBytes += (4 *audio_struct->physBps);
 		}
-		// clean up buffer for next period
-		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+		// clean up buffer for next period --- not really needed
+		//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 	}
 
 	void fromFloatToRaw_int_bigEndian_neon(audio_struct *audio_struct)
@@ -732,8 +732,8 @@ void *audioLoop(void*)
 
 			sampleBytes += (4 *audio_struct->physBps);
 		}
-		// clean up buffer for next period
-		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+		// clean up buffer for next period --- not really needed
+		//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 	}
 
 	// ** This has yet to be tested since we do not have a phone that supports float samples
@@ -758,8 +758,8 @@ void *audioLoop(void*)
 			vst1q_f32(&dst[n], inputVec);
 		}
 		
-		// clean up buffer for next period
-		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+		// clean up buffer for next period --- not really needed
+		//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
 	}
 
 	// ** This has yet to be tested since we do not have a phone that supports float samples
@@ -784,8 +784,8 @@ void *audioLoop(void*)
 			vst1q_f32(&dst[n], inputVec);
 		}
 		
-		// clean up buffer for next period
-		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+		// clean up buffer for next period --- not really needed
+		//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
 	}
 
 	// NEON implementation of fromFloatToRaw
@@ -841,7 +841,8 @@ void *audioLoop(void*)
 				dst += 8;
 			}
 			
-			memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+			// clean up buffer for next period --- not really needed
+			// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
 		}
 		// other integer formats, less common, slower generic implemenations
 		else if(!pcmContext->isFloat)
@@ -940,8 +941,8 @@ void *audioLoop(void*)
 	// ** This has yet to be tested since we do not have a phone that supports float samples
 	void fromRawToFloat_float_littleEndian_neon(audio_struct *audio_struct) 
 	{
-		float32_t *src = (float32_t*)audio_struct->audioBuffer;
-		float32_t *dst = (float32_t*)audio_struct->rawBuffer;
+		float32_t *src = (float32_t*)audio_struct->rawBuffer;
+		float32_t *dst = (float32_t*)audio_struct->audioBuffer;
 		
 		for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 4)
 		{
@@ -959,15 +960,15 @@ void *audioLoop(void*)
 			vst1q_f32(&dst[n], inputVec);
 		}
 		
-		// clean up buffer for next period
-		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+		// clean up buffer for next period --- not really needed
+		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
 	}
 
 	// ** This has yet to be tested since we do not have a phone that supports float samples
 	void fromRawToFloat_float_bigEndian_neon(audio_struct *audio_struct) 
 	{
-		float32_t *src = (float32_t*)audio_struct->audioBuffer;
-		float32_t *dst = (float32_t*)audio_struct->rawBuffer;
+		float32_t *src = (float32_t*)audio_struct->rawBuffer;
+		float32_t *dst = (float32_t*)audio_struct->audioBuffer;
 		
 		for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 4)
 		{
@@ -985,8 +986,8 @@ void *audioLoop(void*)
 			vst1q_f32(&dst[n], inputVec);
 		}
 		
-		// clean up buffer for next period
-		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+		// clean up buffer for next period --- not really needed
+		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
 	}
 
 	// NEON implementation of fromRawToFloat
@@ -1024,21 +1025,18 @@ void *audioLoop(void*)
 #endif
 				}
 				
-				// Convert to unsigned (matching your byteCombine behavior)
-				uint16x8_t u16_vec = vreinterpretq_u16_s16(i16_vec);
-				
-				// Split into two sets of 4 for conversion to int32
-				uint16x4_t u16_low = vget_low_u16(u16_vec);
-				uint16x4_t u16_high = vget_high_u16(u16_vec);
-				
-				// Widen to int32
-				uint32x4_t u32_vec1 = vmovl_u16(u16_low);
-				uint32x4_t u32_vec2 = vmovl_u16(u16_high);
-				
-				// Convert to float
-				float32x4_t f32_vec1 = vcvtq_f32_u32(u32_vec1);
-				float32x4_t f32_vec2 = vcvtq_f32_u32(u32_vec2);
-				
+				// Split into two sets of 4 - SIGNED
+				int16x4_t i16_low = vget_low_s16(i16_vec);  
+				int16x4_t i16_high = vget_high_s16(i16_vec);
+
+				// Widen to SIGNED int32
+				int32x4_t i32_vec1 = vmovl_s16(i16_low);
+				int32x4_t i32_vec2 = vmovl_s16(i16_high);
+
+				// Convert SIGNED to float
+				float32x4_t f32_vec1 = vcvtq_f32_s32(i32_vec1);
+				float32x4_t f32_vec2 = vcvtq_f32_s32(i32_vec2);
+
 				// Scale by dividing by maxVal (or multiply by reciprocal if available)
 				f32_vec1 = vmulq_f32(f32_vec1, audio_struct->factorVecReciprocal);
 				f32_vec2 = vmulq_f32(f32_vec2, audio_struct->factorVecReciprocal);
@@ -1079,8 +1077,8 @@ void *audioLoop(void*)
 
 			sampleBytes += audio_struct->bps; // jump to next sample
 		}
-		// clean up buffer for next period
-		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+		// clean up buffer for next period --- no really needed
+		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 	}
 
 	void fromFloatToRaw_int_bigEndian(audio_struct *audio_struct)
@@ -1094,8 +1092,8 @@ void *audioLoop(void*)
 
 			sampleBytes += audio_struct->bps; // jump to next sample
 		}
-		// clean up buffer for next period
-		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+		// clean up buffer for next period --- no really needed
+		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
 	}
 	
 	// ** This has yet to be tested since we do not have a bigEndian phone
@@ -1119,8 +1117,8 @@ void *audioLoop(void*)
 		memcpy(audio_struct->rawBuffer, audio_struct->audioBuffer, audio_struct->numOfSamples * sizeof(float));
 #endif
 		
-		// clean up buffer for next period
-		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+		// clean up buffer for next period --- no really needed
+		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
 	}
 
 	// ** This has yet to be tested since we do not have a bigEndian phone
@@ -1144,8 +1142,8 @@ void *audioLoop(void*)
 		}
 #endif
 		
-		// clean up buffer for next period
-		memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+		// clean up buffer for next period --- no really needed
+		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
 	}
 
 	//TODO:
@@ -1190,8 +1188,8 @@ void *audioLoop(void*)
 				}
 			}
 
-			// Clean up buffer for next period
-			memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+			// Clean up buffer for next period --- not really needed
+			//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
 		}
 		// other integer formats, less common, slower generic implementations
 		else if(!pcmContext->isFloat)  
@@ -1236,7 +1234,7 @@ void *audioLoop(void*)
 
 		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
 		{
-			int res = byteCombine_littleEndian(sampleBytes, audio_struct);
+			int res = byteCombine_bigEndian(sampleBytes, audio_struct);
 			// if retrieved value is greater than maximum value allowed within current format
 			// we have to manually complete the 2's complement, by extending the sign
 			if(res>audio_struct->maxVal)
@@ -1305,9 +1303,10 @@ void *audioLoop(void*)
 			// Optimized path: 16-bit integer, little endian (most common)
 			if(!pcmContext->isBigEndian)
 			{
+				int16_t *src = (int16_t*)rawBuffer;  // Cast the pointer once
 				for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
 				{
-					uint16_t val = *src++;
+					int16_t val = *src++;  // Now it's signed
 #ifdef __BIG_ENDIAN__
 					val = __builtin_bswap16(val);  // Byte swap if running on big-endian CPUs
 #endif
@@ -1318,9 +1317,10 @@ void *audioLoop(void*)
 			// Optimized path: 16-bit integer, big endian
 			else
 			{
+				int16_t *src = (int16_t*)rawBuffer;  // Cast the pointer once
 				for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
 				{
-					uint16_t val = *src++;
+					int16_t val = *src++;  // Now it's signed
 #ifndef __BIG_ENDIAN__
 					val = __builtin_bswap16(val);  // Byte swap if running on little-endian CPUs
 #endif
