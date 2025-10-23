@@ -116,7 +116,7 @@ int GuiController::sendSliderValue(int sliderIndex)
     root["index"] = slider.getIndex();
     root["name"] = slider.getName(); // Assuming getName() returns std::string
     root["value"] = slider.getValue();
-    return _gui->sendControl(root.dump());
+    return _gui->sendControl(root);
 }
 
 

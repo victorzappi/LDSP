@@ -194,7 +194,7 @@ void* WSServer::client_func()
 					});
 				} else {
 					// make a copy of the data before we send it out
-					std::string str = (const char*)buf;
+					std::string str((const char*)buf, size);  // Use size-aware constructor
 					handler->server->execute([handler, str] {
 						for (auto c : handler->connections) {
 							c->send(str.c_str());
