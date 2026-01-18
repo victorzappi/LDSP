@@ -571,6 +571,8 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 		audio_struct->bps = 3;
 	audio_struct->formatBits = audio_struct->bps * 8;
 	audio_struct->maxVal = (1 << (audio_struct->formatBits - 1)) - 1;
+	audio_struct->minVal = -(audio_struct->maxVal + 1);
+	audio_struct->factorReciprocal = 1.0f / audio_struct->maxVal;
 
 	// buffer sizes
 	audio_struct->numOfSamples = channels*audio_struct->config.period_size;
@@ -618,6 +620,9 @@ int initLowLevelAudioStruct(audio_struct *audio_struct)
 	#ifdef NEON_AUDIO_FORMAT
 		audio_struct->capture_maskVec = vdupq_n_s32(audio_struct->captureMask);
 		audio_struct->maxVec = vdupq_n_u32(audio_struct->maxVal);
+		audio_struct->minVec = vdupq_n_s32(audio_struct->minVal);
+		audio_struct->maxVecF = vdupq_n_f32((float)audio_struct->maxVal);
+		audio_struct->minVecF = vdupq_n_f32((float)audio_struct->minVal);
 		audio_struct->factorVec = vdupq_n_f32(audio_struct->maxVal);
 		audio_struct->factorVecReciprocal = vdupq_n_f32(1.0 / audio_struct->maxVal);
 		audio_struct->byteSplit_maskVec = vdupq_n_s32(0xff);
@@ -689,663 +694,654 @@ void *audioLoop(void*)
 }
 
 #ifdef NEON_AUDIO_FORMAT
-	//---playback format functions---
-	void fromFloatToRaw_int_littleEndian_neon(audio_struct *audio_struct)
-	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-
-		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
-		{	
-			// Load the four floating-point inputs into a NEON vector
-			float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
-
-			// Scale the input by scaleVal
-			float32x4_t resultVec = vmulq_f32(inputVec, audio_struct->factorVec);
-
-			// Truncates float type to int type
-			int32x4_t intValues = vcvtq_s32_f32(resultVec);
-
-			byteSplit_littleEndian_neon(&sampleBytes, intValues, audio_struct);
-
-			sampleBytes += (4 *audio_struct->physBps);
-		}
-		// clean up buffer for next period --- not really needed
-		//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+//---playback format functions---
+void fromFloatToRaw_int_littleEndian_neon(audio_struct *audio_struct)
+{
+	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+	for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
+	{   
+		// Load the four floating-point inputs into a NEON vector
+		float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
+		// Scale the input by scaleVal
+		float32x4_t resultVec = vmulq_f32(inputVec, audio_struct->factorVec);
+		// Clamp to valid range
+		resultVec = vminq_f32(resultVec, audio_struct->maxVecF);
+		resultVec = vmaxq_f32(resultVec, audio_struct->minVecF);
+		// Truncates float type to int type
+		int32x4_t intValues = vcvtq_s32_f32(resultVec);
+		byteSplit_littleEndian_neon(&sampleBytes, intValues, audio_struct);
+		sampleBytes += (4 *audio_struct->physBps);
 	}
+	// clean up buffer for next period --- not really needed
+	//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+}
 
-	void fromFloatToRaw_int_bigEndian_neon(audio_struct *audio_struct)
-	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-
-		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
-		{	
-			// Load the four floating-point inputs into a NEON vector
-			float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
-
-			// Scale the input by scaleVal
-			float32x4_t resultVec = vmulq_f32(inputVec, audio_struct->factorVec);
-
-			// Truncates float type to int type
-			int32x4_t intValues = vcvtq_s32_f32(resultVec);
-
-			byteSplit_bigEndian_neon(&sampleBytes, intValues, audio_struct);
-
-			sampleBytes += (4 *audio_struct->physBps);
-		}
-		// clean up buffer for next period --- not really needed
-		//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+void fromFloatToRaw_int_bigEndian_neon(audio_struct *audio_struct)
+{
+	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+	for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
+	{   
+		// Load the four floating-point inputs into a NEON vector
+		float32x4_t inputVec = vld1q_f32(&(audio_struct->audioBuffer[n]));
+		// Scale the input by scaleVal
+		float32x4_t resultVec = vmulq_f32(inputVec, audio_struct->factorVec);
+		// Clamp to valid range
+		resultVec = vminq_f32(resultVec, audio_struct->maxVecF);
+		resultVec = vmaxq_f32(resultVec, audio_struct->minVecF);
+		// Truncates float type to int type
+		int32x4_t intValues = vcvtq_s32_f32(resultVec);
+		byteSplit_bigEndian_neon(&sampleBytes, intValues, audio_struct);
+		sampleBytes += (4 *audio_struct->physBps);
 	}
+	// clean up buffer for next period --- not really needed
+	//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+}
 
-	// ** This has yet to be tested since we do not have a phone that supports float samples
-	void fromFloatToRaw_float_littleEndian_neon(audio_struct *audio_struct)
+// ** This has yet to be tested since we do not have a phone that supports float samples
+void fromFloatToRaw_float_littleEndian_neon(audio_struct *audio_struct)
+{
+	float32_t *src = (float32_t*)audio_struct->audioBuffer;
+	float32_t *dst = (float32_t*)audio_struct->rawBuffer;
+	
+	for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 4)
 	{
-		float32_t *src = (float32_t*)audio_struct->audioBuffer;
-		float32_t *dst = (float32_t*)audio_struct->rawBuffer;
+		// Load the four floating-point inputs into a NEON vector
+		float32x4_t inputVec = vld1q_f32(&src[n]);
 		
-		for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 4)
-		{
-			// Load the four floating-point inputs into a NEON vector
-			float32x4_t inputVec = vld1q_f32(&src[n]);
-			
-			#ifdef __BIG_ENDIAN__
-			// CPU is big-endian, format is little-endian - need swap
-			uint8x16_t bytes = vreinterpretq_u8_f32(inputVec);
-			bytes = vrev32q_u8(bytes);  // Reverse bytes in each 32-bit word
-			inputVec = vreinterpretq_f32_u8(bytes);
-			#endif
-			// If CPU is little-endian, no swap needed
-			
-			vst1q_f32(&dst[n], inputVec);
-		}
+		#ifdef __BIG_ENDIAN__
+		// CPU is big-endian, format is little-endian - need swap
+		uint8x16_t bytes = vreinterpretq_u8_f32(inputVec);
+		bytes = vrev32q_u8(bytes);  // Reverse bytes in each 32-bit word
+		inputVec = vreinterpretq_f32_u8(bytes);
+		#endif
+		// If CPU is little-endian, no swap needed
 		
-		// clean up buffer for next period --- not really needed
-		//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
-	}
-
-	// ** This has yet to be tested since we do not have a phone that supports float samples
-	void fromFloatToRaw_float_bigEndian_neon(audio_struct *audio_struct)
-	{
-		float32_t *src = (float32_t*)audio_struct->audioBuffer;
-		float32_t *dst = (float32_t*)audio_struct->rawBuffer;
-		
-		for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 4)
-		{
-			// Load the four floating-point inputs into a NEON vector
-			float32x4_t inputVec = vld1q_f32(&src[n]);
-			
-			#ifndef __BIG_ENDIAN__
-			// CPU is little-endian, format is big-endian - need swap
-			uint8x16_t bytes = vreinterpretq_u8_f32(inputVec);
-			bytes = vrev32q_u8(bytes);  // Reverse bytes in each 32-bit word
-			inputVec = vreinterpretq_f32_u8(bytes);
-			#endif
-			// If CPU is big-endian, no swap needed
-			
-			vst1q_f32(&dst[n], inputVec);
-		}
-		
-		// clean up buffer for next period --- not really needed
-		//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
-	}
-
-	// NEON implementation of fromFloatToRaw
-	//VIC on android, it seems that interleaved is the only way to go
-	void fromFloatToRaw(LDSPpcmContext *pcmContext)
-	{
-		audio_struct *audio_struct = pcmContext->playback;
-		
-		// most common formats! faster specific implementation
-		if(!pcmContext->isFloat && audio_struct->bps == 2)
-		{
-			int16_t *dst = (int16_t*)audio_struct->rawBuffer;
-			
-			// Optimized path: 16-bit integer, little endian and big endian
-			// Process all samples - guaranteed to be multiple of 8
-			for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 8)
-			{
-				// Load 8 floats
-				float32x4_t vec1 = vld1q_f32(&audio_struct->audioBuffer[n]);
-				float32x4_t vec2 = vld1q_f32(&audio_struct->audioBuffer[n + 4]);
-				
-				// Scale by maxVal
-				vec1 = vmulq_f32(vec1, audio_struct->factorVec);
-				vec2 = vmulq_f32(vec2, audio_struct->factorVec);
-				
-				// Convert to int32
-				int32x4_t i32_vec1 = vcvtq_s32_f32(vec1);
-				int32x4_t i32_vec2 = vcvtq_s32_f32(vec2);
-				
-				// Convert to int16 and combine
-				int16x4_t i16_vec1 = vmovn_s32(i32_vec1);
-				int16x4_t i16_vec2 = vmovn_s32(i32_vec2);
-				int16x8_t combined = vcombine_s16(i16_vec1, i16_vec2);
-				
-				// Handle endianness
-				if(!pcmContext->isBigEndian)
-				{
-					#ifdef __BIG_ENDIAN__
-					// Swap bytes if CPU is big-endian but format is little
-					combined = vreinterpretq_s16_u8(vrev16q_u8(vreinterpretq_u8_s16(combined)));
-					#endif
-				}
-				else
-				{
-					#ifndef __BIG_ENDIAN__
-					// Swap bytes if CPU is little-endian but format is big
-					combined = vreinterpretq_s16_u8(vrev16q_u8(vreinterpretq_u8_s16(combined)));
-					#endif
-				}
-				
-				// Store 8 samples at once
-				vst1q_s16(dst, combined);
-				dst += 8;
-			}
-			
-			// clean up buffer for next period --- not really needed
-			// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
-		}
-		// other integer formats, less common, slower generic implemenations
-		else if(!pcmContext->isFloat)
-		{
-			if(!pcmContext->isBigEndian)
-				fromFloatToRaw_int_littleEndian_neon(audio_struct);
-			else
-				fromFloatToRaw_int_bigEndian_neon(audio_struct);
-		}
-		// float formats, least common but easy fast specific implementations		
-		else
-		{
-			if(!pcmContext->isBigEndian)
-				fromFloatToRaw_float_littleEndian_neon(audio_struct);
-			else
-				fromFloatToRaw_float_bigEndian_neon(audio_struct);
-		}
-	}
-
-
-	//---capture format functions---
-	void fromRawToFloat_int_littleEndian_neon(audio_struct *audio_struct)
-	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-
-		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
-		{
-				int32x4_t res = byteCombine_littleEndian_neon(&sampleBytes, audio_struct);
-
-				sampleBytes += (4 *audio_struct->physBps);
-
-				// Perform the comparison (res > scaleVal)
-				// We are comparing 4 signed integers (res) with 4 unsigned integers (scaleVec) to identify negative
-				// numbers, and apply sign extension with the captureMask
-				// Note: If we are using a 32 bit format, there is no need for sign extension, but negative numbers
-				//       will still return 1 in this comparison, triggering the masking with capture_maskVec,
-				// BUT in that case, the capture_maskVec is composed of 0's so, doing a logical OR with it will not matter
-				uint32x4_t greaterThanMask = vcgtq_u32(res, audio_struct->maxVec);
-
-				// Prepare the mask by ANDing it with the captureMask
-				int32x4_t maskedValues = vandq_s32((int32x4_t)greaterThanMask, audio_struct->capture_maskVec);
-
-				// Apply the mask using OR operation
-				int32x4_t masked_result = vorrq_s32(res, maskedValues);
-
-				// Convert masked_result to float type
-				float32x4_t floatVec = vcvtq_f32_s32(masked_result);
-
-				// Scale integer representation to float representation
-				float32x4_t result = vmulq_f32(floatVec, audio_struct->factorVecReciprocal);
-
-				audio_struct->audioBuffer[n] = result[0];
-				audio_struct->audioBuffer[n + 1] = result[1];
-				audio_struct->audioBuffer[n + 2] = result[2];
-				audio_struct->audioBuffer[n + 3] = result[3];		
-		}
-	}
-
-	void fromRawToFloat_int_bigEndian_neon(audio_struct *audio_struct)
-	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-
-		for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
-		{
-				int32x4_t res = byteCombine_bigEndian_neon(&sampleBytes, audio_struct);
-
-				sampleBytes += (4 *audio_struct->physBps);
-
-				// Perform the comparison (res > scaleVal)
-				// We are comparing 4 signed integers (res) with 4 unsigned integers (scaleVec) to identify negative
-				// numbers, and apply sign extension with the captureMask
-				// Note: If we are using a 32 bit format, there is no need for sign extension, but negative numbers
-				//       will still return 1 in this comparison, triggering the masking with capture_maskVec,
-				// BUT in that case, the capture_maskVec is composed of 0's so, doing a logical OR with it will not matter
-				uint32x4_t greaterThanMask = vcgtq_u32(res, audio_struct->maxVec);
-
-				// Prepare the mask by ANDing it with the captureMask
-				int32x4_t maskedValues = vandq_s32((int32x4_t)greaterThanMask, audio_struct->capture_maskVec);
-
-				// Apply the mask using OR operation
-				int32x4_t masked_result = vorrq_s32(res, maskedValues);
-
-				// Convert masked_result to float type
-				float32x4_t floatVec = vcvtq_f32_s32(masked_result);
-
-				// Scale integer representation to float representation
-				float32x4_t result = vmulq_f32(floatVec, audio_struct->factorVecReciprocal);
-
-				audio_struct->audioBuffer[n] = result[0];
-				audio_struct->audioBuffer[n + 1] = result[1];
-				audio_struct->audioBuffer[n + 2] = result[2];
-				audio_struct->audioBuffer[n + 3] = result[3];		
-		}
-	}
-
-	// ** This has yet to be tested since we do not have a phone that supports float samples
-	void fromRawToFloat_float_littleEndian_neon(audio_struct *audio_struct) 
-	{
-		float32_t *src = (float32_t*)audio_struct->rawBuffer;
-		float32_t *dst = (float32_t*)audio_struct->audioBuffer;
-		
-		for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 4)
-		{
-			// Load the four floating-point inputs into a NEON vector
-			float32x4_t inputVec = vld1q_f32(&src[n]);
-			
-			#ifdef __BIG_ENDIAN__
-			// CPU is big-endian, format needs to be little-endian - swap
-			uint8x16_t bytes = vreinterpretq_u8_f32(inputVec);
-			bytes = vrev32q_u8(bytes);  // Reverse bytes in each 32-bit word
-			inputVec = vreinterpretq_f32_u8(bytes);
-			#endif
-			// If CPU is little-endian, no swap needed (native = output format)
-			
-			vst1q_f32(&dst[n], inputVec);
-		}
-		
-		// clean up buffer for next period --- not really needed
-		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
-	}
-
-	// ** This has yet to be tested since we do not have a phone that supports float samples
-	void fromRawToFloat_float_bigEndian_neon(audio_struct *audio_struct) 
-	{
-		float32_t *src = (float32_t*)audio_struct->rawBuffer;
-		float32_t *dst = (float32_t*)audio_struct->audioBuffer;
-		
-		for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 4)
-		{
-			// Load the four floating-point inputs into a NEON vector
-			float32x4_t inputVec = vld1q_f32(&src[n]);
-			
-#ifndef __BIG_ENDIAN__
-			// CPU is little-endian, format needs to be big-endian - swap
-			uint8x16_t bytes = vreinterpretq_u8_f32(inputVec);
-			bytes = vrev32q_u8(bytes);  // Reverse bytes in each 32-bit word  
-			inputVec = vreinterpretq_f32_u8(bytes);
-#endif
-			// If CPU is big-endian, no swap needed (native = output format)
-			
-			vst1q_f32(&dst[n], inputVec);
-		}
-		
-		// clean up buffer for next period --- not really needed
-		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
-	}
-
-	// NEON implementation of fromRawToFloat
-	//VIC on android, it seems that interleaved is the only way to go
-	void fromRawToFloat(LDSPpcmContext *pcmContext)
-	{
-		audio_struct *audio_struct = pcmContext->capture;
-		
-		// most common formats! faster specific implementation
-		if(!pcmContext->isFloat && audio_struct->bps == 2)
-		{
-			uint16_t *src = (uint16_t*)audio_struct->rawBuffer;
-			float32_t *dst = audio_struct->audioBuffer;
-			
-			// Optimized path: 16-bit integer, little endian and big endian
-			// Process all samples - guaranteed to be multiple of 8
-			for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 8)
-			{
-				// Load 8 int16 samples
-				int16x8_t i16_vec = vld1q_s16((int16_t*)&src[n]);
-				
-				// Handle endianness
-				if(!pcmContext->isBigEndian)
-				{
-#ifdef __BIG_ENDIAN__
-					// CPU is big-endian, format is little-endian - swap
-					i16_vec = vreinterpretq_s16_u8(vrev16q_u8(vreinterpretq_u8_s16(i16_vec)));
-#endif
-				}
-				else
-				{
-#ifndef __BIG_ENDIAN__
-					// CPU is little-endian, format is big-endian - swap
-					i16_vec = vreinterpretq_s16_u8(vrev16q_u8(vreinterpretq_u8_s16(i16_vec)));
-#endif
-				}
-				
-				// Split into two sets of 4 - SIGNED
-				int16x4_t i16_low = vget_low_s16(i16_vec);  
-				int16x4_t i16_high = vget_high_s16(i16_vec);
-
-				// Widen to SIGNED int32
-				int32x4_t i32_vec1 = vmovl_s16(i16_low);
-				int32x4_t i32_vec2 = vmovl_s16(i16_high);
-
-				// Convert SIGNED to float
-				float32x4_t f32_vec1 = vcvtq_f32_s32(i32_vec1);
-				float32x4_t f32_vec2 = vcvtq_f32_s32(i32_vec2);
-
-				// Scale by dividing by maxVal (or multiply by reciprocal if available)
-				f32_vec1 = vmulq_f32(f32_vec1, audio_struct->factorVecReciprocal);
-				f32_vec2 = vmulq_f32(f32_vec2, audio_struct->factorVecReciprocal);
-				
-				// Store 8 floats
-				vst1q_f32(&dst[n], f32_vec1);
-				vst1q_f32(&dst[n + 4], f32_vec2);
-			}
-		}
-    	// less common formats, slower generic implementations
-		// int, little or big endian
-		else if(!pcmContext->isFloat)
-		{
-			if(!pcmContext->isBigEndian)
-				fromRawToFloat_int_littleEndian_neon(audio_struct);
-			else
-				fromRawToFloat_int_bigEndian_neon(audio_struct);
-		}
-		// float formats, least common but easy fast specific implementations
-		else
-		{
-			if(!pcmContext->isBigEndian)
-				fromRawToFloat_float_littleEndian_neon(audio_struct);
-			else
-				fromRawToFloat_float_bigEndian_neon(audio_struct);
-		}
-	}
-#else
-	//---playback format functions---
-	void fromFloatToRaw_int_litteEndian(audio_struct *audio_struct)
-	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
-		{
-			int res = audio_struct->maxVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
-			
-			byteSplit_littleEndian(sampleBytes, res, audio_struct);
-
-			sampleBytes += audio_struct->bps; // jump to next sample
-		}
-		// clean up buffer for next period --- no really needed
-		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
-	}
-
-	void fromFloatToRaw_int_bigEndian(audio_struct *audio_struct)
-	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
-		{
-			int res = audio_struct->maxVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
-			
-			byteSplit_bigEndian(sampleBytes, res, audio_struct);
-
-			sampleBytes += audio_struct->bps; // jump to next sample
-		}
-		// clean up buffer for next period --- no really needed
-		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+		vst1q_f32(&dst[n], inputVec);
 	}
 	
-	// ** This has yet to be tested since we do not have a bigEndian phone
-	void fromFloatToRaw_float_littleEndian(audio_struct *audio_struct)
-	{
-#ifdef __BIG_ENDIAN__
-		// On big-endian system, need to swap bytes
-		uint32_t *dst = (uint32_t*)audio_struct->rawBuffer;
-		union {
-			float f;
-			uint32_t i;
-		} fval;
-		
-		for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
-		{
-			fval.f = audio_struct->audioBuffer[n];
-			*dst++ = __builtin_bswap32(fval.i);  // Swap 4 bytes for little-endian output
-		}
-#else
-		// On little-endian system, writing little-ending floats - direct copy
-		memcpy(audio_struct->rawBuffer, audio_struct->audioBuffer, audio_struct->numOfSamples * sizeof(float));
-#endif
-		
-		// clean up buffer for next period --- no really needed
-		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
-	}
+	// clean up buffer for next period --- not really needed
+	//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+}
 
-	// ** This has yet to be tested since we do not have a bigEndian phone
-	void fromFloatToRaw_float_bigEndian(audio_struct *audio_struct)
-	{
-#ifdef __BIG_ENDIAN__
-		// On big-endian system, direct copy (already big-endian)
-		memcpy(audio_struct->rawBuffer, audio_struct->audioBuffer, audio_struct->numOfSamples * sizeof(float));
-#else
-		// On little-endian system (x86/ARM), need to swap bytes
-		uint32_t *dst = (uint32_t*)audio_struct->rawBuffer;
-		union {
-			float f;
-			uint32_t i;
-		} fval;
-		
-		for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
-		{
-			fval.f = audio_struct->audioBuffer[n];
-			*dst++ = __builtin_bswap32(fval.i);  // Swap to big-endian
-		}
-#endif
-		
-		// clean up buffer for next period --- no really needed
-		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
-	}
-
-	//TODO:
-	//_drop BE arch support and then revise, simplify all conversions [24 and 32 can use bswap32! the only case thta needs manual swap is 24_3]
-	//_handle asymmetric quantization on all playback and capture format conversions, including neon!
-	//VIC on android, it seems that interleaved is the only way to go
-	void fromFloatToRaw(LDSPpcmContext *pcmContext)
-	{
-		audio_struct *audio_struct = pcmContext->playback;
-
-		// most common formats! faster specific implementation
-		if(!pcmContext->isFloat && audio_struct->bps == 2)
-		{	
-			unsigned char *rawBuffer = (unsigned char*)(audio_struct->rawBuffer);		
-			int16_t *dst = (int16_t*)rawBuffer;
-
-			// Optimized path: 16-bit integer, little endian (most common)
-			if(!pcmContext->isBigEndian) 
-			{
-				for(unsigned int n = 0; n < audio_struct->numOfSamples; n++) 
-				{
-					uint16_t val = (uint16_t)(audio_struct->maxVal * audio_struct->audioBuffer[n]);
-#ifdef __BIG_ENDIAN__
-					*dst++ = __builtin_bswap16(val);  // Byte swap if running on big-endian CPUs
-#else  
-					*dst++ = val;  // Direct write if running on little-endian CPUs
-#endif
-				}
-					
-			}
-			// Optimized path: 16-bit integer, big endian
-			else if(!pcmContext->isFloat && pcmContext->isBigEndian && audio_struct->bps == 2)
-			{
-				for(unsigned int n = 0; n < audio_struct->numOfSamples; n++) 
-				{
-					uint16_t val = (uint16_t)(audio_struct->maxVal * audio_struct->audioBuffer[n]);
-#ifdef __BIG_ENDIAN__
-					*dst++ = val;  // Direct write if running on big-endian CPUs
-#else  
-					*dst++ = __builtin_bswap16(val);  // Byte swap if running on little-endian CPUs
-#endif
-				}
-			}
-
-			// Clean up buffer for next period --- not really needed
-			//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
-		}
-		// other integer formats, less common, slower generic implementations
-		else if(!pcmContext->isFloat)  
-		{
-			if(!pcmContext->isBigEndian)
-				fromFloatToRaw_int_litteEndian(audio_struct);
-			else
-				fromFloatToRaw_int_bigEndian(audio_struct);
-		}	 
-		// float formats, least common but easy fast specific implementations
-		else 
-		{
-			if(!pcmContext->isBigEndian)
-				fromFloatToRaw_float_littleEndian(audio_struct);
-			else
-				fromFloatToRaw_float_bigEndian(audio_struct);
-		}
-	}
-
+// ** This has yet to be tested since we do not have a phone that supports float samples
+void fromFloatToRaw_float_bigEndian_neon(audio_struct *audio_struct)
+{
+	float32_t *src = (float32_t*)audio_struct->audioBuffer;
+	float32_t *dst = (float32_t*)audio_struct->rawBuffer;
 	
-	//---capture format functions---
-	void fromRawToFloat_int_littleEndian(audio_struct *audio_struct) 
+	for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 4)
 	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-
-		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
-		{
-			int res = byteCombine_littleEndian(sampleBytes, audio_struct);
-			// if retrieved value is greater than maximum value allowed within current format
-			// we have to manually complete the 2's complement, by extending the sign
-			if(res>audio_struct->maxVal)
-				res |= audio_struct->captureMask;
-			audio_struct->audioBuffer[n] = res/((float)(audio_struct->maxVal)); // turn int sample into full scale normalized float
-
-			sampleBytes += audio_struct->bps; // jump to next sample
-		}
-	}
-
-	void fromRawToFloat_int_bigEndian(audio_struct *audio_struct) 
-	{
-		unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
-
-		for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
-		{
-			int res = byteCombine_bigEndian(sampleBytes, audio_struct);
-			// if retrieved value is greater than maximum value allowed within current format
-			// we have to manually complete the 2's complement, by extending the sign
-			if(res>audio_struct->maxVal)
-				res |= audio_struct->captureMask;
-			audio_struct->audioBuffer[n] = res/((float)(audio_struct->maxVal)); // turn int sample into full scale normalized float
-
-			sampleBytes += audio_struct->bps; // jump to next sample
-		}
-	}
-
-	// ** This has yet to be tested since we do not have a bigEndian phone
-	void fromRawToFloat_float_littleEndian(audio_struct *audio_struct)
-	{
-#ifdef __BIG_ENDIAN__
-		// On big-endian CPU, reading little-endian floats - need to swap
-		uint32_t *src = (uint32_t*)audio_struct->rawBuffer;
-		union {
-			float f;
-			uint32_t i;
-		} fval;
+		// Load the four floating-point inputs into a NEON vector
+		float32x4_t inputVec = vld1q_f32(&src[n]);
 		
-		for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
-		{
-			fval.i = __builtin_bswap32(*src++);  // Swap from little-endian
-			audio_struct->audioBuffer[n] = fval.f;
-		}
-#else
-		// On little-endian CPU, reading little-endian floats - direct copy
-		memcpy(audio_struct->audioBuffer, audio_struct->rawBuffer, audio_struct->numOfSamples * sizeof(float));
-#endif
-	}
-
-	// ** This has yet to be tested since we do not have a bigEndian phone
-	void fromRawToFloat_float_bigEndian(audio_struct *audio_struct)
-	{
-#ifdef __BIG_ENDIAN__
-		// On big-endian CPU, reading big-endian floats - direct copy
-		memcpy(audio_struct->audioBuffer, audio_struct->rawBuffer, audio_struct->numOfSamples * sizeof(float));
-#else
-		// On little-endian CPU, reading big-endian floats - need to swap
-		uint32_t *src = (uint32_t*)audio_struct->rawBuffer;
-		union {
-			float f;
-			uint32_t i;
-		} fval;
+		#ifndef __BIG_ENDIAN__
+		// CPU is little-endian, format is big-endian - need swap
+		uint8x16_t bytes = vreinterpretq_u8_f32(inputVec);
+		bytes = vrev32q_u8(bytes);  // Reverse bytes in each 32-bit word
+		inputVec = vreinterpretq_f32_u8(bytes);
+		#endif
+		// If CPU is big-endian, no swap needed
 		
-		for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
-		{
-			fval.i = __builtin_bswap32(*src++);  // Swap from big-endian
-			audio_struct->audioBuffer[n] = fval.f;
-		}
-#endif
+		vst1q_f32(&dst[n], inputVec);
 	}
+	
+	// clean up buffer for next period --- not really needed
+	//memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+}
 
-	//VIC on android, it seems that interleaved is the only way to go
-	void fromRawToFloat(LDSPpcmContext *pcmContext)
+// NEON implementation of fromFloatToRaw
+//VIC on android, it seems that interleaved is the only way to go
+void fromFloatToRaw(LDSPpcmContext *pcmContext)
+{
+	audio_struct *audio_struct = pcmContext->playback;
+	
+	// most common formats! faster specific implementation
+	if(!pcmContext->isFloat && audio_struct->bps == 2)
 	{
-		audio_struct *audio_struct = pcmContext->capture;
+		int16_t *dst = (int16_t*)audio_struct->rawBuffer;
 		
-		// most common formats! faster specific implementation
-		if(!pcmContext->isFloat && audio_struct->bps == 2)
+		// Optimized path: 16-bit integer, little endian and big endian
+		// Process all samples - guaranteed to be multiple of 8
+		for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 8)
 		{
-			unsigned char *rawBuffer = (unsigned char*)(audio_struct->rawBuffer);
-			uint16_t *src = (uint16_t*)rawBuffer;
-
-			// Optimized path: 16-bit integer, little endian (most common)
+			// Load 8 floats
+			float32x4_t vec1 = vld1q_f32(&audio_struct->audioBuffer[n]);
+			float32x4_t vec2 = vld1q_f32(&audio_struct->audioBuffer[n + 4]);
+			
+			// Scale by maxVal
+			vec1 = vmulq_f32(vec1, audio_struct->factorVec);
+			vec2 = vmulq_f32(vec2, audio_struct->factorVec);
+			
+			// Convert to int32
+			int32x4_t i32_vec1 = vcvtq_s32_f32(vec1);
+			int32x4_t i32_vec2 = vcvtq_s32_f32(vec2);
+			
+			// Convert to int16 and combine
+			int16x4_t i16_vec1 = vqmovn_s32(i32_vec1);
+			int16x4_t i16_vec2 = vqmovn_s32(i32_vec2);
+			int16x8_t combined = vcombine_s16(i16_vec1, i16_vec2);
+			
+			// Handle endianness
 			if(!pcmContext->isBigEndian)
 			{
-				int16_t *src = (int16_t*)rawBuffer;  // Cast the pointer once
-				for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
-				{
-					int16_t val = *src++;  // Now it's signed
-#ifdef __BIG_ENDIAN__
-					val = __builtin_bswap16(val);  // Byte swap if running on big-endian CPUs
-#endif
-					int res = (int)val;
-					audio_struct->audioBuffer[n] = (float)res / audio_struct->maxVal; // Direct write if running on little-endian CPUs
-				}
+				#ifdef __BIG_ENDIAN__
+				// Swap bytes if CPU is big-endian but format is little
+				combined = vreinterpretq_s16_u8(vrev16q_u8(vreinterpretq_u8_s16(combined)));
+				#endif
 			}
-			// Optimized path: 16-bit integer, big endian
 			else
 			{
-				int16_t *src = (int16_t*)rawBuffer;  // Cast the pointer once
-				for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
-				{
-					int16_t val = *src++;  // Now it's signed
+				#ifndef __BIG_ENDIAN__
+				// Swap bytes if CPU is little-endian but format is big
+				combined = vreinterpretq_s16_u8(vrev16q_u8(vreinterpretq_u8_s16(combined)));
+				#endif
+			}
+			
+			// Store 8 samples at once
+			vst1q_s16(dst, combined);
+			dst += 8;
+		}
+		
+		// clean up buffer for next period --- not really needed
+		// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+	}
+	// other integer formats, less common, slower generic implemenations
+	else if(!pcmContext->isFloat)
+	{
+		if(!pcmContext->isBigEndian)
+			fromFloatToRaw_int_littleEndian_neon(audio_struct);
+		else
+			fromFloatToRaw_int_bigEndian_neon(audio_struct);
+	}
+	// float formats, least common but easy fast specific implementations		
+	else
+	{
+		if(!pcmContext->isBigEndian)
+			fromFloatToRaw_float_littleEndian_neon(audio_struct);
+		else
+			fromFloatToRaw_float_bigEndian_neon(audio_struct);
+	}
+}
+
+
+//---capture format functions---
+void fromRawToFloat_int_littleEndian_neon(audio_struct *audio_struct)
+{
+	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+	for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
+	{
+			int32x4_t res = byteCombine_littleEndian_neon(&sampleBytes, audio_struct);
+
+			sampleBytes += (4 *audio_struct->physBps);
+
+			// Perform the comparison (res > scaleVal)
+			// We are comparing 4 signed integers (res) with 4 unsigned integers (scaleVec) to identify negative
+			// numbers, and apply sign extension with the captureMask
+			// Note: If we are using a 32 bit format, there is no need for sign extension, but negative numbers
+			//       will still return 1 in this comparison, triggering the masking with capture_maskVec,
+			// BUT in that case, the capture_maskVec is composed of 0's so, doing a logical OR with it will not matter
+			uint32x4_t greaterThanMask = vcgtq_u32(res, audio_struct->maxVec);
+
+			// Prepare the mask by ANDing it with the captureMask
+			int32x4_t maskedValues = vandq_s32((int32x4_t)greaterThanMask, audio_struct->capture_maskVec);
+
+			// Apply the mask using OR operation
+			int32x4_t masked_result = vorrq_s32(res, maskedValues);
+
+			// Convert masked_result to float type
+			float32x4_t floatVec = vcvtq_f32_s32(masked_result);
+
+			// Scale integer representation to float representation
+			float32x4_t result = vmulq_f32(floatVec, audio_struct->factorVecReciprocal);
+
+			vst1q_f32(&audio_struct->audioBuffer[n], result);
+	}
+}
+
+void fromRawToFloat_int_bigEndian_neon(audio_struct *audio_struct)
+{
+	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+	for(unsigned int n=0; n<audio_struct->numOfSamples; n = n + 4) 
+	{
+			int32x4_t res = byteCombine_bigEndian_neon(&sampleBytes, audio_struct);
+
+			sampleBytes += (4 *audio_struct->physBps);
+
+			// Perform the comparison (res > scaleVal)
+			// We are comparing 4 signed integers (res) with 4 unsigned integers (scaleVec) to identify negative
+			// numbers, and apply sign extension with the captureMask
+			// Note: If we are using a 32 bit format, there is no need for sign extension, but negative numbers
+			//       will still return 1 in this comparison, triggering the masking with capture_maskVec,
+			// BUT in that case, the capture_maskVec is composed of 0's so, doing a logical OR with it will not matter
+			uint32x4_t greaterThanMask = vcgtq_u32(res, audio_struct->maxVec);
+
+			// Prepare the mask by ANDing it with the captureMask
+			int32x4_t maskedValues = vandq_s32((int32x4_t)greaterThanMask, audio_struct->capture_maskVec);
+
+			// Apply the mask using OR operation
+			int32x4_t masked_result = vorrq_s32(res, maskedValues);
+
+			// Convert masked_result to float type
+			float32x4_t floatVec = vcvtq_f32_s32(masked_result);
+
+			// Scale integer representation to float representation
+			float32x4_t result = vmulq_f32(floatVec, audio_struct->factorVecReciprocal);
+
+			vst1q_f32(&audio_struct->audioBuffer[n], result);
+	}
+}
+
+// ** This has yet to be tested since we do not have a phone that supports float samples
+void fromRawToFloat_float_littleEndian_neon(audio_struct *audio_struct) 
+{
+	float32_t *src = (float32_t*)audio_struct->rawBuffer;
+	float32_t *dst = (float32_t*)audio_struct->audioBuffer;
+	
+	for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 4)
+	{
+		// Load the four floating-point inputs into a NEON vector
+		float32x4_t inputVec = vld1q_f32(&src[n]);
+		
+		#ifdef __BIG_ENDIAN__
+		// CPU is big-endian, format needs to be little-endian - swap
+		uint8x16_t bytes = vreinterpretq_u8_f32(inputVec);
+		bytes = vrev32q_u8(bytes);  // Reverse bytes in each 32-bit word
+		inputVec = vreinterpretq_f32_u8(bytes);
+		#endif
+		// If CPU is little-endian, no swap needed (native = output format)
+		
+		vst1q_f32(&dst[n], inputVec);
+	}
+	
+	// clean up buffer for next period --- not really needed
+	// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+}
+
+// ** This has yet to be tested since we do not have a phone that supports float samples
+void fromRawToFloat_float_bigEndian_neon(audio_struct *audio_struct) 
+{
+	float32_t *src = (float32_t*)audio_struct->rawBuffer;
+	float32_t *dst = (float32_t*)audio_struct->audioBuffer;
+	
+	for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 4)
+	{
+		// Load the four floating-point inputs into a NEON vector
+		float32x4_t inputVec = vld1q_f32(&src[n]);
+		
 #ifndef __BIG_ENDIAN__
-					val = __builtin_bswap16(val);  // Byte swap if running on little-endian CPUs
+		// CPU is little-endian, format needs to be big-endian - swap
+		uint8x16_t bytes = vreinterpretq_u8_f32(inputVec);
+		bytes = vrev32q_u8(bytes);  // Reverse bytes in each 32-bit word  
+		inputVec = vreinterpretq_f32_u8(bytes);
 #endif
-					int res = (int)val;
-					audio_struct->audioBuffer[n] = (float)res / audio_struct->maxVal;
-				}
+		// If CPU is big-endian, no swap needed (native = output format)
+		
+		vst1q_f32(&dst[n], inputVec);
+	}
+	
+	// clean up buffer for next period --- not really needed
+	// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+}
+
+// NEON implementation of fromRawToFloat
+//VIC on android, it seems that interleaved is the only way to go
+void fromRawToFloat(LDSPpcmContext *pcmContext)
+{
+	audio_struct *audio_struct = pcmContext->capture;
+	
+	// most common formats! faster specific implementation
+	if(!pcmContext->isFloat && audio_struct->bps == 2)
+	{
+		int16_t *src = (int16_t*)audio_struct->rawBuffer;
+		float32_t *dst = audio_struct->audioBuffer;
+		
+		// Optimized path: 16-bit integer, little endian and big endian
+		// Process all samples - guaranteed to be multiple of 8
+		for(unsigned int n = 0; n < audio_struct->numOfSamples; n += 8)
+		{
+			// Load 8 int16 samples
+			int16x8_t i16_vec = vld1q_s16(&src[n]);
+			
+			// Handle endianness
+			if(!pcmContext->isBigEndian)
+			{
+#ifdef __BIG_ENDIAN__
+				// CPU is big-endian, format is little-endian - swap
+				i16_vec = vreinterpretq_s16_u8(vrev16q_u8(vreinterpretq_u8_s16(i16_vec)));
+#endif
+			}
+			else
+			{
+#ifndef __BIG_ENDIAN__
+				// CPU is little-endian, format is big-endian - swap
+				i16_vec = vreinterpretq_s16_u8(vrev16q_u8(vreinterpretq_u8_s16(i16_vec)));
+#endif
+			}
+			
+			// Split into two sets of 4 - SIGNED
+			int16x4_t i16_low = vget_low_s16(i16_vec);  
+			int16x4_t i16_high = vget_high_s16(i16_vec);
+
+			// Widen to SIGNED int32
+			int32x4_t i32_vec1 = vmovl_s16(i16_low);
+			int32x4_t i32_vec2 = vmovl_s16(i16_high);
+
+			// Convert SIGNED to float
+			float32x4_t f32_vec1 = vcvtq_f32_s32(i32_vec1);
+			float32x4_t f32_vec2 = vcvtq_f32_s32(i32_vec2);
+
+			// Scale by dividing by maxVal (or multiply by reciprocal if available)
+			f32_vec1 = vmulq_f32(f32_vec1, audio_struct->factorVecReciprocal);
+			f32_vec2 = vmulq_f32(f32_vec2, audio_struct->factorVecReciprocal);
+			
+			// Store 8 floats
+			vst1q_f32(&dst[n], f32_vec1);
+			vst1q_f32(&dst[n + 4], f32_vec2);
+		}
+	}
+	// less common formats, slower generic implementations
+	// int, little or big endian
+	else if(!pcmContext->isFloat)
+	{
+		if(!pcmContext->isBigEndian)
+			fromRawToFloat_int_littleEndian_neon(audio_struct);
+		else
+			fromRawToFloat_int_bigEndian_neon(audio_struct);
+	}
+	// float formats, least common but easy fast specific implementations
+	else
+	{
+		if(!pcmContext->isBigEndian)
+			fromRawToFloat_float_littleEndian_neon(audio_struct);
+		else
+			fromRawToFloat_float_bigEndian_neon(audio_struct);
+	}
+}
+#else
+//---playback format functions---
+void fromFloatToRaw_int_littleEndian(audio_struct *audio_struct)
+{
+	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+	{
+		float scaled = audio_struct->maxVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
+		int res;
+		if(scaled > (float)audio_struct->maxVal) res = audio_struct->maxVal;
+		else if(scaled < (float)audio_struct->minVal) res = audio_struct->minVal;
+		else res = (int)scaled;
+		
+		byteSplit_littleEndian(sampleBytes, res, audio_struct);
+
+		sampleBytes += audio_struct->bps; // jump to next sample
+	}
+	// clean up buffer for next period --- no really needed
+	// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+}
+
+void fromFloatToRaw_int_bigEndian(audio_struct *audio_struct)
+{
+	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+	{
+		float scaled = audio_struct->maxVal * audio_struct->audioBuffer[n]; // get actual int sample out of normalized full scale float
+		int res;
+		if(scaled > (float)audio_struct->maxVal) res = audio_struct->maxVal;
+		else if(scaled < (float)audio_struct->minVal) res = audio_struct->minVal;
+		else res = (int)scaled;
+		
+		byteSplit_bigEndian(sampleBytes, res, audio_struct);
+
+		sampleBytes += audio_struct->bps; // jump to next sample
+	}
+	// clean up buffer for next period --- no really needed
+	// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples*sizeof(float));
+}
+
+// ** This has yet to be tested since we do not have a bigEndian phone
+void fromFloatToRaw_float_littleEndian(audio_struct *audio_struct)
+{
+#ifdef __BIG_ENDIAN__
+	// On big-endian system, need to swap bytes
+	uint32_t *dst = (uint32_t*)audio_struct->rawBuffer;
+	union {
+		float f;
+		uint32_t i;
+	} fval;
+	
+	for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
+	{
+		fval.f = audio_struct->audioBuffer[n];
+		*dst++ = __builtin_bswap32(fval.i);  // Swap 4 bytes for little-endian output
+	}
+#else
+	// On little-endian system, writing little-ending floats - direct copy
+	memcpy(audio_struct->rawBuffer, audio_struct->audioBuffer, audio_struct->numOfSamples * sizeof(float));
+#endif
+	
+	// clean up buffer for next period --- no really needed
+	// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+}
+
+// ** This has yet to be tested since we do not have a bigEndian phone
+void fromFloatToRaw_float_bigEndian(audio_struct *audio_struct)
+{
+#ifdef __BIG_ENDIAN__
+	// On big-endian system, direct copy (already big-endian)
+	memcpy(audio_struct->rawBuffer, audio_struct->audioBuffer, audio_struct->numOfSamples * sizeof(float));
+#else
+	// On little-endian system (x86/ARM), need to swap bytes
+	uint32_t *dst = (uint32_t*)audio_struct->rawBuffer;
+	union {
+		float f;
+		uint32_t i;
+	} fval;
+	
+	for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
+	{
+		fval.f = audio_struct->audioBuffer[n];
+		*dst++ = __builtin_bswap32(fval.i);  // Swap to big-endian
+	}
+#endif
+	
+	// clean up buffer for next period --- no really needed
+	// memset(audio_struct->audioBuffer, 0, audio_struct->numOfSamples * sizeof(float));
+}
+
+//TODO:
+//_drop BE arch support and then revise, simplify all conversions [24 and 32 can use bswap32! the only case that needs manual swap is 24_3]
+//_handle asymmetric quantization on all playback and capture format conversions, including neon!
+//VIC on android, it seems that interleaved is the only way to go
+void fromFloatToRaw(LDSPpcmContext *pcmContext)
+{
+    audio_struct *audio_struct = pcmContext->playback;
+
+    // most common formats! faster specific implementation
+    if(!pcmContext->isFloat && audio_struct->bps == 2)
+    {	
+        int16_t *dst = (int16_t*)audio_struct->rawBuffer;
+
+        // Optimized path: 16-bit integer, little endian (most common)
+        if(!pcmContext->isBigEndian) 
+        {
+            for(unsigned int n = 0; n < audio_struct->numOfSamples; n++) 
+            {
+                float scaled = audio_struct->maxVal * audio_struct->audioBuffer[n];
+                if(scaled > 32767.0f) scaled = 32767.0f;
+                else if(scaled < -32768.0f) scaled = -32768.0f;
+                int16_t val = (int16_t)scaled;
+#ifdef __BIG_ENDIAN__
+                val = __builtin_bswap16(val);
+#endif
+                *dst++ = val;
+            }
+        }
+        // Optimized path: 16-bit integer, big endian
+        else
+        {
+            for(unsigned int n = 0; n < audio_struct->numOfSamples; n++) 
+            {
+                float scaled = audio_struct->maxVal * audio_struct->audioBuffer[n];
+                if(scaled > 32767.0f) scaled = 32767.0f;
+                else if(scaled < -32768.0f) scaled = -32768.0f;
+                int16_t val = (int16_t)scaled;
+#ifndef __BIG_ENDIAN__
+                val = __builtin_bswap16(val);
+#endif
+                *dst++ = val;
+            }
+        }
+    }
+    // other integer formats, less common, slower generic implementations
+    else if(!pcmContext->isFloat)  
+    {
+        if(!pcmContext->isBigEndian)
+            fromFloatToRaw_int_littleEndian(audio_struct);
+        else
+            fromFloatToRaw_int_bigEndian(audio_struct);
+    }	 
+    // float formats, least common but easy fast specific implementations
+    else 
+    {
+        if(!pcmContext->isBigEndian)
+            fromFloatToRaw_float_littleEndian(audio_struct);
+        else
+            fromFloatToRaw_float_bigEndian(audio_struct);
+    }
+}
+
+//---capture format functions---
+void fromRawToFloat_int_littleEndian(audio_struct *audio_struct) 
+{
+	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+	{
+		int res = byteCombine_littleEndian(sampleBytes, audio_struct);
+		// if retrieved value is greater than maximum value allowed within current format
+		// we have to manually complete the 2's complement, by extending the sign
+		if(res>audio_struct->maxVal)
+			res |= audio_struct->captureMask;
+		audio_struct->audioBuffer[n] = res * audio_struct->factorReciprocal; // turn int sample into full scale normalized float
+
+		sampleBytes += audio_struct->bps; // jump to next sample
+	}
+}
+
+void fromRawToFloat_int_bigEndian(audio_struct *audio_struct) 
+{
+	unsigned char *sampleBytes = (unsigned char *)audio_struct->rawBuffer; 
+
+	for(unsigned int n=0; n<audio_struct->numOfSamples; n++) 
+	{
+		int res = byteCombine_bigEndian(sampleBytes, audio_struct);
+		// if retrieved value is greater than maximum value allowed within current format
+		// we have to manually complete the 2's complement, by extending the sign
+		if(res>audio_struct->maxVal)
+			res |= audio_struct->captureMask;
+		audio_struct->audioBuffer[n] = res * audio_struct->factorReciprocal; // turn int sample into full scale normalized float
+		
+		sampleBytes += audio_struct->bps; // jump to next sample
+	}
+}
+
+// ** This has yet to be tested since we do not have a bigEndian phone
+void fromRawToFloat_float_littleEndian(audio_struct *audio_struct)
+{
+#ifdef __BIG_ENDIAN__
+	// On big-endian CPU, reading little-endian floats - need to swap
+	uint32_t *src = (uint32_t*)audio_struct->rawBuffer;
+	union {
+		float f;
+		uint32_t i;
+	} fval;
+	
+	for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
+	{
+		fval.i = __builtin_bswap32(*src++);  // Swap from little-endian
+		audio_struct->audioBuffer[n] = fval.f;
+	}
+#else
+	// On little-endian CPU, reading little-endian floats - direct copy
+	memcpy(audio_struct->audioBuffer, audio_struct->rawBuffer, audio_struct->numOfSamples * sizeof(float));
+#endif
+}
+
+// ** This has yet to be tested since we do not have a bigEndian phone
+void fromRawToFloat_float_bigEndian(audio_struct *audio_struct)
+{
+#ifdef __BIG_ENDIAN__
+	// On big-endian CPU, reading big-endian floats - direct copy
+	memcpy(audio_struct->audioBuffer, audio_struct->rawBuffer, audio_struct->numOfSamples * sizeof(float));
+#else
+	// On little-endian CPU, reading big-endian floats - need to swap
+	uint32_t *src = (uint32_t*)audio_struct->rawBuffer;
+	union {
+		float f;
+		uint32_t i;
+	} fval;
+	
+	for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
+	{
+		fval.i = __builtin_bswap32(*src++);  // Swap from big-endian
+		audio_struct->audioBuffer[n] = fval.f;
+	}
+#endif
+}
+
+//VIC on android, it seems that interleaved is the only way to go
+void fromRawToFloat(LDSPpcmContext *pcmContext)
+{
+	audio_struct *audio_struct = pcmContext->capture;
+	
+	// most common formats! faster specific implementation
+	if(!pcmContext->isFloat && audio_struct->bps == 2)
+	{
+		int16_t *src = (int16_t*)audio_struct->rawBuffer;
+		
+		// Optimized path: 16-bit integer, little endian (most common)
+		if(!pcmContext->isBigEndian)
+		{
+			for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
+			{
+				int16_t val = *src++;
+#ifdef __BIG_ENDIAN__
+				val = __builtin_bswap16(val);
+#endif
+				audio_struct->audioBuffer[n] = val * audio_struct->factorReciprocal;
 			}
 		}
-    	// other integer formats, less common, slower generic implementations
-		else if(!pcmContext->isFloat)
-		{
-			if(!pcmContext->isBigEndian)
-				fromRawToFloat_int_littleEndian(audio_struct);
-			else
-				fromRawToFloat_int_bigEndian(audio_struct);
-		}
-		// float formats, least common but easy fast specific implementations
+		// Optimized path: 16-bit integer, big endian
 		else
 		{
-			if(!pcmContext->isBigEndian)
-				fromRawToFloat_float_littleEndian(audio_struct);
-			else
-				fromRawToFloat_float_bigEndian(audio_struct);
+			for(unsigned int n = 0; n < audio_struct->numOfSamples; n++)
+			{
+				int16_t val = *src++;
+#ifndef __BIG_ENDIAN__
+				val = __builtin_bswap16(val);
+#endif
+				audio_struct->audioBuffer[n] = val * audio_struct->factorReciprocal;
+			}
 		}
 	}
+	// other integer formats, less common, slower generic implementations
+	else if(!pcmContext->isFloat)
+	{
+		if(!pcmContext->isBigEndian)
+			fromRawToFloat_int_littleEndian(audio_struct);
+		else
+			fromRawToFloat_int_bigEndian(audio_struct);
+	}
+	// float formats, least common but easy fast specific implementations
+	else
+	{
+		if(!pcmContext->isBigEndian)
+			fromRawToFloat_float_littleEndian(audio_struct);
+		else
+			fromRawToFloat_float_bigEndian(audio_struct);
+	}
+}
 #endif
 
 
