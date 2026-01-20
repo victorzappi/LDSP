@@ -161,42 +161,25 @@ rem End of :install_scripts
 
 :configure
   rem Configure the LDSP build system to build for the given phone model, Android version, and project path.
-  set config=%~1
-  set version=%~2
-  set project=%~3
-  set opt_arg_0=%~4
-  set opt_arg_1=%~5
-  set opt_arg_2=%~6
-
-  rem combine your opts into a single list
-  set "OPT_LIST=%opt_arg_0% %opt_arg_1% %opt_arg_2%"
+  
+  rem Use global variables parsed in :main
+  set "config=%CONFIG%"
+  set "version=%VERSION%"
+  set "project=%PROJECT%"
   
   rem defaults
   set "neon_audio_format=ON"
   set "neon_fft=ON"
   set "build_type=Release"
   
-  rem Process ALL flags
-  set "grab_next_as_serial="
-  for %%A in (%OPT_LIST%) do (
-    if defined grab_next_as_serial (
-      set "PHONE_SERIAL=%%~A"
-      set "grab_next_as_serial="
-    ) else if "%%A"=="--no-neon-audio-format" (
-      set "neon_audio_format=OFF"
-    ) else if "%%A"=="--no-neon-fft" (
-      set "neon_fft=OFF"
-    ) else if "%%A"=="--debug" (
-      rem build type: set to debug if --debug flag was passed
-      set "build_type=Debug"
-    ) else if "%%A"=="--phone-serial" (
-      set "grab_next_as_serial=1"
-    )
-  )
+  rem Apply flags from global parsing
+  if defined NO_NEON_AUDIO set "neon_audio_format=OFF"
+  if defined NO_NEON_FFT set "neon_fft=OFF"
+  if defined DEBUG set "build_type=Debug"
 
   if "%config%" == "" (
-    echo Cannot configure: harwdware configuration file path not specified
-    echo Please specify a harwdware configuration file path
+    echo Cannot configure: hardware configuration file path not specified
+    echo Please specify a hardware configuration file path with --configuration
     exit /b 1
   )
 
@@ -211,8 +194,8 @@ rem End of :install_scripts
   popd
 
   if not exist "%config_dir%" (
-    echo Cannot configure: hadrware configuration directory does not exist
-    echo Please specify a valid harwdware configuration file path
+    echo Cannot configure: hardware configuration directory does not exist
+    echo Please specify a valid hardware configuration file path with --configuration
     exit /b 1
   )
 
@@ -285,8 +268,9 @@ rem End of :install_scripts
   if "%neon%"=="ON" (
     if "%neon_audio_format%"=="OFF" (
       rem Passing the --no-neon-audio-format flag configures to not use parallel audio streams formatting with NEON
-      echo Configuring to not use NEON audio stream formatting
-    ) else if "%neon_fft%"=="OFF" (
+      echo Configuring to not use NEON audio streams formatting
+    )
+    if "%neon_fft%"=="OFF" (
       rem Passing the --no-neon-fft flag configures to not use parallel fft with NEON (uses fftw instead)
       echo Configuring to not use NEON to parallelize FFT
     )
@@ -297,10 +281,16 @@ rem End of :install_scripts
   )
 
   rem target Android version
+  if "%version%" == "" (
+    echo Cannot configure: Android version not specified
+    echo Please specify an Android version with --version
+    exit /b 1
+  )
+  
   call :get_api_level
   set "api_level=%ERRORLEVEL%"
   if "%api_level%" == "0" (
-    echo Cannot configure: unknown Android version "%version%
+    echo Cannot configure: unknown Android version "%version%"
     exit /b 1
   )
 	
@@ -408,7 +398,7 @@ rem End of :install_scripts
   cd ..
 
   rem store settings
-  echo project_dir="%project_dir%">>"%settings_file%"
+  echo project_dir="%project_dir%">"%settings_file%"
   echo project_name="%project_name%">>"%settings_file%"
   echo hw_config="%hw_config%">>"%settings_file%"
   echo arch="%arch%">>"%settings_file%"
@@ -915,7 +905,7 @@ rem End of :mixer_paths_opened
   rem Print usage information.
   echo Usage:
   echo   ldsp.bat install_scripts
-  echo   ldsp.bat configure [configuration] [version] [project] [optional flags]
+  echo   ldsp.bat configure [settings]
   echo   ldsp.bat build
   echo   ldsp.bat install
   echo   ldsp.bat run ^"[list of arguments]^"
@@ -931,12 +921,12 @@ rem End of :mixer_paths_opened
   echo   ldsp.bat mixer_paths_opened [optional dir]
   echo.
   echo Settings (used with the 'configure' step):
-  echo   configuration                The path to the folder containing the hardware configuration file of the chosen phone.
-  echo   version                      The Android version running on the phone.
-  echo   project                      The path to the project to build.
-  echo   --no-neon-audio-format       Configure to not use NEON parallel audio streams formatting
-  echo   --no-neon-fft                Configure to not use NEON to parallelize FFT
-  echo   --debug                      Switch build type from Release to Debug (debug symbols, no optimizations)
+  echo   --configuration=CONFIGURATION, -c CONFIGURATION   The path to the folder containing the hardware configuration file of the chosen phone.
+  echo   --version=VERSION, -a VERSION                     The Android version running on the phone.
+  echo   --project=PROJECT, -p PROJECT                     The path to the project to build.
+  echo   --no-neon-audio-format                            Configure to not use NEON parallel audio streams formatting
+  echo   --no-neon-fft                                     Configure to not use NEON to parallelize FFT
+  echo   --debug                                           Switch build type from Release to Debug (debug symbols, no optimizations)
   echo.
   echo Description:
   echo   install_scripts        Install the LDSP scripts on the phone (use --phone-serial when more phones are connected).
@@ -958,22 +948,57 @@ rem End of :mixer_paths_opened
   echo   mixer_paths_opened     [Android 6.0+] Search on phone for mixer_paths.xml candidates in use by Android, either in default dir or in the one passed as argument (use --phone-serial when more phones are connected).
   echo.
   echo Global options (can be used with any command):
-  echo   --phone-serial=SERIAL  Target a specific phone by serial number (from 'adb devices') when more phones are connected.
+  echo   --phone-serial=SERIAL, --phone-serial SERIAL      Target a specific phone by serial number (from 'adb devices') when more phones are connected.
   exit /b 0
 rem End of :help
 
 
 :main
 
-rem Parse --phone-serial from arguments (scan all args for it)
+rem Parse all arguments globally
 set "PHONE_SERIAL="
-set "grab_next_as_serial="
+set "CONFIG="
+set "VERSION="
+set "PROJECT="
+set "NO_NEON_AUDIO="
+set "NO_NEON_FFT="
+set "DEBUG="
+
+set "grab_next="
 for %%A in (%*) do (
-  if defined grab_next_as_serial (
-    set "PHONE_SERIAL=%%~A"
-    set "grab_next_as_serial="
+  set "arg=%%~A"
+  if defined grab_next (
+    if "!grab_next!"=="config" set "CONFIG=%%~A"
+    if "!grab_next!"=="version" set "VERSION=%%~A"
+    if "!grab_next!"=="project" set "PROJECT=%%~A"
+    if "!grab_next!"=="serial" set "PHONE_SERIAL=%%~A"
+    set "grab_next="
+  ) else if "%%~A"=="--configuration" (
+    set "grab_next=config"
+  ) else if "%%~A"=="-c" (
+    set "grab_next=config"
+  ) else if "%%~A"=="--version" (
+    set "grab_next=version"
+  ) else if "%%~A"=="-a" (
+    set "grab_next=version"
+  ) else if "%%~A"=="--project" (
+    set "grab_next=project"
+  ) else if "%%~A"=="-p" (
+    set "grab_next=project"
   ) else if "%%~A"=="--phone-serial" (
-    set "grab_next_as_serial=1"
+    set "grab_next=serial"
+  ) else if "%%~A"=="--no-neon-audio-format" (
+    set "NO_NEON_AUDIO=1"
+  ) else if "%%~A"=="--no-neon-fft" (
+    set "NO_NEON_FFT=1"
+  ) else if "%%~A"=="--debug" (
+    set "DEBUG=1"
+  ) else (
+    rem Handle --flag=value format (when PowerShell keeps them together)
+    if "!arg:~0,16!"=="--configuration=" set "CONFIG=!arg:~16!"
+    if "!arg:~0,10!"=="--version=" set "VERSION=!arg:~10!"
+    if "!arg:~0,10!"=="--project=" set "PROJECT=!arg:~10!"
+    if "!arg:~0,15!"=="--phone-serial=" set "PHONE_SERIAL=!arg:~15!"
   )
 )
 
@@ -982,7 +1007,7 @@ if "%1" == "install_scripts" (
   call :install_scripts
   exit /b %ERRORLEVEL%
 ) else if "%1" == "configure" (
-  call :configure %2 %3 %4 %5 %6 %7
+  call :configure
   exit /b %ERRORLEVEL%
 ) else if "%1" == "build" (
   call :build
