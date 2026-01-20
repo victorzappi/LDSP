@@ -8,6 +8,17 @@
 settings_file="ldsp_settings.conf" # this is created by this script via configure()
 dependencies_file="ldsp_dependencies.conf" # this is created by CMake after configure()
 
+# Build the adb command with optional device serial
+# Command-line arg (PHONE_SERIAL) takes priority over saved setting (phone_serial)
+setup_adb() {
+  local serial="${PHONE_SERIAL:-$phone_serial}"
+  if [[ -n "$serial" ]]; then
+    ADB="adb -s $serial"
+  else
+    ADB="adb"
+  fi
+}
+
 # Convert a human-readable Android version (e.g. 13, 6.0.1, 4.4) into an API level.
 get_api_level() {
 	version_major=$(echo $VERSION | cut -d . -f 1 )
@@ -144,11 +155,12 @@ get_onnx_version() {
 
 # Install the LDSP scripts on the phone
 install_scripts() {
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
-  adb push ./scripts/ldsp_* //sdcard/ldsp/scripts/ # push scripts there, double slash needed by Git Bash
-  adb shell "su -c 'mkdir -p /data/ldsp/scripts'" # create ldsp scripts folder
-  adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" # copy scripts to ldsp scripts folder
-  adb shell "su -c 'rm -r /sdcard/ldsp'" # remove temp folder from sd card
+  setup_adb
+  $ADB shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
+  $ADB push ./scripts/ldsp_* //sdcard/ldsp/scripts/ # push scripts there, double slash needed by Git Bash
+  $ADB shell "su -c 'mkdir -p /data/ldsp/scripts'" # create ldsp scripts folder
+  $ADB shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" # copy scripts to ldsp scripts folder
+  $ADB shell "su -c 'rm -r /sdcard/ldsp'" # remove temp folder from sd card
 }
 
 # Configure the LDSP build system to build for the given phone model, Android version, and project path.
@@ -176,10 +188,6 @@ configure() {
     echo "Please ensure that an ldsp_hw_config.json file exists in \"$CONFIG\""
     exit 1
   fi
-
-# TODO: 
-#  pass -s android device serial for whne more phones are plugged in
-#  script for slimbus detection + continue docs 
 
   # get major NDK version
   ndk_version=$(
@@ -296,8 +304,22 @@ configure() {
   fi
 
   echo ""
+  echo "LDSP configuration:"
+  echo "  Project:        $project_name"
+  echo "  Project path:   $project_dir"
+  echo "  HW config:      $hw_config"
+  echo "  Architecture:   $arch ($abi)"
+  echo "  Android API:    $api_level (version $VERSION)"
+  echo "  NDK:            $NDK (r$ndk_version)"
+  echo "  NEON supported: $neon"
+  echo "  NEON audio fmt: $neon_audio_format"
+  echo "  NEON FFT:       $neon_fft"
+  echo "  Build type:     $build_type"
+  echo "  Phone serial:   ${PHONE_SERIAL:-(not set)}"
+  echo ""
   echo "CMake configuration:"
   echo ""
+
   # run CMake configuration 
   cmake -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
         -DDEVICE_ARCH="$arch" -DANDROID_ABI="$abi" -DANDROID_PLATFORM="android-$api_level" -DANDROID_NDK="$NDK" $TOOLCHAIN_VER \
@@ -323,6 +345,7 @@ configure() {
   echo "api_level=\"$api_level\"" >> $settings_file
   echo "ndk=\"$NDK\"" >> $settings_file
   echo "onnx_version=\"$onnx_version\"" >> $settings_file
+  echo "phone_serial=\"$PHONE_SERIAL\"" >> $settings_file
 }
 
 # Build the user project.
@@ -343,20 +366,20 @@ build() {
 }
 
 push_scripts() {
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
-  adb push ./scripts/ldsp_* //sdcard/ldsp/scripts/ # push scripts there, double slash needed by Git Bash
+  $ADB shell "su -c 'mkdir -p /sdcard/ldsp/scripts'" # create temp folder on sdcard
+  $ADB push ./scripts/ldsp_* //sdcard/ldsp/scripts/ # push scripts there, double slash needed by Git Bash
 }
 
 push_resources() {
   # push only if dependency is in use
   if [[ $ADD_SEASOCKS =~ ^(TRUE)$ ]]; then
-    adb shell "su -c 'mkdir -p /sdcard/ldsp/resources'" # create temp folder on sdcard
-    adb push resources //sdcard/ldsp/ # double slash needed by Git Bash
+    $ADB shell "su -c 'mkdir -p /sdcard/ldsp/resources'" # create temp folder on sdcard
+    $ADB push resources //sdcard/ldsp/ # double slash needed by Git Bash
   fi
 }
 
 push_debugserver() {
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/debugserver'" # create temp folder on sdcard
+  $ADB shell "su -c 'mkdir -p /sdcard/ldsp/debugserver'" # create temp folder on sdcard
 
 
   # look for all the available debug servers in the NDK
@@ -385,16 +408,16 @@ push_debugserver() {
       echo "No matching lldb-server found for '$arch' (directory: '$dir')"
   else
       echo "Using debugserver: $debugserver"
-      adb push $debugserver //sdcard/ldsp/debugserver # double slash needed by Git Bash
+      $ADB push $debugserver //sdcard/ldsp/debugserver # double slash needed by Git Bash
   fi
 }
 
 push_onnxruntime() {
   # push only if dependency is in use
   if [[ $ADD_ONNX =~ ^(TRUE)$ ]]; then
-    adb shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'" # create temp folder on sdcard
+    $ADB shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'" # create temp folder on sdcard
     onnx_path="./dependencies/onnxruntime/$arch/$onnx_version/libonnxruntime.so"
-    adb push $onnx_path //sdcard/ldsp/onnxruntime/libonnxruntime.so # double slash needed by Git Bash
+    $ADB push $onnx_path //sdcard/ldsp/onnxruntime/libonnxruntime.so # double slash needed by Git Bash
   fi
 }
 
@@ -421,27 +444,28 @@ install() {
     exit 1
   fi
 
+  setup_adb
   
-  adb shell "su -c 'mkdir -p \"/sdcard/ldsp/projects/$project_name\"'" # create temp ldsp folder on sdcard
+  $ADB shell "su -c 'mkdir -p \"/sdcard/ldsp/projects/$project_name\"'" # create temp ldsp folder on sdcard
   
   # push hardware config file, double slash needed by Git Bash
-  adb push "$hw_config" //sdcard/ldsp/
+  $ADB push "$hw_config" //sdcard/ldsp/
 
   # Push all project resources, including Pd files in Pd projects, but excluding C/C++ and assembly files, folders that contain those files
   # double slash needed by Git Bash
   # first folders
-  find "$project_dir"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp "{}"/*.S "{}"/*.s 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} adb push {} "//sdcard/ldsp/projects/$project_name"
+  find "$project_dir"/* -type d ! -exec sh -c 'ls -1q "{}"/*.cpp "{}"/*.c "{}"/*.h "{}"/*.hpp "{}"/*.S "{}"/*.s 2>/dev/null | grep -q . || echo "{}"' \; | xargs -I{} $ADB push {} "//sdcard/ldsp/projects/$project_name"
   # then files
-  find "$project_dir" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec adb push {} "//sdcard/ldsp/projects/$project_name" \;
+  find "$project_dir" -maxdepth 1 -type f ! \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.S" -o -name "*.s" \) -exec $ADB push {} "//sdcard/ldsp/projects/$project_name" \;
 
   # now the ldsp bin, double slash needed by Git Bash  
-  adb push build/bin/ldsp "//sdcard/ldsp/projects/$project_name/"
+  $ADB push build/bin/ldsp "//sdcard/ldsp/projects/$project_name/"
 
   # now all resources that do not need to be updated at every build
   # first check if /data/ldsp exists
-  if ! adb shell 'su -c "ls /data | grep ldsp"'; then
+  if ! $ADB shell 'su -c "ls /data | grep ldsp"'; then
     # If /data/ldsp does not exist, create it
-    adb shell 'su -c "mkdir -p /data/ldsp"'
+    $ADB shell 'su -c "mkdir -p /data/ldsp"'
 
     # Call functions to push all resources
     push_scripts
@@ -452,32 +476,32 @@ install() {
   else
     # If /data/ldsp exists, continue with the checks
     # Check and push scripts if not there
-    if ! adb shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "scripts"; then
+    if ! $ADB shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "scripts"; then
       push_scripts
     fi
 
     # Check and push resources if not there
-    if ! adb shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "resources"; then
+    if ! $ADB shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "resources"; then
       push_resources
     fi
 
     # Check and push debug server if not there
-    if ! adb shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "debugserver"; then
+    if ! $ADB shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "debugserver"; then
       push_debugserver
     fi
 
     # Check and push onnxruntime if not there
-    if ! adb shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "onnxruntime"; then
+    if ! $ADB shell 'su -c "ls /data/ldsp" 2>/dev/null' | grep "onnxruntime"; then
       push_onnxruntime
     fi
   fi
   
-  adb shell "su -c 'mkdir -p \"/data/ldsp/projects/$project_name\"'" # create ldsp and project folders
-  adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" # cp all files from sd card temp folder to ldsp folder
-  adb shell "su -c 'chmod 777 \"/data/ldsp/projects/$project_name/ldsp\"'" # add exe flag to ldsp bin
-  adb shell "su -c 'chmod 777 /data/ldsp/debugserver/lldb-server'" # add exe flag to server bin
+  $ADB shell "su -c 'mkdir -p \"/data/ldsp/projects/$project_name\"'" # create ldsp and project folders
+  $ADB shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" # cp all files from sd card temp folder to ldsp folder
+  $ADB shell "su -c 'chmod 777 \"/data/ldsp/projects/$project_name/ldsp\"'" # add exe flag to ldsp bin
+  $ADB shell "su -c 'chmod 777 /data/ldsp/debugserver/lldb-server'" # add exe flag to server bin
 
-  adb shell "su -c 'rm -r /sdcard/ldsp'" # remove the temp /sdcard/ldsp directory from the device
+  $ADB shell "su -c 'rm -r /sdcard/ldsp'" # remove the temp /sdcard/ldsp directory from the device
 }
 
 # Run the user project on the phone.
@@ -490,11 +514,12 @@ run () {
     exit 1
   fi
 
+  setup_adb
 
   # Run adb shell in a subshell, so that it doesn't receive the SIGINT signal
   (
     trap "" INT
-    adb shell "su -c 'cd \"/data/ldsp/projects/$project_name\" && export LD_LIBRARY_PATH="/data/ldsp/onnxruntime/" && ./ldsp $@'" # we invoke su before running the bin
+    $ADB shell "su -c 'cd \"/data/ldsp/projects/$project_name\" && export LD_LIBRARY_PATH="/data/ldsp/onnxruntime/" && ./ldsp $@'" # we invoke su before running the bin
   ) &
 
 
@@ -516,8 +541,9 @@ run_persistent() {
     exit 1
   fi
 
+  setup_adb
 
-  cat <<EOF | adb shell > /dev/null 2>&1
+  cat <<EOF | $ADB shell > /dev/null 2>&1
   su -c '
   cd "/data/ldsp/projects/$project_name" || exit 1
   nohup ./ldsp "$@" > /dev/null 2>&1 &
@@ -529,8 +555,15 @@ EOF
 
 # Stop the currently-running user project on the phone.
 stop() {
+  # Retrieve variables from settings file (for phone_serial)
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
+
+  setup_adb
+
   echo "Stopping LDSP..."
-  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
+  $ADB shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
 }
 
 handle_stop() {
@@ -560,12 +593,21 @@ clean_phone() {
     exit 1
   fi
 
-  adb shell "su -c 'rm -r /data/ldsp/projects/$project_name'" 
+  setup_adb
+
+  $ADB shell "su -c 'rm -r /data/ldsp/projects/$project_name'" 
 }
 
 # Remove the ldsp directory from the device
 clean_ldsp() {
-  adb shell "su -c 'rm -r /data/ldsp/'" 
+  # Retrieve variables from settings file (for phone_serial)
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
+
+  setup_adb
+
+  $ADB shell "su -c 'rm -r /data/ldsp/'" 
 }
 
 # Prepare for remote debugging
@@ -578,56 +620,91 @@ debugserver_start() {
     exit 1
   fi
 
+  setup_adb
+
   # we're going to work on port 12345, which incidentally is also my Wi-Fi pwd
   port=12345
-  adb forward tcp:$port tcp:$port
+  $ADB forward tcp:$port tcp:$port
 
   # the debugger can only run bins that are in an accessible directory on the phone
-  adb shell "su -c 'cp /data/ldsp/projects/$project_name/ldsp /data/local/tmp'" 
+  $ADB shell "su -c 'cp /data/ldsp/projects/$project_name/ldsp /data/local/tmp'" 
 
-  adb shell "su -c '/data/ldsp/debugserver/lldb-server platform --server --listen *:$port'"   
+  $ADB shell "su -c '/data/ldsp/debugserver/lldb-server platform --server --listen *:$port'"   
 }
 
 # Clean up remote debugging
 debugserver_stop() {
+  # Retrieve variables from settings file (for phone_serial)
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
+
+  setup_adb
 
   echo "Stopping debug server..."
-  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_debugserver_stop.sh'"
+  $ADB shell "su -c 'sh /data/ldsp/scripts/ldsp_debugserver_stop.sh'"
 
-  adb shell "su -c 'rm /data/local/tmp/ldsp'" 
+  $ADB shell "su -c 'rm /data/local/tmp/ldsp'" 
 
   # make sure this is the same port you used in debugserver_start, in case you changed it!
   port=12345
-  adb forward --remove tcp:$port
+  $ADB forward --remove tcp:$port
 }
 
 # Run ldsp_phoneDetails.sh script on the phone
 phone_details() {
-  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_phoneDetails.sh'"
+  # Retrieve variables from settings file (for phone_serial)
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
+
+  setup_adb
+
+  $ADB shell "su -c 'sh /data/ldsp/scripts/ldsp_phoneDetails.sh'"
 }
 
 # Run ldsp_mixerPaths.sh script on the phone, with optional argument
 mixer_paths() {
-  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_mixerPaths.sh \"$1\"'"
+  # Retrieve variables from settings file (for phone_serial)
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
+
+  setup_adb
+
+  $ADB shell "su -c 'sh /data/ldsp/scripts/ldsp_mixerPaths.sh \"$1\"'"
 }
 
 # Run ldsp_mixerPaths_recursive.sh script on the phone, with argument
 mixer_paths_rec() {
+  # Retrieve variables from settings file (for phone_serial)
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
+
+  setup_adb
+
   if [ $# -ne 1 ]; then
     # this will simply trigger the script's usage 
-    adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh\""
+    $ADB shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh\""
     exit 1
   fi
 
   SEARCH_DIR=$1
-  adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh '$SEARCH_DIR'\""
+  $ADB shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh '$SEARCH_DIR'\""
 }
 
 # Run ldsp_mixerPaths_opened.sh script on the phone, with optional argument
 mixer_paths_opened() {
-  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_mixerPaths_opened.sh \"$1\"'"
-}
+  # Retrieve variables from settings file (for phone_serial)
+  if [[ -f $settings_file ]]; then
+      source $settings_file
+  fi
 
+  setup_adb
+
+  $ADB shell "su -c 'sh /data/ldsp/scripts/ldsp_mixerPaths_opened.sh \"$1\"'"
+}
 
 
 
@@ -658,23 +735,25 @@ help() {
   echo -e "  --no-neon-fft\t\t\tConfigure to not use NEON to parallelize FFT"
   echo -e "  --debug\t\t\tSwitch build type from Release to Debug (debug symbols, no optimizations)"
   echo -e "\nDescription:"
-  echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone."
-  echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone and project."
+  echo -e "  install_scripts\t\tInstall the LDSP scripts on the phone (use --phone-serial when more phones are connected)."
+  echo -e "  configure\t\t\tConfigure the LDSP build system for the specified phone and project (use --phone-serial when more phones are connected)."
   echo -e "  \t\t\t\t(The above settings are needed)"
   echo -e "  build\t\t\t\tBuild the configured project."
   echo -e "  install\t\t\tInstall the configured project, LDSP hardware config, scripts and resources to the phone."
   echo -e "  run\t\t\t\tRun the configured project on the phone."
   echo -e "  \t\t\t\t(Any arguments passed after \"run\" within quotes are passed to the user project)"
-  echo -e "  stop\t\t\t\tStop the currently-running project on the phone."
+  echo -e "  stop\t\t\t\tStop the currently-running project on the phone (use --phone-serial when more phones are connected)."
   echo -e "  clean\t\t\t\tClean the configured project."
-  echo -e "  clean_phone\t\t\tRemove all project files from phone."
-  echo -e "  clean_ldsp\t\t\tRemove all LDSP files from phone."
+  echo -e "  clean_phone\t\t\tRemove all project files from phone (use --phone-serial when more phones are connected)."
+  echo -e "  clean_ldsp\t\t\tRemove all LDSP files from phone (use --phone-serial when more phones are connected)."
   echo -e "  debugserver_start\t\tPrepare and run the remote debug server (lldb-server)."
   echo -e "  debugserver_stop\t\tStop the remote debug server."
-  echo -e "  phone_details\t\t\tGet phone details to populate hardware configuration file."
-  echo -e "  mixer_paths\t\t\tSearch on phone for mixer_paths.xml candidates, either in default dirs or in the one passed as argument."
-  echo -e "  mixer_paths_recursive\t\tSearch on phone for mixer_paths.xml candidates in the passed dir and all its subdirs."
-  echo -e "  mixer_paths_opened\t\t[Android 6.0+] Search on phone for mixer_paths.xml candidates in use by Android, either in default dir or in the one passed as argument."
+  echo -e "  phone_details\t\t\tGet phone details to populate hardware configuration file (use --phone-serial when more phones are connected)."
+  echo -e "  mixer_paths\t\t\tSearch on phone for mixer_paths.xml candidates, either in default dirs or in the one passed as argument (use --phone-serial when more phones are connected)."
+  echo -e "  mixer_paths_recursive\t\tSearch on phone for mixer_paths.xml candidates in the passed dir and all its subdirs (use --phone-serial when more phones are connected)."
+  echo -e "  mixer_paths_opened\t\t[Android 6.0+] Search on phone for mixer_paths.xml candidates in use by Android, either in default dir or in the one passed as argument(use --phone-serial when more phones are connected)."
+  echo -e "\nGlobal options (can be used with any command):"
+  echo -e "  --phone-serial=SERIAL, --phone-serial SERIAL\tTarget a specific phone by serial number (from 'adb devices') when more phones are connected."
 }
 
 STEPS=()
@@ -706,6 +785,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     --version=*)
       VERSION="${1#*=}"
+      shift
+      ;;
+    --phone-serial=*)
+      PHONE_SERIAL="${1#*=}"
+      shift
+      ;;
+    --phone-serial)
+      PHONE_SERIAL="$2"
+      shift
       shift
       ;;
     --no-neon-audio-format)
