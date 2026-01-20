@@ -14,6 +14,18 @@ set "dependencies_file=ldsp_dependencies.conf"
 
 goto main
 
+rem Build the adb command with optional device serial
+rem Command-line arg (PHONE_SERIAL) takes priority over saved setting (phone_serial)
+:setup_adb
+  if defined PHONE_SERIAL (
+    set "ADB=adb -s %PHONE_SERIAL%"
+  ) else if defined phone_serial (
+    set "ADB=adb -s %phone_serial%"
+  ) else (
+    set "ADB=adb"
+  )
+  exit /b 0
+
 :get_api_level
   rem — Split version (e.g. "13", "6.0.1", "4.4") into major/minor/patch
   for /f "tokens=1-3 delims=." %%a in ("%version%") do (
@@ -131,16 +143,18 @@ rem End of :get_onnx_version
 :install_scripts
   rem Install the LDSP scripts on the phone.
 
+  call :setup_adb
+
   rem create temp folder on sdcard
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
+  %ADB% shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
   rem  push scripts there 
-  powershell -Command "Get-ChildItem .\scripts\ldsp_* | ForEach-Object { adb push $_.FullName /sdcard/ldsp/scripts/ }"
+  powershell -Command "Get-ChildItem .\scripts\ldsp_* | ForEach-Object { %ADB% push $_.FullName /sdcard/ldsp/scripts/ }"
   rem create ldsp scripts folder
-  adb shell "su -c 'mkdir -p /data/ldsp/scripts'" 
+  %ADB% shell "su -c 'mkdir -p /data/ldsp/scripts'" 
   rem copy scripts to ldsp scripts folder
-  adb shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" 
+  %ADB% shell "su -c 'cp /sdcard/ldsp/scripts/* /data/ldsp/scripts'" 
   rem remove temp folder from sd card
-  adb shell "su -c 'rm -r /sdcard/ldsp'" 
+  %ADB% shell "su -c 'rm -r /sdcard/ldsp'" 
 
   exit /b 0
 rem End of :install_scripts
@@ -162,16 +176,21 @@ rem End of :install_scripts
   set "neon_fft=ON"
   set "build_type=Release"
   
-  rem Process ALL flags already
+  rem Process ALL flags
+  set "grab_next_as_serial="
   for %%A in (%OPT_LIST%) do (
-    set "flag=%%~A"
-    if "%%A"=="--no-neon-audio-format" (
+    if defined grab_next_as_serial (
+      set "PHONE_SERIAL=%%~A"
+      set "grab_next_as_serial="
+    ) else if "%%A"=="--no-neon-audio-format" (
       set "neon_audio_format=OFF"
     ) else if "%%A"=="--no-neon-fft" (
       set "neon_fft=OFF"
     ) else if "%%A"=="--debug" (
       rem build type: set to debug if --debug flag was passed
       set "build_type=Debug"
+    ) else if "%%A"=="--phone-serial" (
+      set "grab_next_as_serial=1"
     )
   )
 
@@ -348,6 +367,27 @@ rem End of :install_scripts
     set "TOOLCHAIN_VER="
   )
 
+  rem print phone serial info
+  if defined PHONE_SERIAL (
+    set "serial_display=%PHONE_SERIAL%"
+  ) else (
+    set "serial_display=(not set)"
+  )
+
+  echo.
+  echo LDSP configuration:
+  echo   Project:        %project_name%
+  echo   Project path:   %project_dir%
+  echo   HW config:      %hw_config%
+  echo   Architecture:   %arch% (%abi%)
+  echo   Android API:    %api_level% (version %version%)
+  echo   NDK:            %NDK% (r%ndk_version%)
+  echo   NEON supported: %neon%
+  echo   NEON audio fmt: %neon_audio_format%
+  echo   NEON FFT:       %neon_fft%
+  echo   Build type:     %build_type%
+  echo   Phone serial:   %serial_display%
+
   echo.
   echo CMake configuration:
   echo.
@@ -375,6 +415,7 @@ rem End of :install_scripts
   echo ndk="%NDK%">>"%settings_file%"
   echo api_level="%api_level%">>"%settings_file%"
   echo onnx_version="%onnx_version%">>"%settings_file%"
+  echo phone_serial="%PHONE_SERIAL%">>"%settings_file%"
 
   exit /b 0
 
@@ -404,11 +445,11 @@ rem End of :build
 
 :push_scripts
   rem Create a directory on the SD card using `adb shell` with `mkdir`
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
+  %ADB% shell "su -c 'mkdir -p /sdcard/ldsp/scripts'"
 
   rem Push all scripts to the created folder (batch does not support *)
   for %%f in (scripts\ldsp_*) do (
-    adb push "%%f" /sdcard/ldsp/scripts/
+    %ADB% push "%%f" /sdcard/ldsp/scripts/
 	)
 	
   exit /b
@@ -417,10 +458,10 @@ rem End of :push_scripts
 :push_resources
   if /i %ADD_SEASOCKS%=="TRUE" (
     rem Create a directory on the SD card using `adb shell` with `mkdir`
-    adb shell "su -c 'mkdir -p /sdcard/ldsp/resources'"
+    %ADB% shell "su -c 'mkdir -p /sdcard/ldsp/resources'"
     
     rem Push resources to the SD card
-    adb push resources /sdcard/ldsp/
+    %ADB% push resources /sdcard/ldsp/
   )
   exit /b
 rem End of :push_resources
@@ -429,7 +470,7 @@ rem End of :push_resources
 :push_debugserver
 
   rem Create a directory on the SD card using `adb shell` with `mkdir`
-  adb shell "su -c 'mkdir -p /sdcard/ldsp/debugserver'"
+  %ADB% shell "su -c 'mkdir -p /sdcard/ldsp/debugserver'"
 
   set "debugserver="
 
@@ -460,7 +501,7 @@ rem End of :push_resources
 
 :found
   echo Using debugserver: !debugserver!
-  adb push "!debugserver!" /sdcard/ldsp/debugserver
+  %ADB% push "!debugserver!" /sdcard/ldsp/debugserver
 
   exit /b
 
@@ -474,8 +515,8 @@ rem End of :push_debugserver
     set "onnx_version=!onnx_version:"=!"
     set "onnx_path=.\dependencies\onnxruntime\!arch!\!onnx_version!\libonnxruntime.so"
 
-    adb shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'"
-    adb push "!onnx_path!" /sdcard/ldsp/onnxruntime/libonnxruntime.so
+    %ADB% shell "su -c 'mkdir -p /sdcard/ldsp/onnxruntime'"
+    %ADB% push "!onnx_path!" /sdcard/ldsp/onnxruntime/libonnxruntime.so
   )
   exit /b
 
@@ -502,6 +543,7 @@ rem End of :push_debugserver
 			if /I "!key!"=="ndk"             set "ndk=!val!"
 			if /I "!key!"=="api_level"       set "api_level=!val!"
 			if /I "!key!"=="onnx_version"    set "onnx_version=!val!"
+			if /I "!key!"=="phone_serial"    set "phone_serial=!val!"
 		)
 	) ELSE (
 		echo Cannot install: config file not found.
@@ -523,12 +565,14 @@ rem End of :push_debugserver
 		echo Cannot install: config file not found.
 		exit /b 1
 	)
+
+  call :setup_adb
 	
   rem create temp ldsp folder on sdcard
-  adb shell "su -c \"mkdir -p '/sdcard/ldsp/projects/%project_name%'\""
+  %ADB% shell "su -c \"mkdir -p '/sdcard/ldsp/projects/%project_name%'\""
   
   rem push hardware config file
-  adb push %hw_config% /sdcard/ldsp/
+  %ADB% push %hw_config% /sdcard/ldsp/
 
   rem Push all project resources, including Pd files in Pd projects, but excluding C/C++ and assembly files, and folders that contain those files
   rem first folders
@@ -536,30 +580,30 @@ rem End of :push_debugserver
   for /F "delims=" %%i in ('dir /B /A:D "%project_dir%"') do (
 		dir /B /A "%project_dir%\%%i\*.cpp" "%project_dir%\%%i\*.c" "%project_dir%\%%i\*.h" "%project_dir%\%%i\*.hpp" "%project_dir%\%%i\*.S" "%project_dir%\%%i\*.s" "%project_dir%\%%i\*.sh" >nul 2>&1
 		if errorlevel 1 (
-				adb push "%project_dir%\%%i" "/sdcard/ldsp/projects/%project_name%/"
+				%ADB% push "%project_dir%\%%i" "/sdcard/ldsp/projects/%project_name%/"
 		)
   )
   rem then files
   for %%i in ("%project_dir%\*") do (
 		if /I not "%%~xi" == ".cpp" if /I not "%%~xi" == ".c" if /I not "%%~xi" == ".h" if /I not "%%~xi" == ".hpp" if /I not "%%~xi" == ".S" if /I not "%%~xi" == ".s" if /I not "%%~xi" == ".sh" (
-				adb push "%%i" "/sdcard/ldsp/projects/%project_name%/"
+				%ADB% push "%%i" "/sdcard/ldsp/projects/%project_name%/"
 		)
   )
 
   rem now the ldsp bin
-  adb push build\bin\ldsp "/sdcard/ldsp/projects/%project_name%/"
+  %ADB% push build\bin\ldsp "/sdcard/ldsp/projects/%project_name%/"
 
   rem now all resources that do not need to be updated at every build
   rem first check if /data/ldsp exists
   rem adb shell "su -c 'ls /data | grep ldsp'" > nul 2>&1
 	set "found_dir="
-	for /f %%i in ('adb shell "su -c 'ls /data | grep ldsp'"') do (
+	for /f %%i in ('%ADB% shell "su -c 'ls /data | grep ldsp'"') do (
 		set "found_dir=%%i"
 	)
 
 	if not defined found_dir (
 		rem If `/data/ldsp` doesn't exist, create it
-		adb shell "su -c 'mkdir -p /data/ldsp'"
+		%ADB% shell "su -c 'mkdir -p /data/ldsp'"
 
 		rem Call functions to push all resources
 		call :push_scripts
@@ -571,42 +615,44 @@ rem End of :push_debugserver
 		rem If `/data/ldsp` exists, check and push missing subdirectories/files
 		rem Check for `scripts`
 		set "found_dir="
-		for /f %%i in ('adb shell "su -c 'ls /data/ldsp | grep scripts'"') do (
+		for /f %%i in ('%ADB% shell "su -c 'ls /data/ldsp | grep scripts'"') do (
 			set "found_dir=%%i"
 		)
 		if not defined found_dir call :push_scripts
 
 		rem Check for `resources`
 		set "found_dir="
-		for /f %%i in ('adb shell "su -c 'ls /data/ldsp | grep resources'"') do (
+		for /f %%i in ('%ADB% shell "su -c 'ls /data/ldsp | grep resources'"') do (
 			set "found_dir=%%i"
 		)
 		if not defined found_dir call :push_resources
 
 		rem Check for `debugserver`
 		set "found_dir="
-		for /f %%i in ('adb shell "su -c 'ls /data/ldsp | grep debugserver'"') do (
+		for /f %%i in ('%ADB% shell "su -c 'ls /data/ldsp | grep debugserver'"') do (
 			set "found_dir=%%i"
 		)
 		if not defined found_dir call :push_debugserver
 
 		rem Check for `onnxruntime`
 		set "found_dir="
-		for /f %%i in ('adb shell "su -c 'ls /data/ldsp | grep onnxruntime'"') do (
+		for /f %%i in ('%ADB% shell "su -c 'ls /data/ldsp | grep onnxruntime'"') do (
 			set "found_dir=%%i"
 		)
 		if not defined found_dir (call :push_onnxruntime)
   )
 
   rem create ldsp folder
-  adb shell "su -c \"mkdir -p '/data/ldsp/projects/%project_name%'\""
+  %ADB% shell "su -c \"mkdir -p '/data/ldsp/projects/%project_name%'\""
   rem cp all files from sd card temp folder to ldsp folder
-  adb shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" 
+  %ADB% shell "su -c 'cp -r /sdcard/ldsp/* /data/ldsp'" 
   rem add exe flag to ldsp bin
-  adb shell "su -c \"chmod 777 '/data/ldsp/projects/%project_name%/ldsp'\""
+  %ADB% shell "su -c \"chmod 777 '/data/ldsp/projects/%project_name%/ldsp'\""
+  rem add exe flag to server bin
+  %ADB% shell "su -c 'chmod 777 /data/ldsp/debugserver/lldb-server'"
 
   rem remove temp folder from sdcard
-  adb shell "su -c 'rm -r /sdcard/ldsp'" 
+  %ADB% shell "su -c 'rm -r /sdcard/ldsp'" 
 
   exit /b 0
 rem End of :install
@@ -624,13 +670,16 @@ rem End of :install
 			set "val=%%H"
 
 			if /I "!key!"=="project_name"    set "project_name=!val!"
+			if /I "!key!"=="phone_serial"    set "phone_serial=!val!"
 		)
   ) ELSE (
     echo Cannot run: project not configured. Please run "ldsp.bat configure" first, then build, install and run.
     exit /b 1
   )
 
-	adb shell "su -c 'cd \"/data/ldsp/projects/%project_name%\" && export LD_LIBRARY_PATH=\"/data/ldsp/onnxruntime/\" && ./ldsp %args%'"
+  call :setup_adb
+
+	%ADB% shell "su -c 'cd \"/data/ldsp/projects/%project_name%\" && export LD_LIBRARY_PATH=\"/data/ldsp/onnxruntime/\" && ./ldsp %args%'"
 
   exit /b 0
 rem End of :run
@@ -638,8 +687,20 @@ rem End of :run
 :stop
   rem Stop the currently-running user project on the phone.
 
+  rem Retrieve variables from settings file (for phone_serial)
+  IF EXIST "%settings_file%" (
+    FOR /F "usebackq tokens=1* delims==" %%G IN ("%settings_file%") DO (
+      set "key=%%G"
+      set "val=%%H"
+
+      if /I "!key!"=="phone_serial"    set "phone_serial=!val!"
+    )
+  )
+
+  call :setup_adb
+
   echo "Stopping LDSP..."
-  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
+  %ADB% shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
 
   exit /b 0
 rem End of :Stop
@@ -668,13 +729,16 @@ rem End of :clean
 			set "val=%%H"
 
 			if /I "!key!"=="project_name"    set "project_name=!val!"
+			if /I "!key!"=="phone_serial"    set "phone_serial=!val!"
 		)
   ) ELSE (
     echo Cannot clean phone: project not configured. Please run "ldsp.bat configure" first.
     exit /b 1
   )
+
+  call :setup_adb
   
-  adb shell "su -c 'rm -r /data/ldsp/projects/%project_name%'" 
+  %ADB% shell "su -c 'rm -r /data/ldsp/projects/%project_name%'" 
 
   exit /b 0
 rem End of :clean_phone
@@ -682,7 +746,19 @@ rem End of :clean_phone
 :clean_ldsp
   rem Remove the ldsp directory from the device.
 
-  adb shell "su -c 'rm -r /data/ldsp/'" 
+  rem Retrieve variables from settings file (for phone_serial)
+  IF EXIST "%settings_file%" (
+    FOR /F "usebackq tokens=1* delims==" %%G IN ("%settings_file%") DO (
+      set "key=%%G"
+      set "val=%%H"
+
+      if /I "!key!"=="phone_serial"    set "phone_serial=!val!"
+    )
+  )
+
+  call :setup_adb
+
+  %ADB% shell "su -c 'rm -r /data/ldsp/'" 
 
   exit /b 0
 rem End of :clean_phone
@@ -698,21 +774,24 @@ rem End of :clean_phone
 			set "val=%%H"
 
 			if /I "!key!"=="project_name"    set "project_name=!val!"
+			if /I "!key!"=="phone_serial"    set "phone_serial=!val!"
 		)
   ) else (
       echo Cannot start debug server on phone: project not configured. Please run "ldsp.bat configure" first.
       exit /b 1
   )
 
+  call :setup_adb
+
   rem We're going to work on port 12345, which incidentally is also my Wi-Fi pwd
   set port=12345
-  adb forward tcp:%port% tcp:%port%
+  %ADB% forward tcp:%port% tcp:%port%
 
   rem The debugger can only run bins that are in an accessible directory on the phone
-  adb shell "su -c 'cp /data/ldsp/projects/%project_name%/ldsp /data/local/tmp'"
+  %ADB% shell "su -c 'cp /data/ldsp/projects/%project_name%/ldsp /data/local/tmp'"
 
   rem Start the debug server on the phone
-  adb shell "su -c '/data/ldsp/debugserver/lldb-server platform --server --listen *:%port%'"
+  %ADB% shell "su -c '/data/ldsp/debugserver/lldb-server platform --server --listen *:%port%'"
 
   exit /b
 rem End of :debugserver_start
@@ -720,15 +799,27 @@ rem End of :debugserver_start
 :debugserver_stop
   rem Clean up remote debugging
 
+  rem Retrieve variables from settings file (for phone_serial)
+  IF EXIST "%settings_file%" (
+    FOR /F "usebackq tokens=1* delims==" %%G IN ("%settings_file%") DO (
+      set "key=%%G"
+      set "val=%%H"
+
+      if /I "!key!"=="phone_serial"    set "phone_serial=!val!"
+    )
+  )
+
+  call :setup_adb
+
   echo Stopping debug server...
-  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_debugserver_stop.sh'"
+  %ADB% shell "su -c 'sh /data/ldsp/scripts/ldsp_debugserver_stop.sh'"
 
   rem Remove the copied binary from the phone
-  adb shell "su -c 'rm /data/local/tmp/ldsp'"
+  %ADB% shell "su -c 'rm /data/local/tmp/ldsp'"
 
   rem Make sure this is the same port used in debugserver_start
   set port=12345
-  adb forward --remove tcp:%port%
+  %ADB% forward --remove tcp:%port%
 
 exit /b
 rem End of :debugserver_stop
@@ -736,7 +827,19 @@ rem End of :debugserver_stop
 :phone_details
 	rem Run ldsp_phoneDetails.sh script on the phone
 
-  adb shell "su -c 'sh /data/ldsp/scripts/ldsp_phoneDetails.sh'"
+  rem Retrieve variables from settings file (for phone_serial)
+  IF EXIST "%settings_file%" (
+    FOR /F "usebackq tokens=1* delims==" %%G IN ("%settings_file%") DO (
+      set "key=%%G"
+      set "val=%%H"
+
+      if /I "!key!"=="phone_serial"    set "phone_serial=!val!"
+    )
+  )
+
+  call :setup_adb
+
+  %ADB% shell "su -c 'sh /data/ldsp/scripts/ldsp_phoneDetails.sh'"
 
   exit /b 0
 rem End of :phone_details
@@ -744,7 +847,19 @@ rem End of :phone_details
 :mixer_paths
   rem Run ldsp_mixerPaths.sh script on the phone, with optional argument
 
-  adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths.sh %~1\""
+  rem Retrieve variables from settings file (for phone_serial)
+  IF EXIST "%settings_file%" (
+    FOR /F "usebackq tokens=1* delims==" %%G IN ("%settings_file%") DO (
+      set "key=%%G"
+      set "val=%%H"
+
+      if /I "!key!"=="phone_serial"    set "phone_serial=!val!"
+    )
+  )
+
+  call :setup_adb
+
+  %ADB% shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths.sh %~1\""
 
   exit /b 0
 rem End of :mixer_paths
@@ -752,11 +867,23 @@ rem End of :mixer_paths
 :mixer_paths_rec
   rem # Run ldsp_mixerPaths_recursive.sh script on the phone, with argument
 
+  rem Retrieve variables from settings file (for phone_serial)
+  IF EXIST "%settings_file%" (
+    FOR /F "usebackq tokens=1* delims==" %%G IN ("%settings_file%") DO (
+      set "key=%%G"
+      set "val=%%H"
+
+      if /I "!key!"=="phone_serial"    set "phone_serial=!val!"
+    )
+  )
+
+  call :setup_adb
+
   if "%~1"=="" (
     rem this will simply trigger the script's usage 
-    adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh\""
+    %ADB% shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh\""
   ) else (
-    adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh %~1\""
+    %ADB% shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_recursive.sh %~1\""
 )
 exit /b 0
 rem End of :mixer_paths_rec
@@ -765,7 +892,19 @@ rem End of :mixer_paths_rec
 :mixer_paths_opened
   rem Run ldsp_mixerPaths_opened.sh script on the phone, with optional argument
 
-  adb shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_opened.sh %~1\""
+  rem Retrieve variables from settings file (for phone_serial)
+  IF EXIST "%settings_file%" (
+    FOR /F "usebackq tokens=1* delims==" %%G IN ("%settings_file%") DO (
+      set "key=%%G"
+      set "val=%%H"
+
+      if /I "!key!"=="phone_serial"    set "phone_serial=!val!"
+    )
+  )
+
+  call :setup_adb
+
+  %ADB% shell "su -c \"sh /data/ldsp/scripts/ldsp_mixerPaths_opened.sh %~1\""
 
   exit /b 0
 rem End of :mixer_paths_opened
@@ -776,7 +915,7 @@ rem End of :mixer_paths_opened
   rem Print usage information.
   echo Usage:
   echo   ldsp.bat install_scripts
-  echo   ldsp.bat configure [configuration] [version] [project] [--no-neon-audio-format (optional)]
+  echo   ldsp.bat configure [configuration] [version] [project] [optional flags]
   echo   ldsp.bat build
   echo   ldsp.bat install
   echo   ldsp.bat run ^"[list of arguments]^"
@@ -784,39 +923,59 @@ rem End of :mixer_paths_opened
   echo   ldsp.bat clean
   echo   ldsp.bat clean_phone
   echo   ldsp.bat clean_ldsp
+  echo   ldsp.bat debugserver_start
+  echo   ldsp.bat debugserver_stop
   echo   ldsp.bat phone_details
   echo   ldsp.bat mixer_paths [optional dir]
   echo   ldsp.bat mixer_paths_recursive [dir]
   echo   ldsp.bat mixer_paths_opened [optional dir]
   echo.
+  echo Settings (used with the 'configure' step):
+  echo   configuration                The path to the folder containing the hardware configuration file of the chosen phone.
+  echo   version                      The Android version running on the phone.
+  echo   project                      The path to the project to build.
+  echo   --no-neon-audio-format       Configure to not use NEON parallel audio streams formatting
+  echo   --no-neon-fft                Configure to not use NEON to parallelize FFT
+  echo   --debug                      Switch build type from Release to Debug (debug symbols, no optimizations)
+  echo.
   echo Description:
-  echo   install_scripts        Install the LDSP scripts on the phone.
-  echo   configure              Configure the LDSP build system for the specified phone and project. It requires the following settings, in this order:
-  echo                            the path to the folder containing the hardware configuration file of the chosen phone 
-  echo                            Android version running on the phone
-  echo                            the path to the project to build
-  echo                            --no-neon-audio-format  --- optional flag to not use NEON parallel sample formatting
-  echo                            --no-neon-fft           --- optional flag to not use NEON to parallelize FFT
-  echo                            --debug                 --- optional flag to switch build type from Release to Debug (debug symbols, no optimizations)
+  echo   install_scripts        Install the LDSP scripts on the phone (use --phone-serial when more phones are connected).
+  echo   configure              Configure the LDSP build system for the specified phone and project (use --phone-serial when more phones are connected).
+  echo                            (The above settings are needed)
   echo   build                  Build the configured project.
   echo   install                Install the configured project, LDSP hardware config, scripts and resources to the phone.
   echo   run                    Run the configured project on the phone.
   echo                            (Any arguments passed after "run" within quotes are passed to the project)
-  echo   stop                   Stop the currently-running project on the phone.
+  echo   stop                   Stop the currently-running project on the phone (use --phone-serial when more phones are connected).
   echo   clean                  Clean the configured project.
-  echo   clean_phone            Remove all project files from phone.
-  echo   clean_ldsp             Remove all LDSP files from phone.
+  echo   clean_phone            Remove all project files from phone (use --phone-serial when more phones are connected).
+  echo   clean_ldsp             Remove all LDSP files from phone (use --phone-serial when more phones are connected).
   echo   debugserver_start      Prepare and run the remote debug server (lldb-server).
   echo   debugserver_stop       Stop the remote debug server.
-  echo   phone_details          Get phone details to populate hardware configuration file.
-  echo   mixer_paths            Search on phone for mixer_paths.xml candidates, either in default dirs or in the one passed as argument.
-  echo   mixer_paths_recursive  Search on phone for mixer_paths.xml candidates in the passed dir and all its subdirs.
-  echo   mixer_paths_opened     [Android 6.0+] Search on phone for mixer_paths.xml candidates in use by Android, either in default dir or in the one passed as argument.
+  echo   phone_details          Get phone details to populate hardware configuration file (use --phone-serial when more phones are connected).
+  echo   mixer_paths            Search on phone for mixer_paths.xml candidates, either in default dirs or in the one passed as argument (use --phone-serial when more phones are connected).
+  echo   mixer_paths_recursive  Search on phone for mixer_paths.xml candidates in the passed dir and all its subdirs (use --phone-serial when more phones are connected).
+  echo   mixer_paths_opened     [Android 6.0+] Search on phone for mixer_paths.xml candidates in use by Android, either in default dir or in the one passed as argument (use --phone-serial when more phones are connected).
+  echo.
+  echo Global options (can be used with any command):
+  echo   --phone-serial=SERIAL  Target a specific phone by serial number (from 'adb devices') when more phones are connected.
   exit /b 0
 rem End of :help
 
 
 :main
+
+rem Parse --phone-serial from arguments (scan all args for it)
+set "PHONE_SERIAL="
+set "grab_next_as_serial="
+for %%A in (%*) do (
+  if defined grab_next_as_serial (
+    set "PHONE_SERIAL=%%~A"
+    set "grab_next_as_serial="
+  ) else if "%%~A"=="--phone-serial" (
+    set "grab_next_as_serial=1"
+  )
+)
 
 rem Call the appropriate function based on the first argument.
 if "%1" == "install_scripts" (
