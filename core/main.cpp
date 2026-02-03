@@ -43,7 +43,7 @@ int main(int argc, char** argv)
 	settings->projectName = PRJ_NAME;
 	cout << "Project: " << settings->projectName << "\n" << "\n";
 
-	if(LDSP_parseArguments(argc, argv, settings) < 0)
+	if(LDSP_parseArguments(&argc, argv, settings) < 0)
 	{
 		// in case help is printed
 		LDSP_InitSettings_free(settings);
@@ -99,7 +99,8 @@ int main(int argc, char** argv)
 	signal(SIGINT, interrupt_handler);
 	signal(SIGTERM, interrupt_handler);
 
-	void *userData = 0; // this can be used to pass user data to setup function in reander.cpp
+	// this can be used to pass user data to all functions in reader.cpp
+	void *userData = argv; // by deafult, we pass unrecognized cmd line arguments
 
 	// Start the audio device running
 	if(LDSP_startAudio(userData)) 

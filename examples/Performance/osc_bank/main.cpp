@@ -22,10 +22,6 @@ void interrupt_handler(int sig)
 }
 
 
-//TODO move mixer setup/reset into audio calls
-// and combine sensors ctrl inputs and outputs calls into a single container file
-// this will simplify a lot the default main file
-
 int main(int argc, char** argv)
 {
  	cout << "Hello, LDSP here!" << "\n";

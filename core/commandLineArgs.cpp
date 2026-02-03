@@ -21,6 +21,7 @@
 #include <cstdlib> // atoi, atof...
 #include <cstring> // strcpy
 #include <unordered_map> // unordered_map
+#include <vector> // vector
 
 #include "commandLineArgs.h"
 #include "tinyalsaAudio.h"
@@ -29,14 +30,15 @@
 
 using std::string;
 using std::unordered_map;
+using std::vector;
 
 unordered_map<string, int> gFormats; // extern in tinyalsaAudio.cpp
 
 string getFormatName(int index) 
 {
-    for (const auto& [key, val] : gFormats) 
+    for(const auto& [key, val] : gFormats) 
     {
-        if (val == index)
+        if(val == index)
             return key;
     }
 
@@ -83,14 +85,10 @@ void LDSP_usage(const char *argv)
 }
 
 
-int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
+int LDSP_parseArguments(int *argc, char** argv, LDSPinitSettings *settings)
 {
- 	// Create a map that associates each argument with its original position
-    unordered_map<char*, int> orig_pos;
-    for (int i = 0; i < argc; i++)
-        orig_pos[argv[i]] = i;
-
-
+    // Store unrecognized options as we encounter them
+    vector<char*> unrecognizedArgs;
 
     // first populate format map 
     for(int i=0; i<=(int)LDSP_pcm_format::MAX; i++)
@@ -132,11 +130,10 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 	};
 
 	int retVal = 0;
-	int notRec = 0;
 
 	optparse_init(&opts, argv);
-	while ((c = optparse_long(&opts, long_options, NULL)) != -1) {
-		//TODO remove arguments that are parsed
+	while ((c = optparse_long(&opts, long_options, NULL)) != -1) 
+	{
 		switch (c) 
         {
 			case 'c':
@@ -189,6 +186,7 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 			 	break;
 			case 'R':
 				settings->ctrlOutputsOff = 1;
+				break;
 			case 'm':
 				settings->preserveMixer = 1;
 				break;
@@ -205,29 +203,46 @@ int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings)
 				settings->cpuIndex = atoi(opts.optarg);
 			 	break;
 			case 'h': 
-			//case '?': // we want extra arguments to be accepted and possibly managed by user
 				LDSP_usage(argv[0]);
 				retVal = -1;
 				break;
+			case '?':
+				// Unrecognized option - save it
+				// opts.errmsg contains something like "invalid option -- 'x'" or the long option
+				// We need to capture the actual argument - it's at argv[opts.optind - 1]
+				unrecognizedArgs.push_back(argv[opts.optind - 1]);
+				// If it had an argument (like --unknown=value or --unknown value), capture that too
+				if(opts.optarg) 
+					unrecognizedArgs.push_back(opts.optarg);
+				break;
 			default:
-				notRec++;
 				break;
 		}
 	}
 
-	if(notRec > 0)
-	{ 
-		string cc = "argument";
-		if(notRec > 1)
-			cc = "arguments";
-		printf("\n\t%d %s not recognized by main parser\n", notRec, cc.c_str());
-	}
+	// Collect remaining positional arguments (non-option args)
+	for(int i = opts.optind; i < *argc; i++)
+		unrecognizedArgs.push_back(argv[i]);
 
-	
-	// revert arguments back to original order, so that user can apply further parsing
-    std::sort(argv, argv + argc, [&](char* a, char* b) {
-        return orig_pos[a] < orig_pos[b];
-    });
+	// Rebuild argv: ONLY unrecognized args
+	int newArgc = 0;
+	for(char* arg : unrecognizedArgs)
+		argv[newArgc++] = arg;
+
+	argv[newArgc] = NULL;
+	*argc = newArgc;
+
+	if(newArgc > 0) 
+	{
+		printf("Arguments not recognized by main parser: ");
+		for(int i = 0; i < newArgc; i++)
+			printf("%s%s", argv[i], (i < newArgc - 1) ? ", " : "\n");
+
+		if(settings->verbose)
+			printf("Passed as user data to application\n");
+
+		printf("\n");
+	}
 
 	return retVal;
 }

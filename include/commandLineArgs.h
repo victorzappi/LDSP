@@ -21,6 +21,6 @@
 
 #include "LDSP.h"
 
-int LDSP_parseArguments(int argc, char** argv, LDSPinitSettings *settings);
+int LDSP_parseArguments(int *argc, char** argv, LDSPinitSettings *settings);
 
 #endif /* COMMAND_LINE_ARGS_H_ */
