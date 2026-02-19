@@ -2,17 +2,6 @@
 
 add_library(dependencies INTERFACE)
 
-# apply compiler and linker optimizations for dependencies only
-# remove unused code
-add_compile_options(-ffunction-sections -fdata-sections)
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections")
-# strip debug symbols
-if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -s")
-endif()
-
 # all dependencies' includes are exposed as an INTERFACE target, so that they can be used by core and libraries targets too
 
 message(STATUS "Configuring dependencies:")

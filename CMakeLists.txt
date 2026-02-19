@@ -16,6 +16,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -DNDEBUG -flto") #VIC -Ofast is better than 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 add_compile_options(-fdiagnostics-color=always)
+# Remove unused functions and data from final binary
+add_compile_options(-ffunction-sections -fdata-sections)
+add_link_options(-Wl,--gc-sections)
 
 add_subdirectory(core)
 add_subdirectory(dependencies)
