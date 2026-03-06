@@ -18,20 +18,26 @@ public:
     void run(float** inputs, float* output); // multiple input nodes
     void run(float** inputs, float** outputs); // multiple input/output nodes
 
+    // ── Accessors for buffer allocation ──────────────────────────────────────
+    size_t getNumInputs()  const { return numInputNodes; }
+    size_t getNumOutputs() const { return numOutputNodes; }
+    size_t getInputSize(int i)  const { return inputTensorSizes[i]; }
+    size_t getOutputSize(int i) const { return outputTensorSizes[i]; }
+
 private: 
-    bool verbose = false;
+    bool verbose = true;
 
     // Holds onnx runtime session object, everything needed to interface with model
-    Ort::Env * env;
-    Ort::Session * session;
+    Ort::Env * env = nullptr;
+    Ort::Session * session = nullptr;
 
     // Path to ONNX Model file
-    const char * modelPath;
+    const char * modelPath = nullptr;
     // Name of the current onnx API session (helpful when having multiple model instances)
-    const char * sessionName;
+    const char * sessionName = nullptr;
 
     // Number of inputs to the model
-    size_t numInputNodes;
+    size_t numInputNodes = 0;
     // Names of each of the inputs to the model
     std::vector<const char*> inputNodeNames;
     // Tensor Dimensions of each input
@@ -40,7 +46,7 @@ private:
     std::vector<size_t> inputTensorSizes;
 
     // Number of outputs to the model
-    size_t numOutputNodes;
+    size_t numOutputNodes = 0;
     // Names of each of the outputs to the model
     std::vector<const char*> outputNodeNames;
     // Tensor Dimensions of each output 

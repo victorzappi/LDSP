@@ -4,8 +4,16 @@
 
 #include <numeric> // std::accumulate()
 
-Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-Ort::RunOptions options;
+// ── Lazy-initialized globals (avoids static init order fiasco) ───────────────
+static Ort::MemoryInfo& getMemoryInfo() {
+    static Ort::MemoryInfo info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+    return info;
+}
+
+static Ort::RunOptions& getRunOptions() {
+    static Ort::RunOptions opts;
+    return opts;
+}
 
 // this is taken from Domenico Stefani's OnnxTemplatePlugin
 // https://github.com/domenicostefani/ONNXruntime-VSTplugin-template.git
@@ -130,7 +138,7 @@ bool OrtModel::setup(string _sessionName, string _modelPath, bool _multiThreadin
         outputNodeDims[i] = tensorInfo.GetShape();
         if(verbose)
             printf("Output %d : num_dims=%zu\n", i, outputNodeDims[i].size());
-        for (int j = 0; j < outputNodeDims.size(); j++) {
+        for (int j = 0; j < outputNodeDims[i].size(); j++) {
             if(verbose)
                 printf("Output %d : dim %d=%d\n", i, j, (int)outputNodeDims[i][j]);
             if ((int) this->outputNodeDims[i][j] < 0) {
@@ -150,7 +158,7 @@ bool OrtModel::setup(string _sessionName, string _modelPath, bool _multiThreadin
     for (int i = 0; i < numInputNodes; i++) 
     {
         inputTensors.push_back(Ort::Value::CreateTensor<float>(
-                                memoryInfo,
+                                getMemoryInfo(),
                                 inputTensorValues[i].data(),
                                 inputTensorValues[i].size(),
                                 inputNodeDims[i].data(),
@@ -159,7 +167,7 @@ bool OrtModel::setup(string _sessionName, string _modelPath, bool _multiThreadin
     for (int i = 0; i < numOutputNodes; i++) 
     {
         outputTensors.push_back(Ort::Value::CreateTensor<float>(
-            memoryInfo,
+            getMemoryInfo(),
             outputTensorValues[i].data(),
             outputTensorValues[i].size(),
             outputNodeDims[i].data(),
@@ -179,7 +187,7 @@ void OrtModel::run(float* input, float* output)
 
     // Run Inference
     this->session->Run(
-        options,
+        getRunOptions(),
         inputNodeNames.data(),
         inputTensors.data(),
         inputTensors.size(),
@@ -206,7 +214,7 @@ void OrtModel::run(float* input, float* params, float* output)
 
     // Run Inference
     this->session->Run(
-        options,
+        getRunOptions(),
         inputNodeNames.data(),
         inputTensors.data(),
         inputTensors.size(),
@@ -231,7 +239,7 @@ void OrtModel::run(float** inputs, float* output)
 
     // Run Inference
     this->session->Run(
-        options,
+        getRunOptions(),
         inputNodeNames.data(),
         inputTensors.data(),
         inputTensors.size(),
@@ -256,7 +264,7 @@ void OrtModel::run(float** inputs, float** outputs)
 
     // Run Inference
     this->session->Run(
-        options,
+        getRunOptions(),
         inputNodeNames.data(),
         inputTensors.data(),
         inputTensors.size(),
