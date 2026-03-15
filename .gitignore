@@ -71,3 +71,6 @@ ldsp_dependencies.conf
 # Temporary local projects
 _projects
 _projects/
+
+# neural models that need author's permission
+*.nam

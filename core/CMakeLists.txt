@@ -39,6 +39,7 @@ set(VARIABLE_NAMES
 "ADD_ONNX" 
 "ADD_RTNEURAL" 
 "ADD_RAPIDLIB"
+"ADD_NAM"
 )
 # designed to work with n strings per dependency separated by escaped ';', 
 # including those to detect ldsp lib inclusion and those to detect direct dependency inclusion
@@ -53,6 +54,7 @@ set(SEARCH_STRINGS
 "libraries/OrtModel/OrtModel.h\;onnx" 
 "RTNeural/RTNeural.h\;rtneural" 
 "rapidLib"
+"NAM/get_dsp.h\;NeuralAmpModelerCore"
 )
 
 # Initialize global cache variables based on VARIABLE_NAMES
@@ -194,27 +196,22 @@ message(STATUS "\tSerial")
 
 if(ADD_LIBPD)
   message(STATUS "\tLibpd")
-  # target_link_libraries(ldsp PRIVATE libpd_static)
 endif()
 
 if(ADD_FFTW3)
   message(STATUS "\tFftw3")
-  # target_link_libraries(ldsp PRIVATE fftw3f)
 endif()
 
 if(ADD_NE10)
   message(STATUS "\tNe10")
-  # target_link_libraries(ldsp PRIVATE NE10)
 endif()
 
 if(ADD_MATHNEON)
   message(STATUS "\tMath-neon")
-  # target_link_libraries(ldsp PRIVATE mathneon)
 endif()
 
 if(ADD_SEASOCKS)
   message(STATUS "\tSeasocks")
-  # target_link_libraries(ldsp PRIVATE seasocks)
 endif()
 
 if(ADD_ONNX)
@@ -223,17 +220,18 @@ if(ADD_ONNX)
   target_link_directories(ldsp 
     PRIVATE "../dependencies/onnxruntime/${DEVICE_ARCH}/${ONNX_VERSION}"
   )
-  # target_link_libraries(ldsp PRIVATE onnxruntime)
 endif()
 
 if(ADD_RTNEURAL)
   message(STATUS "\tRTNeural")
-  # target_link_libraries(ldsp PRIVATE RTNeural)
 endif()
 
 if(ADD_RAPIDLIB)
   message(STATUS "\tRapidLib")
-  # target_link_libraries(ldsp PRIVATE rapidLib)
+endif()
+
+if(ADD_NAM)
+  message(STATUS "\tNeuralAmpModelerCore")
 endif()
 
 message(STATUS "") # end dependencies to config

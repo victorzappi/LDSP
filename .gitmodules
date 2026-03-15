@@ -10,3 +10,6 @@
 [submodule "dependencies/Ne10"]
 	path = dependencies/Ne10
 	url = https://github.com/pkhao75/Ne10
+[submodule "dependencies/NeuralAmpModelerCore"]
+	path = dependencies/NeuralAmpModelerCore
+	url = https://github.com/sdatkinson/NeuralAmpModelerCore.git
