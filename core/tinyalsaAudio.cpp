@@ -148,7 +148,7 @@ int LDSP_initAudio(LDSPinitSettings *settings, void *userData)
 		printf("\nLDSP_initAudio()\n");
 
 
-	if(!settings->keepAudioserver)
+	if(settings->audioserverOff)
 		controlAudioserver(0);
 
 

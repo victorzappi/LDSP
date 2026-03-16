@@ -43,15 +43,15 @@
 #include "MonoFilePlayer.h"
 #include "NAM/get_dsp.h"
 #include <filesystem>
-#include <chrono>
 
 // Audio file to process
 string filename = "715794__guitarman213__clean-electric-guitar_mono_norm_48k.wav";
 
 // NAM model file
-string modelFilename = "Kustom K150-1 (Ch1 High Input OD Boost Bright Pot Pulled).nam"; // download here: https://www.tone3000.com/tones/kustom-k150-1-amp-head-only-53113
+string modelFilename = "Kustom K150-1 (Ch1 High Input OD Boost Bright Pot Pulled).nam"; // download here: https://www.tone3000.com/tones/kustom-k150-1-amp-head-only-53113 
+// or use any other NAM model from https://www.tone3000.com/
 
-float amplitude = 0.5;
+float amplitude = 0.3;
 
 //------------------------------------
 

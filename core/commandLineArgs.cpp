@@ -76,7 +76,7 @@ void LDSP_usage(const char *argv)
 	fprintf(stderr, "-P | --sensors-off\t\t\t\tDisables sensors [sensors enabled]\n");
 	fprintf(stderr, "-Q | --ctrl-inputs-off\t\t\t\tDisables control inputs [control inputs enabled]\n");
 	fprintf(stderr, "-R | --ctrl-outputs-off\t\t\t\tDisables control outputs [control outputs enabled]\n");
-	fprintf(stderr, "-A | --keep-audioserver-on\t\t\tKeeps the Android audio server enabled while LDSP is running [audioserver disabled]\n");
+	fprintf(stderr, "-A | --audioserver-off\t\t\tTemporarily disables the Android audio server while LDSP is running [audioserver enabled]\n");
 	fprintf(stderr, "-m | --preserve-mixer-paths\t\t\tDoes not reset mixer paths to defaults at startup [mixer paths not preserved]\n");
 	fprintf(stderr, "-F | --perf-mode-off\t\t\t\tDisables CPU's governor peformance mode [performance mode enabled]\n");
 	fprintf(stderr, "-C | --cpu-affinity <cpu index>\t\t\tSets CPU affinity for the audio thread\n");
@@ -120,7 +120,7 @@ int LDSP_parseArguments(int *argc, char** argv, LDSPinitSettings *settings)
 		{ "sensors-off",       	 	'P', OPTPARSE_NONE },
 		{ "ctrl-inputs-off",     	'Q', OPTPARSE_NONE },
 		{ "ctrl-outputs-off",    	'R', OPTPARSE_NONE },
-		{ "keep-audioserver-on", 	'A', OPTPARSE_NONE },
+		{ "audioserver-off", 		'A', OPTPARSE_NONE },
 		{ "preserve-mixer-paths",	'm', OPTPARSE_NONE },
 		{ "perf-mode-off",      	'F', OPTPARSE_NONE },
 		{ "cpu-affinity",      		'C', OPTPARSE_REQUIRED },
@@ -191,7 +191,7 @@ int LDSP_parseArguments(int *argc, char** argv, LDSPinitSettings *settings)
 				settings->preserveMixer = 1;
 				break;
 			case 'A':
-				settings->keepAudioserver = 1;
+				settings->audioserverOff = 1;
 				break;
 			case 'F':
 				settings->perfModeOff = 1;

@@ -42,7 +42,7 @@ struct LDSPinitSettings {
     int sensorsOff;
     int ctrlInputsOff;
     int ctrlOutputsOff;
-    int keepAudioserver;
+    int audioserverOff;
     int perfModeOff;
     int verbose;
     string deviceOutId; // this have priority over deviceOutNum and if not specificied is automatically populated according to device number
