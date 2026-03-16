@@ -557,6 +557,37 @@ rem End of :push_debugserver
 	)
 
   call :setup_adb
+
+
+  rem Check if ldsp is already running on the device
+  set "RUNNING="
+  for /f %%i in ('%ADB% shell "su -c 'ps'" ^| findstr ldsp') do (
+      set "RUNNING=%%i"
+  )
+  if not defined RUNNING (
+      for /f %%i in ('%ADB% shell "su -c 'ps -A'" ^| findstr ldsp') do (
+          set "RUNNING=%%i"
+      )
+  )
+  if defined RUNNING (
+      echo ldsp is currently running on the device, stopping it first...
+      %ADB% shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
+      timeout /t 1 /nobreak >nul
+      set "RUNNING="
+      for /f %%i in ('%ADB% shell "su -c 'ps'" ^| findstr ldsp') do (
+          set "RUNNING=%%i"
+      )
+      if not defined RUNNING (
+          for /f %%i in ('%ADB% shell "su -c 'ps -A'" ^| findstr ldsp') do (
+              set "RUNNING=%%i"
+          )
+      )
+      if defined RUNNING (
+          echo Cannot install: failed to stop ldsp. Try stopping it manually.
+          exit /b 1
+      )
+  )
+
 	
   rem create temp ldsp folder on sdcard
   %ADB% shell "su -c \"mkdir -p '/sdcard/ldsp/projects/%project_name%'\""
@@ -643,6 +674,8 @@ rem End of :push_debugserver
 
   rem remove temp folder from sdcard
   %ADB% shell "su -c 'rm -r /sdcard/ldsp'" 
+
+  echo Install of project '%project_name%' and dependencies complete!
 
   exit /b 0
 rem End of :install

@@ -423,6 +423,7 @@ push_onnxruntime() {
 
 # Install the user project, LDSP hardware config and resources to the phone
 install() {
+
   if [[ ! -f build/bin/ldsp ]]; then
     echo "Cannot install: no ldsp executable found. Please run \"ldsp.sh configure\" and \"ldsp.sh build\" first."
     exit 1
@@ -445,6 +446,29 @@ install() {
   fi
 
   setup_adb
+
+  
+  # Check if ldsp is already running on the device
+  RUNNING=$($ADB shell "su -c 'ps'" | grep ldsp)
+  if [ -z "$RUNNING" ]; then
+      RUNNING=$($ADB shell "su -c 'ps -A'" | grep ldsp)
+  fi
+  if [ -n "$RUNNING" ]; then
+      echo "ldsp is currently running on the device, stopping it first..."
+      $ADB shell "su -c 'sh /data/ldsp/scripts/ldsp_stop.sh'"
+      sleep 1
+      RUNNING=$($ADB shell "su -c 'ps'" | grep ldsp)
+      if [ -z "$RUNNING" ]; then
+          RUNNING=$($ADB shell "su -c 'ps -A'" | grep ldsp)
+      fi
+      if [ -n "$RUNNING" ]; then
+          echo "Cannot install: failed to stop ldsp. Try stopping it manually."
+          exit 1
+      fi
+  else
+      echo "ldsp is not running, proceeding with install..."
+  fi
+
   
   $ADB shell "su -c 'mkdir -p \"/sdcard/ldsp/projects/$project_name\"'" # create temp ldsp folder on sdcard
   
@@ -502,6 +526,8 @@ install() {
   $ADB shell "su -c 'chmod 777 /data/ldsp/debugserver/lldb-server'" # add exe flag to server bin
 
   $ADB shell "su -c 'rm -r /sdcard/ldsp'" # remove the temp /sdcard/ldsp directory from the device
+
+  echo "Install of project '$project_name' and dependencies complete!"
 }
 
 # Run the user project on the phone.
